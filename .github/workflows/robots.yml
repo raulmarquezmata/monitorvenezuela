@@ -1,0 +1,55 @@
+name: Robots Monitor Venezuela
+on:
+  schedule:
+    - cron: "*/30 12-23 * * 1-5"
+    - cron: "20 */4 * * 0,6"
+    - cron: "40 23 * * *"
+    - cron: "15 10 * * 0"
+  push:
+    branches: [main]
+    paths: ["data/**", "config/**", "ingest/catalog.py"]
+  workflow_dispatch:
+    inputs:
+      tarea:
+        description: "Qué correr"
+        type: choice
+        options: [backfill, frequent, daily, weekly, files]
+        default: backfill
+concurrency:
+  group: robots-${{ github.event.schedule || github.event_name }}
+  cancel-in-progress: false
+jobs:
+  robots:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: ingest/requirements.txt
+      - run: pip install -r ingest/requirements.txt
+      - name: Elegir tarea
+        id: t
+        run: |
+          case "${{ github.event_name }}:${{ github.event.schedule }}" in
+            "push:"*)               echo "g=files" >> $GITHUB_OUTPUT ;;
+            "workflow_dispatch:"*)  echo "g=${{ inputs.tarea }}" >> $GITHUB_OUTPUT ;;
+            "schedule:40 23 * * *") echo "g=daily" >> $GITHUB_OUTPUT ;;
+            "schedule:15 10 * * 0") echo "g=weekly" >> $GITHUB_OUTPUT ;;
+            *)                      echo "g=frequent" >> $GITHUB_OUTPUT ;;
+          esac
+      - name: Ejecutar robots
+        run: python -m ingest.run ${{ steps.t.outputs.g }}
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          EIA_API_KEY: ${{ secrets.EIA_API_KEY }}
+          COMTRADE_API_KEY: ${{ secrets.COMTRADE_API_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          GMAIL_USER: ${{ secrets.GMAIL_USER }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          ALERT_EMAILS: ${{ secrets.ALERT_EMAILS }}
+          SITE_URL: ${{ vars.SITE_URL }}
