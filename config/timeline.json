@@ -1,0 +1,149 @@
+{
+ "_ayuda": "Eventos curados de la línea de tiempo. precision: day|month. category: politica, economia, precios, cambiario, petroleo, sanciones, mercados, banca. importance: 1 alta, 2 media, 3 baja. series_code: serie cuyo gráfico se muestra junto al evento. El robot 'events' añade además eventos automáticos (inflación, OPEP, OFAC, intervención).",
+ "eventos": [
+  {
+   "id": "2026-01-03-transicion",
+   "date": "2026-01-03",
+   "precision": "day",
+   "category": "politica",
+   "importance": 1,
+   "title_es": "Captura del liderazgo del gobierno anterior: punto de inflexión de 2026",
+   "title_en": "Capture of the former government's leadership: 2026 turning point",
+   "body_es": "Inicio del proceso de transición que reordena sanciones, petróleo y finanzas.",
+   "series_code": "usd_paralelo",
+   "url": null
+  },
+  {
+   "id": "2026-03-bop",
+   "date": "2026-03-01",
+   "precision": "month",
+   "category": "economia",
+   "importance": 2,
+   "title_es": "BCV publica la balanza de pagos por primera vez desde 2019",
+   "title_en": "BCV publishes the balance of payments for the first time since 2019",
+   "body_es": "Series anuales 1997–2025 y trimestrales hasta 2026-I.",
+   "series_code": null,
+   "url": null
+  },
+  {
+   "id": "2026-04-14-gl57",
+   "date": "2026-04-14",
+   "precision": "day",
+   "category": "sanciones",
+   "importance": 1,
+   "title_es": "OFAC emite la Licencia General 57: servicios financieros con la banca pública venezolana",
+   "title_en": "OFAC issues General License 57: financial services with Venezuelan public banks",
+   "body_es": null,
+   "series_code": null,
+   "url": "https://ofac.treasury.gov/recent-actions"
+  },
+  {
+   "id": "2026-04-inpc",
+   "date": "2026-04-30",
+   "precision": "day",
+   "category": "precios",
+   "importance": 1,
+   "title_es": "El BCV retoma la publicación del INPC: 32,57% en enero, 14,61% en febrero y 13,09% en marzo",
+   "title_en": "BCV resumes CPI publication: 32.57% in January, 14.61% in February, 13.09% in March",
+   "body_es": null,
+   "series_code": "inflacion_mensual",
+   "url": "https://en.mercopress.com/2026/04/30/us-intervention-forces-end-to-decade-of-statistical-opacity-at-venezuela-s-central-bank"
+  },
+  {
+   "id": "2026-05-intervencion",
+   "date": "2026-05-01",
+   "precision": "month",
+   "category": "cambiario",
+   "importance": 2,
+   "title_es": "Intervención cambiaria pasa a asignaciones mensuales: US$1.350 millones en mayo",
+   "title_en": "FX intervention moves to monthly allocations: US$1.35 billion in May",
+   "body_es": null,
+   "series_code": "intervencion_bcv_mensual",
+   "url": null
+  },
+  {
+   "id": "2026-05-20-pib",
+   "date": "2026-05-20",
+   "precision": "day",
+   "category": "economia",
+   "importance": 1,
+   "title_es": "BCV: el PIB creció 2,51% interanual en el primer trimestre",
+   "title_en": "BCV: GDP grew 2.51% y/y in the first quarter",
+   "body_es": null,
+   "series_code": "pib_real_var",
+   "url": "https://eldiario.com/2026/05/20/bcv-economia-primer-trimestre-2026/"
+  },
+  {
+   "id": "2026-06-intervencion",
+   "date": "2026-06-01",
+   "precision": "month",
+   "category": "cambiario",
+   "importance": 2,
+   "title_es": "Intervención de US$1.700 millones en junio a una tasa de Bs 615,52",
+   "title_en": "US$1.7 billion intervention in June at Bs 615.52",
+   "body_es": null,
+   "series_code": "intervencion_bcv_mensual",
+   "url": null
+  },
+  {
+   "id": "2026-06-10-ofac",
+   "date": "2026-06-10",
+   "precision": "day",
+   "category": "sanciones",
+   "importance": 1,
+   "title_es": "Paquete OFAC (GL 46C, 47A, 48B, 50B, 51B, 52A)",
+   "title_en": "OFAC package (GL 46C, 47A, 48B, 50B, 51B, 52A)",
+   "body_es": "Reordena las licencias petroleras; limita estructuralmente nuevas empresas mixtas.",
+   "series_code": null,
+   "url": null
+  },
+  {
+   "id": "2026-06-24-sismo",
+   "date": "2026-06-24",
+   "precision": "day",
+   "category": "economia",
+   "importance": 1,
+   "title_es": "Doble sismo de 7,2 y 7,5 Mw con epicentro en Yaracuy",
+   "title_en": "Twin 7.2 and 7.5 Mw earthquakes centered in Yaracuy",
+   "body_es": "La Faja del Orinoco y el Lago de Maracaibo no resultan afectados.",
+   "series_code": "ibc",
+   "url": null
+  },
+  {
+   "id": "2026-08-gl61-62",
+   "date": "2026-08-01",
+   "precision": "month",
+   "category": "sanciones",
+   "importance": 2,
+   "title_es": "OFAC: Licencias Generales 61 (telecomunicaciones) y 62 (contratos de inversión contingentes)",
+   "title_en": "OFAC: General Licenses 61 (telecoms) and 62 (contingent investment contracts)",
+   "body_es": null,
+   "series_code": null,
+   "url": null
+  },
+  {
+   "id": "2026-09-11-opep",
+   "date": "2026-09-11",
+   "precision": "day",
+   "category": "petroleo",
+   "importance": 1,
+   "title_es": "OPEP: producción venezolana de 1,2 millones de b/d en agosto",
+   "title_en": "OPEC: Venezuelan output at 1.2 million b/d in August",
+   "body_es": null,
+   "series_code": "petroleo_prod_opep_cd",
+   "url": "https://eldiario.com/2026/09/11/produccion-petrolera-venezuela-agosto-2026/"
+  },
+  {
+   "id": "2026-10-03-inflacion",
+   "date": "2026-10-03",
+   "precision": "day",
+   "category": "precios",
+   "importance": 2,
+   "title_es": "La inflación de septiembre baja a 8,40% (465,58% interanual)",
+   "title_en": "September inflation eases to 8.40% (465.58% y/y)",
+   "body_es": null,
+   "series_code": "inflacion_mensual",
+   "url": "https://eldiario.com/2026/10/03/inflacion-septiembre-2026/"
+  }
+ ]
+}

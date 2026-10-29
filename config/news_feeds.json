@@ -1,0 +1,117 @@
+{
+ "_ayuda": "Fuentes de noticias. 'medio' = RSS propio; 'agregador' = búsqueda en Google News limitada a ese medio (para los que no tienen RSS o para filtrar solo Venezuela). filter=true guarda solo noticias que mencionan Venezuela/BCV/PDVSA. Para agregar una fuente copia un bloque.",
+ "feeds": [
+  {
+   "name": "Banca y Negocios",
+   "url": "https://www.bancaynegocios.com/feed/",
+   "lang": "es",
+   "filter": false,
+   "kind": "medio"
+  },
+  {
+   "name": "Finanzas Digital",
+   "url": "https://www.finanzasdigital.com/feed/",
+   "lang": "es",
+   "filter": false,
+   "kind": "medio"
+  },
+  {
+   "name": "Tal Cual",
+   "url": "https://talcualdigital.com/feed/",
+   "lang": "es",
+   "filter": true,
+   "kind": "medio"
+  },
+  {
+   "name": "El Estímulo",
+   "url": "https://elestimulo.com/feed/",
+   "lang": "es",
+   "filter": true,
+   "kind": "medio"
+  },
+  {
+   "name": "Ecosistema",
+   "url": "https://news.google.com/rss/search?q=%22Ecosistema%22+Venezuela+econom%C3%ADa+when%3A7d&hl=es-419&gl=VE&ceid=VE:es-419",
+   "lang": "es",
+   "filter": true,
+   "kind": "agregador"
+  },
+  {
+   "name": "Bitácora Económica",
+   "url": "https://news.google.com/rss/search?q=%22Bit%C3%A1cora+Econ%C3%B3mica%22+when%3A14d&hl=es-419&gl=VE&ceid=VE:es-419",
+   "lang": "es",
+   "filter": false,
+   "kind": "agregador"
+  },
+  {
+   "name": "Venevisión",
+   "url": "https://news.google.com/rss/search?q=site%3Anoticiasvenevision.com+econom%C3%ADa+when%3A3d&hl=es-419&gl=VE&ceid=VE:es-419",
+   "lang": "es",
+   "filter": true,
+   "kind": "agregador"
+  },
+  {
+   "name": "Reuters",
+   "url": "https://news.google.com/rss/search?q=Venezuela+site%3Areuters.com+when%3A3d&hl=en-US&gl=US&ceid=US:en",
+   "lang": "en",
+   "filter": true,
+   "kind": "agregador"
+  },
+  {
+   "name": "The Wall Street Journal",
+   "url": "https://news.google.com/rss/search?q=Venezuela+site%3Awsj.com+when%3A7d&hl=en-US&gl=US&ceid=US:en",
+   "lang": "en",
+   "filter": true,
+   "kind": "agregador"
+  },
+  {
+   "name": "Axios",
+   "url": "https://news.google.com/rss/search?q=Venezuela+site%3Aaxios.com+when%3A7d&hl=en-US&gl=US&ceid=US:en",
+   "lang": "en",
+   "filter": true,
+   "kind": "agregador"
+  },
+  {
+   "name": "Bloomberg",
+   "url": "https://news.google.com/rss/search?q=Venezuela+site%3Abloomberg.com+when%3A3d&hl=en-US&gl=US&ceid=US:en",
+   "lang": "en",
+   "filter": true,
+   "kind": "agregador"
+  },
+  {
+   "name": "The Economist",
+   "url": "https://news.google.com/rss/search?q=Venezuela+site%3Aeconomist.com+when%3A14d&hl=en-US&gl=US&ceid=US:en",
+   "lang": "en",
+   "filter": true,
+   "kind": "agregador"
+  },
+  {
+   "name": "Fox News",
+   "url": "https://news.google.com/rss/search?q=Venezuela+site%3Afoxnews.com+when%3A7d&hl=en-US&gl=US&ceid=US:en",
+   "lang": "en",
+   "filter": true,
+   "kind": "agregador"
+  },
+  {
+   "name": "CNBC",
+   "url": "https://news.google.com/rss/search?q=Venezuela+site%3Acnbc.com+when%3A7d&hl=en-US&gl=US&ceid=US:en",
+   "lang": "en",
+   "filter": true,
+   "kind": "agregador"
+  },
+  {
+   "name": "CNN",
+   "url": "https://news.google.com/rss/search?q=Venezuela+site%3Acnn.com+when%3A7d&hl=en-US&gl=US&ceid=US:en",
+   "lang": "en",
+   "filter": true,
+   "kind": "agregador"
+  },
+  {
+   "name": "CNN en Español",
+   "url": "https://news.google.com/rss/search?q=Venezuela+econom%C3%ADa+site%3Acnnespanol.cnn.com+when%3A7d&hl=es-419&gl=VE&ceid=VE:es-419",
+   "lang": "es",
+   "filter": true,
+   "kind": "agregador"
+  }
+ ]
+}
