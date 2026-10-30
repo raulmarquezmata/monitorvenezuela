@@ -5,7 +5,9 @@ import { bvcLatest, configured, history, latest } from "@/lib/data";
 import { date, num } from "@/lib/format";
 import { t, type Lang } from "@/lib/i18n";
 
-export const revalidate = 300;
+// los filtros llegan por la URL (?cat=, ?m=…): se renderiza en cada visita
+export const dynamic = "force-dynamic";
+
 
 export default async function BVC({ params, searchParams }: { params: { lang: Lang }; searchParams: { m?: string; fx?: string } }) {
   const { lang } = params;

@@ -224,3 +224,20 @@ footer a { color: var(--text-3); }
 .news li:last-child { border-bottom: 0; }
 .news a { text-decoration: none; font-weight: 500; }
 .news .m { font-size: 13px; color: var(--text-3); margin-top: 4px; display: flex; gap: 10px; flex-wrap: wrap; }
+
+/* ---------------- Hemeroteca */
+.hm-search { display: flex; gap: 8px; margin: 0 0 20px; max-width: 640px; }
+.hm-search input { flex: 1; min-width: 0; font: inherit; font-size: 16px; padding: 9px 14px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg); color: var(--text); }
+.hm-search button { font: inherit; font-size: 15px; padding: 9px 18px; border: 0; border-radius: var(--radius); background: var(--accent); color: var(--accent-ink); cursor: pointer; }
+.hm-sectors { margin: -6px 0 18px; }
+.hm-sectors summary { cursor: pointer; color: var(--text-2); font-size: 14px; }
+.hm-sector { font-size: 13px; color: var(--text-3); text-decoration: none; }
+.hm-sector:hover { text-decoration: underline; }
+.hm-item summary.t { display: block; margin-top: 10px; font-size: 18px; font-weight: 500; line-height: 1.35; cursor: pointer; list-style: none; }
+.hm-item summary.t::-webkit-details-marker { display: none; }
+.hm-item summary.t::after { content: " ＋"; color: var(--text-3); font-weight: 400; font-size: 15px; }
+.hm-item[open] summary.t::after { content: " －"; }
+.hm-item p { line-height: 1.6; }
+.hm-src { font-size: 14px; }
+.hm-src a { color: var(--accent); }
+.hm-pager { display: flex; gap: 18px; align-items: center; justify-content: center; margin: 28px 0; font-size: 15px; }

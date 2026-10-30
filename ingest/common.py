@@ -55,12 +55,23 @@ def fetch(url: str, *, method: str = "GET", retries: int = 3, timeout: int = 40,
                         return r
                     except Exception as e2:  # noqa: BLE001
                         last = e2
-        except Exception as e:  # noqa: BLE001
+        except requests.exceptions.HTTPError as e:
+            last = e
+            code = e.response.status_code if e.response is not None else 0
+            if code in (403, 503) and attempt == retries - 1:  # bloqueo anti-bots: probar como navegador
+                alt = browser_fetch(method, url, timeout, **kw)
+                if alt is not None:
+                    return alt
+            if code in (400, 401, 404, 410):  # no existe / no autorizado: reintentar no sirve
+                break
+        except requests.exceptions.ConnectionError as e:
             last = e
             if attempt == retries - 1:
                 alt = browser_fetch(method, url, timeout, **kw)
                 if alt is not None:
                     return alt
+        except Exception as e:  # noqa: BLE001
+            last = e
         time.sleep(2 ** attempt)
     raise RuntimeError(f"No se pudo obtener {url}: {last}")
 
@@ -138,6 +149,16 @@ def upsert(table: str, rows: Iterable[dict], on_conflict: str | None = None,
             raise RuntimeError(f"Supabase {table} {r.status_code}: {r.text[:500]}")
         n += len(part)
     return n
+
+
+def delete(table: str, params: dict) -> None:
+    """Borra filas que cumplan el filtro PostgREST (p. ej. {"id": "in.(a,b)"})."""
+    if DRY_RUN:
+        log.info("[DRY_RUN] borrar de %s: %s", table, params)
+        return
+    r = requests.delete(f"{SUPABASE_URL}/rest/v1/{table}", headers=_headers("return=minimal"), params=params, timeout=60)
+    if r.status_code >= 300:
+        raise RuntimeError(f"Supabase delete {table} {r.status_code}: {r.text[:300]}")
 
 
 def select(table: str, params: dict | None = None) -> list[dict]:

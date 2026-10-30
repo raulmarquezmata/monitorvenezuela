@@ -5,8 +5,11 @@ import { NotConfigured } from "@/components/ui";
 import { configured, events, history, latest, type Event } from "@/lib/data";
 import { num, fmtDateFor } from "@/lib/format";
 import { t, type Lang } from "@/lib/i18n";
+import { MONTHS } from "@/lib/hemeroteca";
 
-export const revalidate = 600;
+// los filtros llegan por la URL (?cat=, ?m=…): se renderiza en cada visita
+export const dynamic = "force-dynamic";
+
 const CATS = ["politica", "economia", "precios", "cambiario", "petroleo", "sanciones", "mercados", "banca"];
 
 export default async function Timeline({ params, searchParams }: { params: { lang: Lang }; searchParams: { cat?: string; y?: string } }) {
@@ -54,7 +57,10 @@ export default async function Timeline({ params, searchParams }: { params: { lan
         <div className="timeline">
           {[...months.entries()].map(([k, list]) => (
             <div key={k}>
-              <div className="tl-month">{monthName(k)}</div>
+              <div className="tl-month" style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+                <span>{monthName(k)}</span>
+                {MONTHS.includes(k) && <Link href={`/${lang}/noticias/hemeroteca?m=${k}`} style={{ fontSize: 14, fontWeight: 400 }}>{es ? "Noticias del mes →" : "Month's news →"}</Link>}
+              </div>
               {list.map((e) => (
                 <article key={e.id} className={`tl-item i${e.importance}`}>
                   <div>

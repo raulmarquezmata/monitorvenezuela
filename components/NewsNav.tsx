@@ -6,6 +6,7 @@ export default function NewsNav({ lang }: { lang: Lang }) {
   return <SubNav items={[
     { href: `/${lang}/noticias`, label: d.nav.headlines, exact: true },
     { href: `/${lang}/noticias/linea-de-tiempo`, label: d.nav.timeline },
+    { href: `/${lang}/noticias/hemeroteca`, label: lang === "es" ? "Hemeroteca 2026" : "2026 archive" },
     { href: `/${lang}/research`, label: d.nav.research },
   ]} />;
 }

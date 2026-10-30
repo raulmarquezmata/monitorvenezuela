@@ -5,6 +5,26 @@ import { CurrencyButtons, CurrencyProvider } from "@/components/Currency";
 import { RangeButtons, RangeProvider } from "@/components/Range";
 import { history, lastRun } from "@/lib/data";
 import { isLang, LANGS, t } from "@/lib/i18n";
+import { unstable_cache } from "next/cache";
+
+type Pt = [string, number];
+/** Diario en los últimos 3 años y semanal hacia atrás: basta para convertir a US$ y aligera cada página. */
+function thin(pts: Pt[]): Pt[] {
+  const cut = new Date(Date.now() - 3 * 365 * 864e5).toISOString().slice(0, 10);
+  const out: Pt[] = [];
+  let wk = "";
+  for (const p of pts) {
+    if (p[0] >= cut) { out.push(p); continue; }
+    const d = new Date(`${p[0]}T12:00:00Z`);
+    const k = `${d.getUTCFullYear()}-${Math.floor((d.getTime() / 864e5 + 3) / 7)}`;
+    if (k === wk) out[out.length - 1] = p; else { out.push(p); wk = k; }
+  }
+  return out;
+}
+const fxForCurrency = unstable_cache(async () => {
+  const h = await history(["usd_bcv", "usd_paralelo"], 30);
+  return { bcv: thin((h.usd_bcv ?? []) as Pt[]), par: thin((h.usd_paralelo ?? []) as Pt[]) };
+}, ["fx-currency-v1"], { revalidate: 300 });
 
 export const revalidate = 300;
 
@@ -24,11 +44,11 @@ export default async function LangLayout({ children, params }: { children: React
     { href: `${L}/noticias`, label: d.nav.news, match: [`${L}/noticias`, `${L}/research`] },
     { href: `${L}/datos`, label: d.nav.data, match: [`${L}/datos`] },
   ];
-  const [updated, fx] = await Promise.all([lastRun(), history(["usd_bcv", "usd_paralelo"], 30)]);
+  const [updated, fx] = await Promise.all([lastRun(), fxForCurrency()]);
   const upd = updated ? new Intl.DateTimeFormat(lang === "es" ? "es-VE" : "en-US", { timeZone: "America/Caracas", day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date(updated)) : "—";
   const live = updated ? Date.now() - Date.parse(updated) < 2 * 3600e3 : false;
   return (
-    <CurrencyProvider fx={{ bcv: fx.usd_bcv ?? [], par: fx.usd_paralelo ?? [] }}>
+    <CurrencyProvider fx={fx}>
     <RangeProvider>
       <header className="top">
         <div className="wrap">

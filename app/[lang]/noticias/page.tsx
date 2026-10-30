@@ -5,7 +5,9 @@ import { configured, news, ofacActions } from "@/lib/data";
 import { date, dateTime } from "@/lib/format";
 import { t, type Lang } from "@/lib/i18n";
 
-export const revalidate = 300;
+// los filtros llegan por la URL (?cat=, ?m=…): se renderiza en cada visita
+export const dynamic = "force-dynamic";
+
 const CATS = ["economia", "cambiario", "petroleo", "mercados", "banca", "sanciones", "agro"];
 
 export default async function Noticias({ params, searchParams }: { params: { lang: Lang }; searchParams: { cat?: string } }) {

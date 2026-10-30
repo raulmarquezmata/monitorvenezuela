@@ -6,7 +6,9 @@ import { num } from "@/lib/format";
 import MacroNav from "@/components/MacroNav";
 import { t, type Lang } from "@/lib/i18n";
 
-export const revalidate = 3600;
+// los filtros llegan por la URL (?cat=, ?m=…): se renderiza en cada visita
+export const dynamic = "force-dynamic";
+
 
 export default async function Agro({ params, searchParams }: { params: { lang: Lang }; searchParams: { item?: string } }) {
   const { lang } = params;

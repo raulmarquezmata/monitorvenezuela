@@ -11,7 +11,7 @@ from __future__ import annotations
 import json
 import pathlib
 
-from .common import Run, select, today_caracas, upsert
+from .common import Run, delete, select, today_caracas, upsert
 
 CONFIG = pathlib.Path(__file__).resolve().parent.parent / "config" / "timeline.json"
 MES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"]
@@ -59,3 +59,8 @@ def run():
         rows = [{k: e.get(k) for k in keys} | {"origin": "curado"} for e in cur]
         rows += [{k: e.get(k) for k in keys} for e in auto_events(today_caracas().year)]
         r.rows = upsert("events", rows, "id")
+        # los eventos curados que se quitaron del JSON también se quitan de la web
+        ids = {e["id"] for e in cur}
+        old = [x["id"] for x in select("events", {"select": "id", "origin": "eq.curado"}) if x["id"] not in ids]
+        for i in range(0, len(old), 50):
+            delete("events", {"id": "in.(" + ",".join(f'"{x}"' for x in old[i:i + 50]) + ")"})
