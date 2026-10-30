@@ -38,29 +38,51 @@ def run(backfill: bool = False):
         this_year = dt.date.today().year
         years = range(2014 if backfill else this_year - 3, this_year + 1)
         totals = {"X": defaultdict(float), "M": defaultdict(float)}
-        errors = 0
+        errors = streak = 0
+        stop = False
         for year in years:
+            if stop:
+                break
             for rep, rep_name in PARTNERS.items():
+                if stop:
+                    break
                 # flujo del socio: M (importa desde VEN) => X de Venezuela; X (exporta a VEN) => M de Venezuela
                 for partner_flow, ven_flow in (("M", "X"), ("X", "M")):
                     try:
                         data = query(rep, year, partner_flow)
                     except Exception as e:  # noqa: BLE001
                         errors += 1
+                        streak += 1
                         r.log.warning("%s %s %s: %s", rep_name, year, partner_flow, e)
+                        if streak >= 8:  # límite diario de Comtrade agotado: seguir mañana
+                            r.note("Comtrade cortó las consultas (límite diario); se completa en la próxima corrida")
+                            stop = True
+                            break
                         time.sleep(3)
                         continue
-                    rows = []
+                    streak = 0
+                    # la API con clave desglosa por aduana, medio de transporte y segundo socio:
+                    # se toman solo los totales y, si aun así se repite un capítulo, el mayor valor
+                    by_hs: dict[str, dict] = {}
                     for d in data:
                         hs2 = str(d.get("cmdCode") or "")
                         val = d.get("primaryValue")
                         if not hs2 or hs2 == "TOTAL" or val is None:
                             continue
-                        rows.append({"year": year, "flow": ven_flow, "partner_code": rep, "partner": rep_name,
-                                     "hs2": hs2.zfill(2), "hs2_desc": d.get("cmdDesc"),
-                                     "value_usd": float(val), "net_kg": d.get("netWgt")})
-                        totals[ven_flow][year] += float(val)
-                    r.rows += upsert("trade_flows", rows, "year,flow,partner_code,hs2")
+                        if d.get("motCode") not in (None, 0) or d.get("partner2Code") not in (None, 0) \
+                                or d.get("customsCode") not in (None, "C00", ""):
+                            continue
+                        k = hs2.zfill(2)
+                        if k not in by_hs or float(val) > by_hs[k]["value_usd"]:
+                            by_hs[k] = {"year": year, "flow": ven_flow, "partner_code": rep, "partner": rep_name,
+                                        "hs2": k, "hs2_desc": d.get("cmdDesc"), "value_usd": float(val), "net_kg": d.get("netWgt")}
+                    rows = list(by_hs.values())
+                    totals[ven_flow][year] += sum(x["value_usd"] for x in rows)
+                    try:
+                        r.rows += upsert("trade_flows", rows, "year,flow,partner_code,hs2")
+                    except Exception as e:  # noqa: BLE001
+                        errors += 1
+                        r.log.warning("guardar %s %s %s: %s", rep_name, year, partner_flow, e)
                     time.sleep(1.2)
         # Totales anuales (millones US$), solo años con algún dato
         r.rows += save_obs("exportaciones_espejo",
