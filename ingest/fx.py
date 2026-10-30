@@ -78,6 +78,52 @@ def frankfurter_history(since: str = RECONVERSION) -> dict[str, list]:
     return out
 
 
+# ------------------------------------------------------------------ histórico largo (FRED)
+FRED = "https://fred.stlouisfed.org/graph/fredgraph.csv"
+RECONVERSIONS = [("2021-10-01", 1e6), ("2018-08-20", 1e5), ("2008-01-01", 1e3)]
+
+
+def fred_series(sid: str) -> list[tuple[str, float]]:
+    txt = fetch(FRED, params={"id": sid}, timeout=90).text
+    out = []
+    for row in csv.reader(io.StringIO(txt)):
+        if len(row) >= 2 and re.match(r"\d{4}-\d{2}-\d{2}$", row[0]):
+            try:
+                v = float(row[1])
+            except ValueError:
+                continue
+            if v > 0:
+                out.append((row[0], v))
+    return out
+
+
+def respliced(pts: list[tuple[str, float]]) -> list[tuple[str, float]]:
+    """Lleva toda la serie a bolívares de hoy. En cada reconversión compara la mediana de los 5 datos
+    antes y después: si el salto es del orden del factor, divide todo lo anterior. Funciona tanto si
+    la fuente ya reexpresó una etapa como si no."""
+    pts = sorted(pts)
+    for day, f in RECONVERSIONS:
+        d0 = dt.date.fromisoformat(day)
+        lo, hi = iso(d0 - dt.timedelta(days=15)), iso(d0 + dt.timedelta(days=15))
+        before = [v for d, v in pts if lo <= d < day][-5:]
+        after = [v for d, v in pts if day <= d <= hi][:5]
+        if before and after and statistics.median(before) / statistics.median(after) > f / 50:
+            pts = [(d, v / f if d < day else v) for d, v in pts]
+    return pts
+
+
+def fred_history() -> dict[str, list]:
+    """Oficial diario desde 2000 (Fed H.10 vía FRED), reexpresado; el euro por cruce con EUR/USD.
+    Solo rellena fechas anteriores a los datos del BCV (SMC 2020+ y Frankfurter 2021+)."""
+    first = select("observations", {"select": "date", "series_code": "eq.usd_bcv", "source": "not.like.FRED*",
+                                    "order": "date", "limit": 1})
+    cut = first[0]["date"] if first else "2020-01-01"
+    usd = [p for p in respliced(fred_series("DEXVZUS")) if p[0] < cut]
+    eurusd = dict(fred_series("DEXUSEU"))  # US$ por euro
+    eur = [(d, v * eurusd[d]) for d, v in usd if d in eurusd]
+    return {"usd_bcv": usd, "eur_bcv": eur}
+
+
 def gap_from_db(days: int = 400) -> int:
     """Brecha = paralelo / oficial vigente − 1 (el oficial de la misma fecha o el último anterior)."""
     since = iso(today_caracas() - dt.timedelta(days=days))
@@ -94,6 +140,15 @@ def gap_from_db(days: int = 400) -> int:
         if of_dates[j] <= d:
             pts.append((d, (pa[d] / of[of_dates[j]] - 1) * 100))
     return save_obs("brecha_cambiaria", pts, "Cálculo propio")
+
+
+def run_history():
+    with Run("fx_historico") as r:
+        try:
+            for code, pts in fred_history().items():
+                r.rows += save_obs(code, pts, "FRED (Fed H.10)")
+        except Exception as e:  # noqa: BLE001
+            r.note(f"FRED: {e}")
 
 
 def run(backfill: bool = False):

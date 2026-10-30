@@ -27,6 +27,7 @@ PAGES = ["/estadisticas/tipo-cambio-de-referencia-smc", "/estadisticas/liquidez-
          "/estadisticas/tasas-de-interes", "/estadisticas/encaje-legal", "/estadisticas/balanza-de-pagos",
          "/estadisticas/producto-interno-bruto"]
 SMC_CODES = {"USD": "usd_bcv", "EUR": "eur_bcv"}
+RECONVERSION = dt.date(2021, 10, 1)
 
 
 def list_files(path: str, max_pages: int = 1) -> list[str]:
@@ -100,7 +101,10 @@ def parse_smc(book: dict[str, pd.DataFrame]) -> dict[str, list]:
             nums = [n for n in (ve_number(c) if isinstance(c, str) else c for c in row)
                     if isinstance(n, (int, float)) and not pd.isna(n) and n > 0]
             if nums:
-                out[SMC_CODES[code]].append((fecha, float(nums[-1])))
+                v = float(nums[-1])
+                if fecha < RECONVERSION and v > 1000:  # Bs.S antes de la reconversión de oct-2021 → Bs de hoy
+                    v /= 1e6
+                out[SMC_CODES[code]].append((fecha, v))
     return out
 
 
@@ -172,6 +176,12 @@ def derived() -> int:
         "select": "date,value", "series_code": f"eq.{c}", "date": f"gte.{since}", "order": "date"})}
     m2, base = get("liquidez_m2"), get("base_monetaria")
     n = 0
+    # Corrige tasas SMC 2020-2021 guardadas en Bs.S (sin reexpresar) por corridas anteriores
+    for code in SMC_CODES.values():
+        old = select("observations", {"select": "date,value", "series_code": f"eq.{code}",
+                                      "date": "lt.2021-10-01", "value": "gt.1000"})
+        if old:
+            n += save_obs(code, [(x["date"], x["value"] / 1e6) for x in old], "BCV (SMC)")
     if m2 and base:
         n += save_obs("multiplicador", [(d, m2[d] / base[d]) for d in m2 if d in base and base[d]], "Cálculo propio")
     return n

@@ -4,6 +4,10 @@ const loc = (lang: Lang) => (lang === "es" ? "es-VE" : "en-US");
 
 export function num(v: number | null | undefined, lang: Lang, decimals = 2): string {
   if (v === null || v === undefined || Number.isNaN(v)) return "—";
+  // cifras de antes de las reconversiones (p. ej. 0,0000000000215 Bs por dólar en 2008): 4 cifras significativas
+  if (v !== 0 && Math.abs(v) < 0.5 * 10 ** -decimals) {
+    return new Intl.NumberFormat(loc(lang), { maximumSignificantDigits: 4 }).format(v);
+  }
   return new Intl.NumberFormat(loc(lang), { minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(v);
 }
 

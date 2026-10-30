@@ -16,7 +16,7 @@ from . import (agro, alerts, banking, bcv_stats, bonds, bvc, catalog, commoditie
 from .common import DRY_RUN, log
 
 JOBS = {
-    "catalog": catalog.run, "fx": fx.run, "bvc": bvc.run, "bvc_full": lambda: bvc.run(full=True), "news": news.run,
+    "catalog": catalog.run, "fx": fx.run, "fx_hist": fx.run_history, "bvc": bvc.run, "bvc_full": lambda: bvc.run(full=True), "news": news.run,
     "bcv_stats": bcv_stats.run, "inflation": inflation.run, "press": press.run, "banking": banking.run,
     "opec": opec.run, "sunaval": sunaval.run, "oil": oil.run, "ofac": ofac.run, "events": events.run,
     "manual": manual.run, "bonds": bonds.run, "trade": trade.run, "agro": agro.run, "commodities": commodities.run,
@@ -26,7 +26,7 @@ GROUPS = {
     "frequent": ["catalog", "fx", "bvc", "news", "alerts"],
     "daily": ["catalog", "fx", "bvc_full", "bcv_stats", "inflation", "press", "banking", "opec", "sunaval", "oil",
               "ofac", "events", "alerts_daily"],
-    "weekly": ["catalog", "trade", "agro", "commodities", "sudeban"],
+    "weekly": ["catalog", "fx_hist", "trade", "agro", "commodities", "sudeban"],
     "files": ["catalog", "manual", "bonds", "events"],
 }
 
@@ -34,6 +34,7 @@ GROUPS = {
 def backfill():
     catalog.run()
     fx.run(backfill=True)
+    fx.run_history()
     bvc.run(full=True)
     bcv_stats.run(backfill=True)
     inflation.run(backfill=True)
