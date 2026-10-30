@@ -81,7 +81,12 @@ def parse_text(text: str) -> dict[str, list]:
         low = page.lower()
         for key, code in (("based on secondary sources", "petroleo_prod_opep_fs"), ("based on direct communication", "petroleo_prod_opep_cd")):
             if key in low and "venezuela" in low and not out[code]:
-                lines = page.splitlines()
+                # las dos tablas suelen ir en la misma página: se toma solo el tramo de la tabla buscada
+                part = page[low.index(key):]
+                other = "based on direct communication" if code.endswith("_fs") else "based on secondary sources"
+                if other in part.lower():
+                    part = part[:part.lower().index(other)]
+                lines = page[:low.index(key)].splitlines()[-1:] + part.splitlines()
                 for i, ln in enumerate(lines):
                     if ln.strip().lower().startswith("venezuela"):
                         header = next((h for h in reversed(lines[:i]) if len(months_in(h)) >= 3), "")
@@ -113,8 +118,23 @@ def pdf_text(content: bytes) -> str:
         return "\f".join((p.extract_text() or "") for p in pdf.pages)
 
 
-def run(backfill: bool = False):
+LOCAL = __import__("pathlib").Path(__file__).resolve().parent.parent / "data" / "momr"
+
+
+def run(backfill: bool = False, local_only: bool = False):
     with Run("opec") as r:
+        # 1) Informes MOMR subidos a mano a data/momr/ (por si opec.org bloquea al robot), del más viejo al más nuevo
+        def key(pth):
+            n = pth.stem.lower()
+            y = re.search(r"20\d\d", n)
+            m = next((i for i, mm in enumerate(MONTHS_EN, 1) if mm.lower()[:3] in n), 0)
+            return (int(y.group(0)) if y else 0, m)
+        for pth in sorted(LOCAL.glob("*.pdf"), key=key):
+            data = parse_text(pdf_text(pth.read_bytes()))
+            for code, pts in data.items():
+                r.rows += save_obs(code, pts, f"OPEP MOMR ({pth.name})")
+        if local_only:
+            return
         tried, got = [], False
         for url in (list(reversed(find_pdfs(30))) if backfill else find_pdfs(3)):  # en backfill, del más viejo al más nuevo
             name = url.rsplit("/", 1)[-1]

@@ -231,6 +231,14 @@ def run(backfill: bool = False):
         except Exception as e:  # noqa: BLE001
             r.note(f"Intervención: {e}")
         # SENIAT
+        # PIB trimestral anunciado por el BCV (la prensa lo publica semanas antes de que salga el Excel)
+        try:
+            posts = wp_posts("www.finanzasdigital.com", "BCV PIB trimestre", pages) + wp_posts("www.bancaynegocios.com", "PIB trimestre BCV", pages)
+            posts += google_posts("BCV PIB trimestre creció")
+            official = {x["date"] for x in select("observations", {"select": "date", "series_code": "eq.pib_real_var", "source": "eq.BCV"})}
+            r.rows += save_obs("pib_real_var", [p for p in parse_gdp(posts) if p[0] not in official], "BCV (anuncio, vía prensa)")
+        except Exception as e:  # noqa: BLE001
+            r.note(f"PIB: {e}")
         try:
             bs, usd = parse_seniat(wp_posts("www.finanzasdigital.com", "recaudación Seniat", pages))
             r.rows += save_obs("recaudacion_seniat", bs, "Prensa · Finanzas Digital")

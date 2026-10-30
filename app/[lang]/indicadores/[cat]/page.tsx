@@ -3,7 +3,8 @@ import BondsTable from "@/components/BondsTable";
 import ChartCard from "@/components/ChartCard";
 import MacroNav from "@/components/MacroNav";
 import { BarList, chartLabels, Kpi, NotConfigured, SectionHead, SeriesCard } from "@/components/ui";
-import { bankRanking, bonds, configured, history, latest } from "@/lib/data";
+import { bankRanking, bankSample, bonds, configured, history, latest } from "@/lib/data";
+import BankExplorer from "@/components/BankExplorer";
 import { num } from "@/lib/format";
 import { cumulative } from "@/lib/stats";
 import { CATEGORIES, LANGS, t, type Category, type Lang } from "@/lib/i18n";
@@ -66,7 +67,7 @@ export default async function CategoryPage({ params }: { params: { lang: Lang; c
   if (!configured) return <NotConfigured />;
   const series = await latest(cat);
   const hist = await history([...series.map((s) => s.code), ...(cat === "precios" ? [] : [])], 45);
-  const [bnd, ranking] = await Promise.all([cat === "deuda" ? bonds() : null, cat === "banca" ? bankRanking() : []]);
+  const [bnd, ranking, sample] = await Promise.all([cat === "deuda" ? bonds() : null, cat === "banca" ? bankRanking() : [], cat === "banca" ? bankSample() : []]);
   const by = Object.fromEntries(series.map((s) => [s.code, s]));
   const featured = cat === "cambiario" ? ["usd_bcv", "usd_paralelo", "brecha_cambiaria"] : [];
   const rest = series.filter((s) => !featured.includes(s.code) && !(cat === "cambiario" && ["usd_paralelo", "eur_bcv"].includes(s.code))
@@ -106,6 +107,12 @@ export default async function CategoryPage({ params }: { params: { lang: Lang; c
         <div className="card" style={{ marginBottom: 20 }}>
           <div className="card-top"><h3>{es ? "Bonos VENZ y PDVSA · último cierre" : "VENZ and PDVSA bonds · last close"}</h3><span className="date">{es ? "% del nominal" : "% of par"}</span></div>
           <BondsTable lang={lang} list={bnd.list} prices={bnd.prices} />
+        </div>
+      )}
+
+      {cat === "banca" && (
+        <div style={{ marginBottom: 20 }}>
+          <BankExplorer rows={sample} lang={lang} labels={chartLabels(lang)} rangeLabels={d.range} />
         </div>
       )}
 

@@ -146,8 +146,14 @@ export async function bonds(): Promise<{ list: Bond[]; prices: Record<string, Po
 export type BankRow = { period: string; bank: string; metric: string; value: number; share: number | null };
 export async function bankRanking(): Promise<BankRow[]> {
   if (!sb) return [];
-  const { data: last } = await sb.from("bank_ranking").select("period").order("period", { ascending: false }).limit(1);
+  const { data: last } = await sb.from("bank_ranking").select("period").in("metric", ["creditos", "captaciones"]).order("period", { ascending: false }).limit(1);
   if (!last?.length) return [];
-  const { data } = await sb.from("bank_ranking").select("*").eq("period", last[0].period).order("value", { ascending: false });
+  const { data } = await sb.from("bank_ranking").select("*").eq("period", last[0].period).in("metric", ["creditos", "captaciones"]).order("value", { ascending: false });
   return (data as BankRow[]) ?? [];
+}
+
+/** Muestra de bancos (archivo data/bancos/Bancos.xlsx): todas las métricas, todos los meses. */
+export async function bankSample(): Promise<BankRow[]> {
+  if (!sb) return [];
+  return all<BankRow>((a, b) => sb!.from("bank_ranking").select("period,bank,metric,value,share").like("metric", "muestra_%").order("period").range(a, b));
 }

@@ -6,7 +6,7 @@
   {"id": "paralelo_salto", "tipo": "variacion", "serie": "usd_paralelo", "pct": 3, "texto": "💵 Dólar paralelo se movió {cambio}% → Bs {valor} ({fecha})"},
   {"id": "oficial_salto", "tipo": "variacion", "serie": "usd_bcv", "pct": 2, "texto": "🏦 Dólar oficial BCV se movió {cambio}% → Bs {valor} ({fecha})"},
   {"id": "ibc_salto", "tipo": "variacion", "serie": "ibc", "pct": 4, "texto": "📈 El IBC se movió {cambio}% → {valor} puntos ({fecha})"},
-  {"id": "nuevos_datos", "tipo": "nuevo_dato", "series": ["inflacion_mensual", "reservas_internacionales", "liquidez_m2", "petroleo_prod_eia", "petroleo_prod_opep_fs", "pib_real_var"], "texto": "🆕 Nuevo dato · {nombre}: {valor} {unidad} ({fecha})"},
+  {"id": "nuevos_datos", "tipo": "nuevo_dato", "series": ["inflacion_mensual", "reservas_internacionales", "liquidez_m2", "petroleo_prod_eia", "petroleo_prod_opep_cd", "merey", "pib_real_var", "pib_petrolero_var", "intervencion_bcv_mensual"], "texto": "🆕 Nuevo dato · {nombre}: {valor} {unidad} ({fecha})"},
   {"id": "resumen", "tipo": "resumen_diario", "series": ["usd_bcv", "usd_paralelo", "brecha_cambiaria", "ibc", "ibc_usd_paralelo", "brent"], "texto": "📊 Resumen Monitor Venezuela · {fecha}"}
  ]
 }

@@ -5,7 +5,7 @@ import { useRange, windowed } from "./Range";
 type Point = [string, number];
 type S = { name: string; points: Point[]; color?: string };
 type Labels = { logScale: string; table: string; chart: string; date: string; noData: string };
-const COLORS = ["var(--series-1)", "var(--series-2)", "var(--series-3)", "#8a6fb0"];
+const COLORS = ["var(--series-1)", "var(--series-2)", "var(--series-3)", "#8a6fb0", "#3d7ea6", "#c79a2e", "#b5473a", "#5c9e6e"];
 const ts = (d: string) => Date.parse(`${d}T00:00:00Z`);
 
 function niceTicks(min: number, max: number, n = 4): number[] {

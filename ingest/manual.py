@@ -32,10 +32,12 @@ def run():
                         pts.append((d, v))
                         src = (row.get("source") or src).strip() or src
             if path.parent == HIST:
-                # la historia sembrada solo rellena fechas anteriores a lo que ya bajó el robot del BCV
-                live = select("observations", {"select": "date", "series_code": f"eq.{code}", "source": "eq.BCV", "order": "date", "limit": 1})
+                # la historia sembrada rellena lo que el robot del BCV no tiene: antes de su primer dato y después
+                # del último (p. ej. el último trimestre si el Excel que publica el BCV está atrasado), sin
+                # intercalar fechas en medio para no mezclar semanas con fechas distintas
+                live = [x["date"] for x in select("observations", {"select": "date", "series_code": f"eq.{code}", "source": "eq.BCV", "order": "date"})]
                 if live:
-                    pts = [p for p in pts if p[0] < live[0]["date"]]
+                    pts = [p for p in pts if p[0] < live[0] or p[0] > live[-1]]
                 # y nunca pisa fechas que ya tienen dato de otra fuente (salvo los respaldos de menor calidad)
                 taken = {x["date"] for x in select("observations", {"select": "date,source", "series_code": f"eq.{code}"})
                          if x.get("source") not in (src, *OVERRIDABLE)}
