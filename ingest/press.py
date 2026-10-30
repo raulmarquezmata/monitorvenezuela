@@ -58,6 +58,27 @@ def wp_posts(site: str, search: str, pages: int = 1, per_page: int = 50) -> list
     return list({x["link"]: x for x in out}.values())
 
 
+def google_posts(query: str) -> list[dict]:
+    """Titulares de Google News (últimos 30 días) con el mismo formato que wp_posts: respaldo
+    cuando un medio bloquea las consultas desde GitHub."""
+    import feedparser
+    from urllib.parse import quote
+    url = f"https://news.google.com/rss/search?q={quote(query + ' when:30d')}&hl=es-419&gl=VE&ceid=VE:es-419"
+    try:
+        feed = feedparser.parse(fetch(url, timeout=30, retries=2).content)
+    except Exception:  # noqa: BLE001
+        return []
+    out = []
+    for e in feed.entries:
+        tp = e.get("published_parsed")
+        if not tp or not e.get("title"):
+            continue
+        title = re.sub(r"\s+-\s+[^-]{2,40}$", "", html.unescape(e["title"])).strip()
+        out.append({"date": dt.date(tp.tm_year, tp.tm_mon, tp.tm_mday).isoformat(), "link": e.get("link", ""),
+                    "slug": "", "title": title, "excerpt": ""})
+    return out
+
+
 def eom(y: int, m: int) -> str:
     nxt = dt.date(y + (m == 12), m % 12 + 1, 1)
     return (nxt - dt.timedelta(days=1)).isoformat()
@@ -195,6 +216,10 @@ def run(backfill: bool = False):
             posts = []
             for q in ("intervención cambiaria", "BCV vendió millones", "BCV inyecta millones", "BCV colocó millones"):
                 posts += wp_posts("www.bancaynegocios.com", q, pages)
+            for q in ("intervención cambiaria", "BCV inyecta millones"):
+                posts += wp_posts("www.finanzasdigital.com", q, max(1, pages // 2))
+            posts += google_posts("BCV intervención cambiaria millones")
+            posts += google_posts("BCV inyecta millones banca")
             ops, monthly = parse_intervention(posts)
             r.rows += save_obs("intervencion_bcv", ops, "Prensa · Banca y Negocios")
             r.rows += save_obs("intervencion_bcv_mensual", monthly_intervention(ops, monthly), "Prensa · Banca y Negocios")

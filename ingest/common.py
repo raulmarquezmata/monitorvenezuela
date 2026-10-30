@@ -57,8 +57,30 @@ def fetch(url: str, *, method: str = "GET", retries: int = 3, timeout: int = 40,
                         last = e2
         except Exception as e:  # noqa: BLE001
             last = e
+            if attempt == retries - 1:
+                alt = browser_fetch(method, url, timeout, **kw)
+                if alt is not None:
+                    return alt
         time.sleep(2 ** attempt)
     raise RuntimeError(f"No se pudo obtener {url}: {last}")
+
+
+def browser_fetch(method: str, url: str, timeout: int, **kw):
+    """Último intento suplantando un navegador (curl_cffi): varios medios y SUNAVAL bloquean
+    las IP de GitHub Actions con Cloudflare. Devuelve None si tampoco funciona."""
+    try:
+        from curl_cffi import requests as creq  # type: ignore
+    except Exception:  # noqa: BLE001
+        return None
+    kw.pop("verify", None)
+    for imp in ("chrome", "safari"):
+        try:
+            r = creq.request(method, url, timeout=timeout, impersonate=imp, verify=False, **kw)
+            if r.status_code < 400 and r.content:
+                return r
+        except Exception:  # noqa: BLE001
+            continue
+    return None
 
 
 # ---------------------------------------------------------------- Números

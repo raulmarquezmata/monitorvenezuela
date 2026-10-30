@@ -10,6 +10,7 @@ from __future__ import annotations
 import datetime as dt
 import io
 import re
+from urllib.parse import urljoin
 
 from .common import Run, fetch, save_obs, upsert, ve_number
 
@@ -26,12 +27,21 @@ def eom(y: int, m: int) -> str:
     return (nxt - dt.timedelta(days=1)).isoformat()
 
 
+def fix_url(u: str) -> str:
+    """SUNAVAL publica enlaces como 'https:///wp-content/...' o '/wp-content/...'."""
+    u = u.strip().replace("&amp;", "&")
+    u = re.sub(r"^https?:/{3,}", "/", u)
+    if u.startswith("//"):
+        u = "https:" + u
+    return urljoin(PAGE, u)
+
+
 def list_reports() -> list[tuple[str, str]]:
     """[(url, 'AAAA-MM')] ordenados del más reciente al más antiguo."""
     html = fetch(PAGE, timeout=60).text
     out = []
     for m in re.finditer(r'href="([^"]+\.pdf)"', html, re.I):
-        u = m.group(1)
+        u = fix_url(m.group(1))
         name = u.rsplit("/", 1)[-1].lower()
         mm = next((n for k, n in MONTHS.items() if k in name), None)
         yy = re.search(r"(20\d\d)", name)

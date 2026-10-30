@@ -70,6 +70,25 @@ def parse_feed(content: bytes, default_source: str | None, lang: str, require_re
     return out
 
 
+def google_fallback(f: dict) -> list[dict] | None:
+    """Si el RSS propio del medio no responde (bloqueo a GitHub), busca el mismo medio en Google News."""
+    from urllib.parse import quote, urlparse
+    if f.get("kind") == "agregador":
+        return None
+    dom = urlparse(f["url"]).netloc.removeprefix("www.")
+    es = f.get("lang", "es") == "es"
+    q = quote(f"site:{dom} when:3d")
+    url = (f"https://news.google.com/rss/search?q={q}&hl=es-419&gl=VE&ceid=VE:es-419" if es
+           else f"https://news.google.com/rss/search?q={q}&hl=en-US&gl=US&ceid=US:en")
+    try:
+        got = parse_feed(fetch(url, timeout=30, retries=2).content, f["name"], f.get("lang", "es"), f.get("filter", True))
+    except Exception:  # noqa: BLE001
+        return None
+    for it in got:  # Google añade " - Medio" al titular
+        it["title"] = re.sub(r"\s+-\s+[^-]{2,40}$", "", it["title"]).strip()
+    return got
+
+
 def run():
     with Run("news") as r:
         seen_titles: set[str] = set()
@@ -91,8 +110,17 @@ def run():
                     items.append(it)
                 st.update(last_ok=now, last_items=len(got))
             except Exception as e:  # noqa: BLE001
-                st["last_error"] = str(e)[:300]
-                r.note(f"{f['name']}: sin respuesta")
+                got = google_fallback(f)
+                if got is not None:
+                    for it in got:
+                        k = re.sub(r"\W+", "", it["title"].lower())[:80]
+                        if k not in seen_titles:
+                            seen_titles.add(k)
+                            items.append(it)
+                    st.update(last_ok=now, last_items=len(got), last_error="RSS propio bloqueado; vía Google News")
+                else:
+                    st["last_error"] = str(e)[:300]
+                    r.note(f"{f['name']}: sin respuesta")
             health.append(st)
         r.rows = upsert("news", items, "url")
         ok = [h for h in health if h["last_ok"]]

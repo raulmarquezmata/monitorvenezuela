@@ -346,7 +346,7 @@ PARSERS = [
     (r"base_monetaria_semanal", base_semanal),
     (r"^2_1_1\b", reservas_diarias),
     (r"^2_3_1\b", reservas_mensuales),
-    (r"^1_1_7", tasa_activa_semanal),
+    (r"^1_1_7(?!_diario)", tasa_activa_semanal),
     (r"^1_1_6", tasas_pasivas_mensual),
     (r"^1_3_36", encaje),
     (r"^2_4_1_t", balanza_pagos),

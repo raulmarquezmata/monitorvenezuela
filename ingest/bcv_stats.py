@@ -136,6 +136,7 @@ def run(backfill: bool = False):
         # 2) Series estadísticas: archivos descubiertos + nombres conocidos en la carpeta pública
         done = set()
         candidates = [u for u in found if bcv_files.parser_for(u)] + [FOLDER + f for f in bcv_files.KNOWN_FILES]
+        changed: dict[str, str] = {}
         for u in candidates:
             fn = bcv_files.parser_for(u)
             if not fn or fn.__name__ in done:
@@ -148,13 +149,16 @@ def run(backfill: bool = False):
                     r.log.info("%s: %s", u.rsplit("/", 1)[-1], e)
                 continue
             if not series:
-                r.note(f"{u.rsplit('/', 1)[-1]}: el formato cambió (sin datos reconocibles)")
+                changed.setdefault(fn.__name__, u.rsplit('/', 1)[-1])
                 continue
             done.add(fn.__name__)
             upsert("source_files", [{"url": u, "page": "BCV", "filename": u.rsplit("/", 1)[-1], "last_seen": now}], "url")
             for code, pts in series.items():
                 r.rows += save_obs(code, pts, "BCV")
-        missing = {p[1].__name__ for p in bcv_files.PARSERS} - done
+        for name, f in changed.items():  # solo avisa si ningún otro archivo sirvió para esa serie
+            if name not in done:
+                r.note(f"{f}: el formato cambió (sin datos reconocibles)")
+        missing = {p[1].__name__ for p in bcv_files.PARSERS} - done - set(changed)
         if missing:
             r.note("Sin publicación encontrada hoy para: " + ", ".join(sorted(missing)))
 
