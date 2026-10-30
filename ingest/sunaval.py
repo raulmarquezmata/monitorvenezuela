@@ -72,7 +72,63 @@ def parse_text(text: str, period: str) -> dict[str, list]:
         out["bvc_volumen_usd"].append((d, (ve_number(t.group(1)) or 0) / 1e6))
     b = re.search(r"BOLPRIAVEN\s+([\d.]+,\d+)\s+([\d.]+,\d+)\s+(\d+)", text)
     if b:
-        out["bolpriaven_monto"].append((d, ve_number(b.group(2))))
+        out["bolpriaven_monto"].append((d, (ve_number(b.group(2)) or 0) / 1e6))
+    return out
+
+
+MESN = {"ene": 1, "feb": 2, "mar": 3, "abr": 4, "may": 5, "jun": 6, "jul": 7, "ago": 8, "sep": 9, "sept": 9,
+        "oct": 10, "nov": 11, "dic": 12}
+OCR_ROW = re.compile(r"\b(ene|feb|mar|abr|may|jun|jul|ago|sept?|oct|nov|dic)\.?\s+(20\d\d)\s+(\d[\d.]*)\s+([\d.]+,\d+)\s+([\d.]+,\d+)", re.I)
+NUM = r"(?<![\d.,])(\d{1,3}(?:\.\d{3})*,\d+)(?![\d,]*\s*%)"  # montos, no porcentajes
+
+
+def ocr_pages(content: bytes) -> dict[str, str]:
+    """Desde 2026 SUNAVAL pega las tablas como imágenes: se ubican las páginas por su título
+    (que sí es texto) y se leen con OCR (tesseract). Devuelve {'mob'|'total'|'bolp': texto}."""
+    import shutil
+    import subprocess
+    import tempfile
+
+    import pdfplumber  # type: ignore
+    if not shutil.which("tesseract"):
+        return {}
+    out: dict[str, str] = {}
+    with pdfplumber.open(io.BytesIO(content)) as pdf:
+        for page in pdf.pages:
+            t = page.extract_text() or ""
+            key = ("total" if "Total, Volumen negociado" in t else
+                   "bolp" if "Detalle Diario de Operaciones" in t and "Bolpriaven" in t else
+                   "mob" if "Operaciones en el Mercado de Otros Bienes" in t and "mero de Operaciones" in t else None)
+            if not key or key in out:
+                continue
+            with tempfile.NamedTemporaryFile(suffix=".png") as f:
+                page.to_image(resolution=250).save(f.name)
+                txt = subprocess.run(["tesseract", f.name, "-", "--psm", "6"], capture_output=True, text=True, timeout=120).stdout
+            # el OCR a veces separa o confunde separadores: '801, 13' → '801,13' · '29:872' → '29.872'
+            txt = re.sub(r"(?<=\d)([.,:]) (?=\d)", r"\1", txt)
+            out[key] = re.sub(r"(?<=\d):(?=\d{3})", ".", txt)
+    return out
+
+
+def parse_ocr(pages: dict[str, str], period: str) -> dict[str, list]:
+    out = {"mob_monto": [], "mob_operaciones": [], "bvc_volumen_usd": [], "bolpriaven_monto": []}
+    y, m = map(int, period.split("-"))
+    prev = (y, m - 1) if m > 1 else (y - 1, 12)
+    for mon, yy, ops, _bs, usd in OCR_ROW.findall(pages.get("mob", "")):
+        d = eom(int(yy), MESN[mon.lower()])
+        out["mob_operaciones"].append((d, float(ops.replace(".", ""))))
+        out["mob_monto"].append((d, (ve_number(usd) or 0) / 1e6))
+    tot = pages.get("total", "")
+    for line in tot.splitlines():  # fila de totales: actual, mes anterior, var., mismo mes año anterior, var.
+        nums = re.findall(NUM, line)
+        if len(nums) >= 2 and re.match(r"\s*[\d.]+,\d", line):
+            out["bvc_volumen_usd"] += [(eom(y, m), ve_number(nums[0]) / 1e6), (eom(*prev), ve_number(nums[1]) / 1e6)]
+            if len(nums) >= 3:
+                out["bvc_volumen_usd"].append((eom(y - 1, m), ve_number(nums[2]) / 1e6))
+            break
+    b = re.search(r"Total general\s+(\d+)\s+([\d.]+(?:,\d+)?)\s+([\d.]+(?:,\d+)?)", pages.get("bolp", ""))
+    if b:
+        out["bolpriaven_monto"].append((eom(y, m), float(b.group(3).replace(".", "").replace(",", ".")) / 1e6))
     return out
 
 
@@ -91,7 +147,13 @@ def run(backfill: bool = False):
         todo = list(reversed(reports[:48])) if backfill else reports[:2]
         for url, period in todo:
             try:
-                data = parse_text(pdf_text(fetch(url, timeout=120).content), period)
+                content = fetch(url, timeout=120).content
+                data = parse_text(pdf_text(content), period)
+                if not data["bvc_volumen_usd"] or not data["mob_monto"]:
+                    extra = parse_ocr(ocr_pages(content), period)
+                    for k, v in extra.items():
+                        if v:
+                            data[k] = v
             except Exception as e:  # noqa: BLE001
                 r.note(f"{period}: {e}")
                 continue
