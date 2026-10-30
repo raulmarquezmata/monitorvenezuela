@@ -14,6 +14,7 @@ from .common import Run, save_obs, select, ve_number
 DIR = pathlib.Path(__file__).resolve().parent.parent / "data" / "manual"
 HIST = pathlib.Path(__file__).resolve().parent.parent / "data" / "historico"
 CODES = {s["code"] for s in SERIES}
+OVERRIDABLE = ("Yadio (histórico)", "BCV (vía DolarApi)")
 
 
 def run():
@@ -35,7 +36,15 @@ def run():
                 live = select("observations", {"select": "date", "series_code": f"eq.{code}", "source": "eq.BCV", "order": "date", "limit": 1})
                 if live:
                     pts = [p for p in pts if p[0] < live[0]["date"]]
-            r.rows += save_obs(code, pts, src)
+                # y nunca pisa fechas que ya tienen dato de otra fuente (salvo los respaldos de menor calidad)
+                taken = {x["date"] for x in select("observations", {"select": "date,source", "series_code": f"eq.{code}"})
+                         if x.get("source") not in (src, *OVERRIDABLE)}
+                pts = [p for p in pts if p[0] not in taken]
+            n = save_obs(code, pts, src)
+            r.rows += n
+            if n and code in ("usd_paralelo", "usd_bcv"):
+                from .fx import gap_from_db
+                r.rows += gap_from_db(2000)
 
 
 def bank_derived() -> int:

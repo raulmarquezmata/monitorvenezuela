@@ -142,6 +142,36 @@ def gap_from_db(days: int = 400) -> int:
     return save_obs("brecha_cambiaria", pts, "Cálculo propio")
 
 
+def sanitize() -> int:
+    """Revisa toda la historia guardada de oficial, euro y paralelo y reexpresa en bolívares de hoy
+    cualquier tramo que haya quedado en Bs.F o Bs.S (picos falsos en 2018-2021)."""
+    n = 0
+    for code in ("usd_bcv", "eur_bcv", "usd_paralelo"):
+        rows = select("observations", {"select": "date,value,source", "series_code": f"eq.{code}", "order": "date"})
+        if not rows:
+            continue
+        src = {x["date"]: x["source"] for x in rows}
+        old = {x["date"]: x["value"] for x in rows}
+        new = dict(respliced([(x["date"], x["value"]) for x in rows]))
+        # además, picos aislados: un dato >50x la mediana de sus vecinos es un valor sin reexpresar
+        ds = sorted(new)
+        for i, d in enumerate(ds):
+            nb = [new[x] for x in ds[max(0, i - 5):i] + ds[i + 1:i + 6]]
+            if len(nb) >= 4:
+                med = statistics.median(nb)
+                for f in (1e6, 1e5, 1e3):
+                    if med and new[d] / med > f / 20 and abs(new[d] / f / med - 1) < 0.5:
+                        new[d] /= f
+                        break
+        changed: dict[str, list] = {}
+        for d, v in new.items():
+            if abs(v - old[d]) > 1e-12 * max(1.0, abs(old[d])):
+                changed.setdefault(src[d] or "BCV", []).append((d, v))
+        for s_, pts in changed.items():
+            n += save_obs(code, pts, s_)
+    return n
+
+
 def run_history():
     with Run("fx_historico") as r:
         try:
@@ -149,6 +179,10 @@ def run_history():
                 r.rows += save_obs(code, pts, "FRED (Fed H.10)")
         except Exception as e:  # noqa: BLE001
             r.note(f"FRED: {e}")
+        try:  # IPC de EE.UU. para la calculadora de inflación en dólares
+            r.rows += save_obs("ipc_eeuu", fred_series("CPIAUCSL"), "BLS vía FRED")
+        except Exception as e:  # noqa: BLE001
+            r.note(f"FRED IPC EE.UU.: {e}")
 
 
 def run(backfill: bool = False):
@@ -208,7 +242,9 @@ def run(backfill: bool = False):
                 except Exception as e:  # noqa: BLE001
                     r.note(f"Histórico {kind}: {e}")
 
-        r.rows += gap_from_db(2000 if backfill else 30)
+        fixed = sanitize()
+        r.rows += fixed
+        r.rows += gap_from_db(2000 if (backfill or fixed) else 45)
 
 
 _ = http  # sesión compartida (cabeceras de navegador)

@@ -5,7 +5,7 @@ import LineChart from "./LineChart";
 type Meta = { code: string; name: string; unit: string; category: string; catName: string };
 type Point = [string, number];
 type Mode = "base100" | "level";
-const SPANS: Record<string, number> = { "1A": 1, "3A": 3, "5A": 5, "10A": 10 };
+const SPANS: Record<string, number> = { "1A": 1, "3A": 3, "5A": 5, "10A": 10, "Máx": 100 };
 
 export default function Comparator({ series, lang, labels, initial }: {
   series: Meta[]; lang: "es" | "en"; initial: string[];
@@ -37,15 +37,22 @@ export default function Comparator({ series, lang, labels, initial }: {
   const levelOk = units.size <= 1;
   const effMode: Mode = mode === "level" && !levelOk ? "base100" : mode;
 
-  const chartSeries = useMemo(() => {
+  // todas las series arrancan en la misma fecha: la primera en que todas tienen dato dentro del período
+  const { chartSeries, common } = useMemo(() => {
     const cut = new Date(); cut.setFullYear(cut.getFullYear() - SPANS[span]);
-    const c = cut.toISOString().slice(0, 10);
-    return sel.map((code) => {
+    let c = cut.toISOString().slice(0, 10);
+    for (const code of sel) { const f = (data[code] ?? []).find((p) => p[0] >= c); if (f && f[0] > c) c = f[0]; }
+    const out = sel.map((code) => {
       const m = series.find((s) => s.code === code)!;
-      let pts = (data[code] ?? []).filter((p) => p[0] >= c);
+      const all = data[code] ?? [];
+      // base: el último dato en o antes de la fecha común (series mensuales/trimestrales)
+      const prev = [...all].reverse().find((p) => p[0] <= c);
+      let pts = all.filter((p) => p[0] >= c);
+      if (prev && (!pts.length || pts[0][0] !== prev[0])) pts = [[c, prev[1]] as Point, ...pts];
       if (effMode === "base100" && pts.length) { const b = pts[0][1]; pts = b ? pts.map(([d, v]) => [d, (v / b) * 100] as Point) : []; }
       return { name: m?.name ?? code, points: pts };
     });
+    return { chartSeries: out, common: c };
   }, [sel, data, span, effMode, series]);
 
   const groups = useMemo(() => {
@@ -67,7 +74,7 @@ export default function Comparator({ series, lang, labels, initial }: {
           <button className={effMode === "base100" ? "on" : ""} onClick={() => setMode("base100")}>{labels.base100}</button>
           <button className={effMode === "level" ? "on" : ""} onClick={() => setMode("level")} disabled={!levelOk} title={levelOk ? "" : labels.sameUnit}>{labels.level}</button>
         </div>
-        <div className="seg">{Object.keys(SPANS).map((k) => <button key={k} className={k === span ? "on" : ""} onClick={() => setSpan(k)}>{lang === "en" ? k.replace("A", "Y") : k}</button>)}</div>
+        <div className="seg">{Object.keys(SPANS).map((k) => <button key={k} className={k === span ? "on" : ""} onClick={() => setSpan(k)}>{lang === "en" ? k.replace("A", "Y").replace("Máx", "Max") : k}</button>)}</div>
         {sel.length > 0 && <a className="btn" href={`/api/export?codes=${sel.join(",")}&format=xlsx&lang=${lang}`}>⬇ {labels.download}</a>}
         {loading && <span className="muted">…</span>}
       </div>
@@ -78,6 +85,9 @@ export default function Comparator({ series, lang, labels, initial }: {
         <LineChart lang={lang} decimals={2} height={360} ignoreRange labels={labels.chart as never}
           unit={effMode === "base100" ? "base 100" : [...units][0] ?? ""} series={chartSeries} />
       ) : <div className="empty" style={{ height: 300 }}>{labels.hint}</div>}
+      {sel.length > 1 && <p className="muted" style={{ marginTop: 8 }}>{lang === "es"
+        ? `Todas las series comparadas desde ${common}, la primera fecha en que todas tienen datos${effMode === "base100" ? " (= 100)" : ""}.`
+        : `All series compared from ${common}, the first date all have data${effMode === "base100" ? " (= 100)" : ""}.`}</p>}
       <p className="muted" style={{ marginTop: 8 }}>{effMode === "base100" ? labels.hint : labels.sameUnit}</p>
     </div>
   );

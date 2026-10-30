@@ -15,7 +15,7 @@ import html
 import re
 from collections import defaultdict
 
-from .common import Run, fetch, save_obs, ve_number
+from .common import Run, fetch, save_obs, select, ve_number
 
 MONTHS = {m: i for i, m in enumerate(["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto",
                                        "septiembre", "octubre", "noviembre", "diciembre"], 1)}
@@ -222,7 +222,10 @@ def run(backfill: bool = False):
             posts += google_posts("BCV inyecta millones banca")
             ops, monthly = parse_intervention(posts)
             r.rows += save_obs("intervencion_bcv", ops, "Prensa · Banca y Negocios")
-            r.rows += save_obs("intervencion_bcv_mensual", monthly_intervention(ops, monthly), "Prensa · Banca y Negocios")
+            fixed = {x["date"] for x in select("observations", {"select": "date", "series_code": "eq.intervencion_bcv_mensual",
+                                                                "source": "not.like.Prensa*"})}
+            r.rows += save_obs("intervencion_bcv_mensual", [p for p in monthly_intervention(ops, monthly) if p[0] not in fixed],
+                               "Prensa · Banca y Negocios")
             if not ops and not monthly:
                 r.note("Intervención: sin cifras en titulares recientes")
         except Exception as e:  # noqa: BLE001

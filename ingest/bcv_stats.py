@@ -171,9 +171,9 @@ def run(backfill: bool = False):
 
 def derived() -> int:
     """Serie calculada: multiplicador monetario (M2 ÷ base). Los valores en US$ los calcula la web con el selector de moneda."""
-    since = iso(dt.date.today() - dt.timedelta(days=3000))
+    # toda la historia (liquidez desde 1997, base desde 2001): el multiplicador sale para todas las fechas comunes
     get = lambda c: {x["date"]: x["value"] for x in select("observations", {
-        "select": "date,value", "series_code": f"eq.{c}", "date": f"gte.{since}", "order": "date"})}
+        "select": "date,value", "series_code": f"eq.{c}", "order": "date"})}
     m2, base = get("liquidez_m2"), get("base_monetaria")
     n = 0
     # Corrige tasas SMC 2020-2021 guardadas en Bs.S (sin reexpresar) por corridas anteriores

@@ -28,15 +28,15 @@ function logTicks(min: number, max: number): number[] {
 }
 
 export default function LineChart({
-  series, lang, unit, decimals = 2, height = 240, allowLog = false, labels, area = false, ignoreRange = false, minPoints = 12, bars = false,
+  series, lang, unit, decimals = 2, height = 240, allowLog = false, labels, area = false, ignoreRange = false, minPoints = 12, bars = false, logDefault = false,
 }: {
   series: S[]; lang: "es" | "en"; unit?: string | null; decimals?: number; height?: number; allowLog?: boolean;
-  labels: Labels; area?: boolean; ignoreRange?: boolean; minPoints?: number; bars?: boolean;
+  labels: Labels; area?: boolean; ignoreRange?: boolean; minPoints?: number; bars?: boolean; logDefault?: boolean;
 }) {
   const box = useRef<HTMLDivElement>(null);
   const { range } = useRange();
   const [w, setW] = useState(600);
-  const [log, setLog] = useState(false);
+  const [log, setLog] = useState(logDefault);
   const [hover, setHover] = useState<number | null>(null);
   const [showTable, setShowTable] = useState(false);
   const loc = lang === "es" ? "es-VE" : "en-US";

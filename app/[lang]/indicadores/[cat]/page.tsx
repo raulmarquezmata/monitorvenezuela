@@ -1,10 +1,11 @@
 import { notFound } from "next/navigation";
 import BondsTable from "@/components/BondsTable";
-import LineChart from "@/components/LineChart";
+import ChartCard from "@/components/ChartCard";
 import MacroNav from "@/components/MacroNav";
 import { BarList, chartLabels, Kpi, NotConfigured, SectionHead, SeriesCard } from "@/components/ui";
 import { bankRanking, bonds, configured, history, latest } from "@/lib/data";
 import { num } from "@/lib/format";
+import { cumulative } from "@/lib/stats";
 import { CATEGORIES, LANGS, t, type Category, type Lang } from "@/lib/i18n";
 
 export const revalidate = 300;
@@ -31,6 +32,32 @@ const BARS = new Set(["intervencion_bcv_mensual", "intervencion_bcv", "inflacion
   "exportaciones_bienes", "exportaciones_petroleras", "exportaciones_no_petroleras", "importaciones_bienes", "transferencias_corrientes", "inversion_directa_pais"]);
 const LOG = new Set(["usd_bcv", "usd_paralelo", "eur_bcv", "liquidez_m2", "dinero_m1", "base_monetaria", "inflacion_interanual", "cartera_credito", "depositos_totales", "ibc"]);
 
+const NOTES: Record<string, { es: string; en: string }> = {
+  henry_hub: { es: "Referencia internacional de EE.UU. (Banco Mundial). No es el precio del gas venezolano: Venezuela no publica un precio de gas ni una serie de exportaciones de gas.", en: "US international benchmark (World Bank). Not the price of Venezuelan gas: Venezuela publishes no gas price or gas export series." },
+  merey: { es: "Precio mensual de la cesta Merey según el informe mensual de la OPEP (MOMR), que sale a mediados de cada mes con el dato del mes anterior.", en: "Monthly Merey price from OPEC's Monthly Oil Market Report, published mid-month with the previous month's figure." },
+  brent: { es: "Spot de la EIA; los días más recientes, mientras la EIA publica (≈1 semana de rezago), son el cierre del futuro del primer mes.", en: "EIA spot; the latest days, until EIA publishes (≈1 week lag), are the front-month futures close." },
+  wti: { es: "Spot de la EIA; los días más recientes, mientras la EIA publica (≈1 semana de rezago), son el cierre del futuro del primer mes.", en: "EIA spot; the latest days, until EIA publishes (≈1 week lag), are the front-month futures close." },
+  intervencion_bcv_mensual: { es: "2025: ventas del BCV + USDT; 2026: subastas (ene-mar) e intervención del BCV, según AGPV (oct-2026). Desde octubre se completa con las cifras que reporta la prensa.", en: "2025: BCV sales + USDT; 2026: auctions (Jan-Mar) and BCV intervention, per AGPV (Oct-2026). From October, filled with press-reported figures." },
+  pib_real_var: { es: "El BCV publica el PIB solo por trimestre: no existe una cifra oficial mensual.", en: "The BCV publishes GDP only quarterly: there is no official monthly figure." },
+};
+const HIDDEN = new Set(["petroleo_prod_opep_fs", "petroleo_prod_opep_cd", "petroleo_prod_eia"]);
+
+/** Años sin dato y años parciales en las series espejo de Comtrade. */
+function mirrorNote(pts: [string, number][], es: boolean) {
+  if (!pts.length) return undefined;
+  const ys = pts.map((p) => Number(p[0].slice(0, 4)));
+  const now = new Date().getFullYear();
+  const missing: number[] = [];
+  for (let y = ys[0]; y <= now; y++) if (!ys.includes(y)) missing.push(y);
+  const vals = Object.fromEntries(pts.map((p) => [Number(p[0].slice(0, 4)), p[1]]));
+  const partial = ys.filter((y) => y >= now - 2 && vals[y - 1] && vals[y] < vals[y - 1] * 0.6);
+  const parts = [] as string[];
+  if (missing.length) parts.push(es ? `Sin datos: ${missing.join(", ")}.` : `No data: ${missing.join(", ")}.`);
+  if (partial.length) parts.push(es ? `Parciales (aún faltan socios por reportar): ${partial.join(", ")}.` : `Partial (partners still reporting): ${partial.join(", ")}.`);
+  parts.push(es ? "Comtrade se arma con lo que declaran los socios comerciales; cada país reporta con 6 a 18 meses de rezago." : "Built from what trading partners declare; each reports with a 6–18 month lag.");
+  return parts.join(" ");
+}
+
 export default async function CategoryPage({ params }: { params: { lang: Lang; cat: string } }) {
   const { lang } = params;
   if (!(CATEGORIES as readonly string[]).includes(params.cat)) notFound();
@@ -38,11 +65,14 @@ export default async function CategoryPage({ params }: { params: { lang: Lang; c
   const d = t(lang);
   if (!configured) return <NotConfigured />;
   const series = await latest(cat);
-  const hist = await history(series.map((s) => s.code), 45);
+  const hist = await history([...series.map((s) => s.code), ...(cat === "precios" ? [] : [])], 45);
   const [bnd, ranking] = await Promise.all([cat === "deuda" ? bonds() : null, cat === "banca" ? bankRanking() : []]);
   const by = Object.fromEntries(series.map((s) => [s.code, s]));
   const featured = cat === "cambiario" ? ["usd_bcv", "usd_paralelo", "brecha_cambiaria"] : [];
-  const rest = series.filter((s) => !featured.includes(s.code) && !(cat === "cambiario" && s.code === "usd_paralelo"));
+  const rest = series.filter((s) => !featured.includes(s.code) && !(cat === "cambiario" && ["usd_paralelo", "eur_bcv"].includes(s.code))
+    && !(cat === "petroleo" && HIDDEN.has(s.code)));
+  const note = (code: string) => code.endsWith("_espejo") ? mirrorNote(hist[code] ?? [], lang === "es") : NOTES[code]?.[lang];
+  const infl2026 = cat === "precios" ? cumulative(hist.inflacion_mensual ?? [], "2026-01") : [];
   const es = lang === "es";
 
   return (
@@ -60,11 +90,14 @@ export default async function CategoryPage({ params }: { params: { lang: Lang; c
       {cat === "cambiario" && (
         <>
           <div className="grid g3">{featured.map((c) => <Kpi key={c} s={by[c]} points={hist[c] ?? []} lang={lang} />)}</div>
-          <div className="card section">
-            <div className="card-top"><h3>{d.oficialVsParalelo}</h3><span className="date">Bs/US$</span></div>
-            <LineChart lang={lang} decimals={2} height={340} allowLog labels={chartLabels(lang)}
-              series={[{ name: es ? "Oficial BCV" : "Official (BCV)", points: hist.usd_bcv ?? [] }, { name: es ? "Paralelo (Binance P2P)" : "Parallel (Binance P2P)", points: hist.usd_paralelo ?? [] }]} />
-            <p className="muted" style={{ marginTop: 10 }}>{es ? "Desde la reconversión monetaria de octubre de 2021 (elija Máx). Brecha = paralelo ÷ oficial − 1." : "Since the October 2021 redenomination (choose Max). Gap = parallel ÷ official − 1."}</p>
+          <div className="section">
+          <ChartCard lang={lang} title={es ? "Dólar oficial, dólar paralelo y euro oficial" : "Official dollar, parallel dollar and official euro"} date="Bs" decimals={2} height={340}
+            allowLog labels={chartLabels(lang)} rangeLabels={d.range} initial="1A"
+            series={[{ name: es ? "US$ oficial BCV" : "US$ official (BCV)", points: hist.usd_bcv ?? [] }, { name: es ? "US$ paralelo" : "US$ parallel", points: hist.usd_paralelo ?? [] },
+              { name: es ? "Euro oficial BCV" : "Euro official (BCV)", points: hist.eur_bcv ?? [] }]}
+            footer={<p className="muted" style={{ marginTop: 10, fontSize: 13 }}>{es
+              ? "Todo en bolívares de hoy: los valores anteriores a las reconversiones de 2008, 2018 y 2021 están reexpresados (por eso antes de 2021 se ven tan pequeños; use la escala logarítmica). Oficial desde 2000 (Fed/FRED y BCV); paralelo diario desde 2022."
+              : "All in today's bolivars: values before the 2008, 2018 and 2021 redenominations are re-expressed (hence tiny before 2021; use log scale). Official since 2000 (Fed/FRED and BCV); daily parallel since 2022."}</p>} />
           </div>
         </>
       )}
@@ -76,8 +109,32 @@ export default async function CategoryPage({ params }: { params: { lang: Lang; c
         </div>
       )}
 
+      {cat === "petroleo" && (
+        <div style={{ marginBottom: 20 }}>
+          <ChartCard lang={lang} title={es ? "Producción de crudo de Venezuela" : "Venezuela crude output"} date={es ? "miles b/d" : "kb/d"} decimals={0} height={320}
+            labels={chartLabels(lang)} rangeLabels={d.range} initial="MAX" unit={es ? "miles b/d" : "kb/d"}
+            series={[{ name: es ? "Fuente primaria (comunicación directa a la OPEP)" : "Primary source (direct communication to OPEC)", points: hist.petroleo_prod_opep_cd ?? [] },
+              { name: es ? "EIA (serie larga, desde 1973)" : "EIA (long series, since 1973)", points: hist.petroleo_prod_eia ?? [] }]}
+            stats={{ periods: ["PREV", "YTD", "YOY"], points: hist.petroleo_prod_opep_cd ?? [] }}
+            footer={<p className="muted" style={{ marginTop: 10, fontSize: 13 }}>{es
+              ? "La línea principal es la cifra oficial que Venezuela comunica a la OPEP (informe mensual MOMR). La de la EIA sirve para ver la historia larga; difieren en metodología."
+              : "The main line is Venezuela's official figure reported to OPEC (MOMR). The EIA line gives the long history; methodologies differ."}</p>} />
+        </div>
+      )}
+
+      {cat === "precios" && infl2026.length > 0 && (
+        <div style={{ marginBottom: 20 }}>
+          <ChartCard lang={lang} title={es ? "Inflación acumulada desde el 1 de enero de 2026" : "Cumulative inflation since 1 January 2026"} date="%" decimals={1} height={260}
+            labels={chartLabels(lang)} rangeLabels={d.range} ranges={[]} initial="MAX" unit="%" bars
+            series={[{ name: es ? "Acumulada desde ene-2026" : "Cumulative since Jan-2026", points: infl2026 }]}>
+            <div className="big">{num(infl2026.at(-1)?.[1], lang, 1)}<small>%</small></div>
+          </ChartCard>
+        </div>
+      )}
+
       <div className={`grid g2 ${cat === "cambiario" ? "section" : ""}`}>
-        {rest.map((s) => <SeriesCard key={s.code} s={s} points={hist[s.code] ?? []} lang={lang} bars={BARS.has(s.code)} allowLog={LOG.has(s.code)} />)}
+        {rest.map((s) => <SeriesCard key={s.code} s={s} points={hist[s.code] ?? []} lang={lang} bars={BARS.has(s.code)}
+          allowLog={LOG.has(s.code) || s.code === "inflacion_acumulada"} logDefault={s.code === "inflacion_acumulada"} note={note(s.code)} />)}
       </div>
 
       {cat === "banca" && ranking.length > 0 && (

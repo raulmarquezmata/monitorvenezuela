@@ -241,3 +241,12 @@ footer a { color: var(--text-3); }
 .hm-src { font-size: 14px; }
 .hm-src a { color: var(--accent); }
 .hm-pager { display: flex; gap: 18px; align-items: center; justify-content: center; margin: 28px 0; font-size: 15px; }
+
+/* ---------------- Controles por tarjeta */
+.card-controls { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; justify-content: flex-end; margin: 10px 0 2px; }
+.card-controls .ranges button { font-size: 13px; padding: 3px 9px; }
+.stats { display: flex; gap: 8px 18px; flex-wrap: wrap; margin: 8px 0 4px; font-size: 14px; }
+.stats .st { display: flex; flex-direction: column; gap: 1px; min-width: 64px; }
+.stats .st small { color: var(--text-3); font-size: 12px; }
+.stats .st b { font-weight: 500; font-variant-numeric: tabular-nums; }
+.stats .up { color: var(--up, #2f7d4f); } .stats .down { color: var(--down, #b5473a); }

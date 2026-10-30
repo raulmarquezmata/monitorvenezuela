@@ -56,8 +56,12 @@ def find_pdfs(back_months: int = 3) -> list[str]:
         y, m = t.year, t.month - back
         while m <= 0:
             y, m = y - 1, m + 12
+        name = MONTHS_EN[m - 1]
+        urls += [f"https://www.opec.org/assets/assetdb/momr-{name.lower()}-{y}.pdf",
+                 f"https://www.opec.org/opec_web/static_files_project/media/downloads/MOMR%20{name}%20{y}.pdf",
+                 f"https://www.opec.org/opec_web/static_files_project/media/downloads/publications/MOMR%20{name}%20{y}.pdf"]
         for fy, fm in ((y, m), (y + (m == 12), m % 12 + 1)):  # carpeta del mes del informe o del siguiente
-            urls.append(MIRROR.format(fy=fy, fm=fm, month=MONTHS_EN[m - 1], y=y))
+            urls.append(MIRROR.format(fy=fy, fm=fm, month=name, y=y))
     return list(dict.fromkeys(urls))
 
 

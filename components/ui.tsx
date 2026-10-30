@@ -2,8 +2,13 @@ import Link from "next/link";
 import type { Latest, Point } from "@/lib/data";
 import { num, fmtDateFor } from "@/lib/format";
 import { t, type Lang } from "@/lib/i18n";
-import { KpiCard, type KpiMeta } from "./Kpi";
+import { KpiCard, type Extra, type KpiMeta } from "./Kpi";
+import { defaultPeriods } from "@/lib/stats";
+import { CardControls, CardScope } from "./CardScope";
+import { isBsUnit } from "@/lib/money";
 import SeriesBody from "./SeriesBody";
+import type { Period } from "@/lib/stats";
+import type { Range } from "./Range";
 
 export function chartLabels(lang: Lang) {
   const d = t(lang);
@@ -15,11 +20,15 @@ export function kpiMeta(s: Latest, lang: Lang, href?: string): KpiMeta {
     decimals: Math.min(s.decimals, 2), frequency: s.frequency, pctUnit: s.unit_es === "%", href, unitEs: s.unit_es };
 }
 
-export function Kpi({ s, points, lang, href }: { s?: Latest; points: Point[]; lang: Lang; href?: string }) {
+export function Kpi({ s, points, lang, href, periods, extra, name }: { s?: Latest; points: Point[]; lang: Lang; href?: string; periods?: Period[]; extra?: Extra[]; name?: string }) {
   if (!s) return null;
   const d = t(lang);
-  return <KpiCard m={kpiMeta(s, lang, href)} points={points} lang={lang} noData={d.noData} rangeLabels={d.range} />;
+  const m = kpiMeta(s, lang, href);
+  return <KpiCard m={name ? { ...m, name } : m} points={points} lang={lang} noData={d.noData} rangeLabels={d.range} periods={periods} extra={extra} />;
 }
+
+/** Rango inicial según la frecuencia: diarias 3M, semanales y mensuales 1A, trimestrales y anuales todo. */
+export const initialRange = (freq: string | null): Range => (freq === "D" ? "3M" : freq === "W" || freq === "M" ? "1A" : "MAX");
 
 export function SectionHead({ label, href, more }: { label: string; href?: string; more?: string }) {
   return (
@@ -31,18 +40,24 @@ export function SectionHead({ label, href, more }: { label: string; href?: strin
 }
 
 /** Tarjeta de serie: nombre, último valor, gráfico (rango global), fuente y descarga. */
-export function SeriesCard({ s, points, lang, allowLog = false, bars = false, area = false, height = 220 }: {
+export function SeriesCard({ s, points, lang, allowLog = false, bars = false, area = false, height = 220, ranges, initial, stats = true, logDefault = false, note }: {
   s: Latest; points: Point[]; lang: Lang; allowLog?: boolean; bars?: boolean; area?: boolean; height?: number;
+  ranges?: Range[]; initial?: Range; stats?: boolean; logDefault?: boolean; note?: string;
 }) {
   const d = t(lang);
   const unit = lang === "es" ? s.unit_es : s.unit_en;
   return (
     <div className="card" id={s.code}>
+      <CardScope initial={initial ?? initialRange(s.frequency)}>
       <div className="card-top"><h3>{lang === "es" ? s.name_es : s.name_en}</h3>
         <span className="date">{s.last_date ? fmtDateFor(s.last_date, s.frequency, lang) : ""}</span></div>
+      <CardControls lang={lang} money={isBsUnit(s.unit_es)} ranges={ranges} rangeLabels={d.range} />
       <SeriesBody name={lang === "es" ? s.name_es : s.name_en} points={points} unitEs={s.unit_es} unit={unit ?? ""} decimals={s.decimals}
-        lang={lang} height={height} allowLog={allowLog} bars={bars} area={area}
+        lang={lang} height={height} allowLog={allowLog} bars={bars} area={area} logDefault={logDefault}
+        stats={stats && points.length > 2 ? { periods: defaultPeriods(s.frequency), pctUnit: s.unit_es === "%" } : undefined}
         labels={{ ...chartLabels(lang), noData: s.method !== "auto" ? `${d.noData} · ${d.method[s.method]}` : d.noData }} />
+      {note && <p className="muted" style={{ fontSize: 13, marginTop: 8 }}>{note}</p>}
+      </CardScope>
       <div className="src">
         <span>{d.source}: {s.source_url ? <a href={s.source_url} target="_blank" rel="noreferrer">{s.source}</a> : s.source}</span>
         {s.method !== "auto" && <span className={`method ${s.method}`}>{d.method[s.method]}</span>}

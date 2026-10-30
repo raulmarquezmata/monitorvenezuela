@@ -1,5 +1,5 @@
 import Link from "next/link";
-import LineChart from "@/components/LineChart";
+import ChartCard from "@/components/ChartCard";
 import { chartLabels, NotConfigured } from "@/components/ui";
 import { bvcSymbol, configured, history } from "@/lib/data";
 import { compact, date, num, pct } from "@/lib/format";
@@ -42,13 +42,13 @@ export default async function SymbolPage({ params }: { params: { lang: Lang; sym
           <div className="meta">{shares ? `${compact(shares, lang)} ${lang === "es" ? "acciones" : "shares"}` : ""}</div></div>
         <div className="card kpi"><div className="label">{d.amount}</div><div className="val">{compact(last?.amount, lang)}</div><div className="meta">{last?.trades ? `${last.trades} ${lang === "es" ? "operaciones" : "trades"}` : ""}</div></div>
       </div>
-      <div className="card" style={{ marginTop: 12 }}>
-        <div className="card-head"><h3>{lang === "es" ? "Precio de cierre" : "Closing price"}</h3><span className="muted">Bs</span></div>
-        <LineChart lang={lang} unit="Bs" height={280} allowLog labels={chartLabels(lang)} series={[{ name: symbol, points: closes }]} />
+      <div style={{ marginTop: 12 }}>
+        <ChartCard lang={lang} title={lang === "es" ? "Precio de cierre" : "Closing price"} date="Bs" unit="Bs" height={280} allowLog labels={chartLabels(lang)}
+          rangeLabels={d.range} initial="YTD" series={[{ name: symbol, points: closes }]} stats={{ periods: ["1D", "1W", "1M", "YTD"] }} />
       </div>
-      <div className="card" style={{ marginTop: 12 }}>
-        <div className="card-head"><h3>{lang === "es" ? "Precio en US$" : "Price in US$"}</h3><span className="muted">US$</span></div>
-        <LineChart lang={lang} unit="US$" decimals={4} height={240} labels={chartLabels(lang)}
+      <div style={{ marginTop: 12 }}>
+        <ChartCard lang={lang} title={lang === "es" ? "Precio en US$" : "Price in US$"} date="US$" unit="US$" decimals={4} height={240} labels={chartLabels(lang)}
+          rangeLabels={d.range} initial="YTD" stats={{ periods: ["1D", "1W", "1M", "YTD"], points: usd }}
           series={[{ name: lang === "es" ? "Al paralelo" : "Parallel rate", points: usd }, { name: lang === "es" ? "Al oficial" : "Official rate", points: usdOf }]} />
       </div>
     </>

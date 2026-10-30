@@ -1,13 +1,16 @@
 "use client";
 import { useMoney } from "./Currency";
 import LineChart from "./LineChart";
+import { Stats } from "./Kpi";
+import type { Period } from "@/lib/stats";
 
 type Point = [string, number];
 
 /** Valor actual + gráfico de una serie; respeta la moneda global (Bs o US$). */
-export default function SeriesBody({ name, points, unitEs, unit, decimals, lang, height, allowLog, bars, area, labels }: {
+export default function SeriesBody({ name, points, unitEs, unit, decimals, lang, height, allowLog, bars, area, labels, stats, logDefault = false }: {
   name: string; points: Point[]; unitEs: string | null; unit: string; decimals: number; lang: "es" | "en"; height: number;
   allowLog: boolean; bars: boolean; area: boolean; labels: { logScale: string; table: string; chart: string; date: string; noData: string };
+  stats?: { periods: Period[]; pctUnit: boolean }; logDefault?: boolean;
 }) {
   const m = useMoney(points, unitEs, unit, lang);
   const last = m.points.at(-1);
@@ -17,8 +20,9 @@ export default function SeriesBody({ name, points, unitEs, unit, decimals, lang,
     <>
       <div className="big" style={{ fontSize: 34, margin: "12px 0 4px" }}>{last ? nf(last[1]) : "—"}<small>{m.unit}</small></div>
       {m.converted && <div className="muted" style={{ fontSize: 13 }}>{m.note}</div>}
+      {stats && <Stats points={m.points} periods={stats.periods} pctUnit={stats.pctUnit} lang={lang} />}
       <LineChart series={[{ name, points: m.points }]} lang={lang} unit={m.unit} decimals={m.converted ? 1 : decimals}
-        height={height} allowLog={allowLog} bars={bars} area={area} labels={labels} />
+        height={height} allowLog={allowLog} bars={bars} area={area} labels={labels} logDefault={logDefault} />
     </>
   );
 }

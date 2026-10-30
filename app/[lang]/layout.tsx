@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { LangSwitch, MainNav, ThemeSwitch } from "@/components/Nav";
-import { CurrencyButtons, CurrencyProvider } from "@/components/Currency";
-import { RangeButtons, RangeProvider } from "@/components/Range";
+import { CurrencyProvider } from "@/components/Currency";
+import { RangeProvider } from "@/components/Range";
 import { history, lastRun } from "@/lib/data";
 import { isLang, LANGS, t } from "@/lib/i18n";
 import { unstable_cache } from "next/cache";
@@ -62,11 +62,6 @@ export default async function LangLayout({ children, params }: { children: React
       <div className="statusbar">
         <div className="wrap">
           <span><i className={`dot ${live ? "live" : ""}`} />{d.lastUpdate}: {upd} {d.vet}</span>
-          <span style={{ display: "flex", gap: 18, flexWrap: "wrap", alignItems: "center" }}>
-            <CurrencyButtons labels={{ BS: "Bs", USD_BCV: lang === "es" ? "US$ oficial" : "US$ official", USD_PAR: lang === "es" ? "US$ paralelo" : "US$ parallel" }} />
-            <span style={{ width: 1, height: 22, background: "var(--line)" }} />
-            <RangeButtons labels={d.range as never} />
-          </span>
         </div>
       </div>
       <main><div className="wrap">{children}</div></main>

@@ -32,6 +32,7 @@ _S = [
     ("inflacion_mensual", "precios", "Inflación mensual", "Monthly inflation", "%", "%", "M", "BCV (vía Finanzas Digital)", "https://finanzasdigital.com/inflacion-por-pais/venezuela/", 2, 10),
     ("inflacion_interanual", "precios", "Inflación interanual", "Year-on-year inflation", "%", "%", "M", "BCV (vía Finanzas Digital)", "https://finanzasdigital.com/inflacion-por-pais/venezuela/", 2, 20),
     ("inflacion_acumulada", "precios", "Inflación acumulada en el año", "Year-to-date inflation", "%", "%", "M", "BCV (vía Finanzas Digital)", "https://finanzasdigital.com/inflacion-por-pais/venezuela/", 2, 25),
+    ("ipc_eeuu", "precios", "IPC de EE.UU. (inflación en dólares)", "US CPI (dollar inflation)", "índice", "index", "M", "BLS vía FRED", "https://fred.stlouisfed.org/series/CPIAUCSL", 2, 90),
 
     # ---------------- Sector externo
     ("reservas_internacionales", "externo", "Reservas internacionales", "International reserves", "millones US$", "US$ million", "D", "BCV", BCV + "/estadisticas/reservas-internacionales", 0, 10),
@@ -60,7 +61,7 @@ _S = [
     ("merey", "petroleo", "Cesta venezolana (Merey)", "Venezuelan basket (Merey)", "US$/b", "US$/bbl", "M", "OPEP MOMR", OPEP, 2, 40),
     ("brent", "petroleo", "Brent", "Brent", "US$/b", "US$/bbl", "D", "EIA", EIA, 2, 50),
     ("wti", "petroleo", "WTI", "WTI", "US$/b", "US$/bbl", "D", "EIA", EIA, 2, 60),
-    ("henry_hub", "petroleo", "Gas natural Henry Hub", "Henry Hub natural gas", "US$/MMBtu", "US$/MMBtu", "M", "Banco Mundial", WB, 2, 70),
+    ("henry_hub", "petroleo", "Gas natural Henry Hub (referencia EE.UU.)", "Henry Hub natural gas (US benchmark)", "US$/MMBtu", "US$/MMBtu", "M", "Banco Mundial", WB, 2, 70),
 
     # ---------------- Mercados
     ("ibc", "mercados", "Índice Bursátil Caracas (IBC)", "Caracas Stock Index (IBC)", "puntos", "points", "D", "BVC", "https://www.bolsadecaracas.com", 2, 10),
@@ -121,6 +122,7 @@ PLAN = {
     "multiplicador": (A, 14, "Se calcula solo: M2 ÷ base monetaria."),
     
     "encaje_legal": (A, 120, "Robot bcv_stats diario: descarga el archivo del BCV y guarda cuando hay publicación nueva. Mensual, desde 2004."),
+    "ipc_eeuu": (A, 60, "Robot fx_historico semanal (FRED, serie CPIAUCSL). Sirve para la calculadora de inflación en dólares."),
     "inflacion_mensual": (A, 40, "Robot inflation diario (cifras oficiales del BCV), histórico desde 1986."),
     "inflacion_interanual": (A, 40, "Robot inflation diario, histórico desde 1986."),
     "inflacion_acumulada": (A, 40, "Robot inflation diario."),

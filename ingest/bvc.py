@@ -140,6 +140,16 @@ def history_for(symbol: str) -> tuple[dict | None, list[dict]]:
     return meta, rows
 
 
+def monto_history() -> int:
+    """Monto negociado diario de renta variable hacia atrás = suma de los montos de cada símbolo
+    (histórico por símbolo). Solo rellena las fechas sin el dato del resumen oficial del día."""
+    have = {x["date"] for x in select("observations", {"select": "date", "series_code": "eq.bvc_monto"})}
+    tot: dict[str, float] = {}
+    for q in select("bvc_quotes", {"select": "date,amount", "market": "eq.RV", "amount": "gt.0"}):
+        tot[q["date"]] = tot.get(q["date"], 0) + float(q["amount"])
+    return save_obs("bvc_monto", [(d, v) for d, v in sorted(tot.items()) if d not in have], "BVC (suma por símbolo)")
+
+
 def run(full: bool = False):
     with Run("bvc_full" if full else "bvc") as r:
         # Índices y fecha de sesión
@@ -188,6 +198,8 @@ def run(full: bool = False):
             if n_err:
                 r.note(f"Histórico: {n_err} símbolos con error")
 
+        if full:
+            r.rows += monto_history()
         since = iso(dt.date.today() - dt.timedelta(days=4000 if full else 15))
         r.rows += to_usd("ibc", "ibc_usd", since)
         r.rows += to_usd("ibc", "ibc_usd_paralelo", since, "usd_paralelo")

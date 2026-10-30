@@ -1,5 +1,5 @@
 "use client";
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useMemo, useState } from "react";
 import { BS_UNITS, isBsUnit, toUsd } from "@/lib/money";
 export { isBsUnit, toUsd };
 
@@ -9,13 +9,10 @@ type Fx = { bcv: Point[]; par: Point[] };
 const Ctx = createContext<{ cur: Cur; setCur: (c: Cur) => void; fx: Fx }>({ cur: "BS", setCur: () => {}, fx: { bcv: [], par: [] } });
 
 /** Moneda de presentación global: bolívares o dólares (al oficial BCV o al paralelo de cada fecha). */
-export function CurrencyProvider({ fx, children }: { fx: Fx; children: React.ReactNode }) {
-  const [cur, set] = useState<Cur>("BS");
-  useEffect(() => {
-    try { const c = localStorage.getItem("cur"); if (c === "USD_BCV" || c === "USD_PAR" || c === "BS") set(c); } catch {}
-  }, []);
-  const setCur = (c: Cur) => { set(c); try { localStorage.setItem("cur", c); } catch {} };
-  return <Ctx.Provider value={{ cur, setCur, fx }}>{children}</Ctx.Provider>;
+export function CurrencyProvider({ fx, children }: { fx?: Fx; children: React.ReactNode }) {
+  const parent = useContext(Ctx);
+  const [cur, setCur] = useState<Cur>("BS");
+  return <Ctx.Provider value={{ cur, setCur, fx: fx ?? parent.fx }}>{children}</Ctx.Provider>;
 }
 export const useCurrency = () => useContext(Ctx);
 
