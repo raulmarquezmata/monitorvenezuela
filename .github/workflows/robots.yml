@@ -29,6 +29,7 @@ jobs:
           python-version: "3.12"
           cache: pip
           cache-dependency-path: ingest/requirements.txt
+         - run: sudo apt-get install -y -qq tesseract-ocr
       - run: pip install -r ingest/requirements.txt
       - name: Elegir tarea
         id: t
