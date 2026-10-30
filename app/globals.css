@@ -250,3 +250,5 @@ footer a { color: var(--text-3); }
 .stats .st small { color: var(--text-3); font-size: 12px; }
 .stats .st b { font-weight: 500; font-variant-numeric: tabular-nums; }
 .stats .up { color: var(--up, #2f7d4f); } .stats .down { color: var(--down, #b5473a); }
+.headlines p.also { font-size: 14px; color: var(--text-3); margin-top: 6px; }
+.headlines p.also a { color: var(--accent); font-weight: 500; }

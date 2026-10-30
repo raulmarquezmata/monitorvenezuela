@@ -79,6 +79,24 @@ def google_posts(query: str) -> list[dict]:
     return out
 
 
+def google_posts_en(query: str) -> list[dict]:
+    """Igual que google_posts pero en la edición en inglés (Reuters, Bloomberg…)."""
+    import feedparser
+    from urllib.parse import quote
+    url = f"https://news.google.com/rss/search?q={quote(query + ' when:30d')}&hl=en-US&gl=US&ceid=US:en"
+    try:
+        feed = feedparser.parse(fetch(url, timeout=30, retries=2).content)
+    except Exception:  # noqa: BLE001
+        return []
+    out = []
+    for e in feed.entries:
+        tp = e.get("published_parsed")
+        if tp and e.get("title"):
+            out.append({"date": dt.date(tp.tm_year, tp.tm_mon, tp.tm_mday).isoformat(), "link": e.get("link", ""), "slug": "",
+                        "title": re.sub(r"\s+-\s+[^-]{2,40}$", "", html.unescape(e["title"])).strip(), "excerpt": ""})
+    return out
+
+
 def eom(y: int, m: int) -> str:
     nxt = dt.date(y + (m == 12), m % 12 + 1, 1)
     return (nxt - dt.timedelta(days=1)).isoformat()
@@ -208,6 +226,40 @@ def parse_gdp(posts: list[dict]) -> list:
     return sorted(pts.items())
 
 
+MON_EN = {m: i for i, m in enumerate(["january", "february", "march", "april", "may", "june", "july", "august",
+                                       "september", "october", "november", "december"], 1)}
+EXP_ES = re.compile(r"exportaci[oó]n(?:es)? (?:petroler|de (?:crudo|petr[oó]leo)|de venezuela)[^.]{0,120}?(\d+(?:[.,]\d+)?)\s*(millones? de |mill?\.? ?|mil |MM ?)?(?:bpd|b/d|barriles (?:por d[ií]a|diarios))[^.]{0,60}?\ben (" + "|".join(MONTHS) + r")", re.I)
+EXP_EN = re.compile(r"oil exports[^.]{0,120}?(\d+(?:[.,]\d+)?)\s*(million |mln |m )?(?:bpd|barrels per day|b/d)[^.]{0,40}?\bin (" + "|".join(MON_EN) + r")", re.I)
+
+
+def parse_exports(posts: list[dict]) -> list:
+    """Exportaciones petroleras mensuales (miles de b/d) a partir de titulares con datos de embarque."""
+    pts = {}
+    for p in posts:
+        t = p["title"]
+        if not re.search(r"venezuel|pdvsa", t + " venezuela", re.I):
+            continue
+        m = EXP_ES.search(t) or EXP_EN.search(t)
+        if not m:
+            continue
+        num, mult, mon = m.group(1), (m.group(2) or "").lower(), m.group(3).lower()
+        v = es_num(num) if "," in num or re.fullmatch(r"\d{1,3}(\.\d{3})+", num) else float(num)
+        if v is None:
+            continue
+        if "mil" in mult and "mill" not in mult and "mln" not in mult:
+            pass                      # "856 mil bpd" → ya en miles
+        elif "mill" in mult or "mln" in mult or mult.strip() in ("m", "mm"):
+            v *= 1000                 # millones → miles
+        elif v > 5000:
+            v /= 1000                 # "856.000 bpd" → 856
+        if not 100 <= v <= 3500:
+            continue
+        mi = MONTHS.get(mon) or MON_EN.get(mon)
+        y = int(p["date"][:4]) - (1 if mi > int(p["date"][5:7]) else 0)
+        pts.setdefault(eom(y, mi), round(v))
+    return sorted(pts.items())
+
+
 def run(backfill: bool = False):
     with Run("press") as r:
         pages = 20 if backfill else 2
@@ -231,6 +283,13 @@ def run(backfill: bool = False):
         except Exception as e:  # noqa: BLE001
             r.note(f"Intervención: {e}")
         # SENIAT
+        # Exportaciones petroleras mensuales (datos de embarque que publica Reuters a inicios de cada mes)
+        try:
+            posts = google_posts("exportaciones petroleras Venezuela barriles por día") + google_posts("exportaciones de crudo Venezuela bpd")
+            posts += google_posts_en("Venezuela oil exports barrels per day")
+            r.rows += save_obs("exportaciones_petroleras_bd", parse_exports(posts), "Reuters (datos de embarque), vía prensa")
+        except Exception as e:  # noqa: BLE001
+            r.note(f"Exportaciones petroleras: {e}")
         # PIB trimestral anunciado por el BCV (la prensa lo publica semanas antes de que salga el Excel)
         try:
             posts = wp_posts("www.finanzasdigital.com", "BCV PIB trimestre", pages) + wp_posts("www.bancaynegocios.com", "PIB trimestre BCV", pages)

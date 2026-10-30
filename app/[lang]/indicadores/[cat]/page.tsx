@@ -19,7 +19,7 @@ const INTRO: Record<Category, { es: string; en: string }> = {
   cambiario: { es: "Dólar oficial del BCV por fecha valor, dólar paralelo de Binance P2P, brecha e intervención cambiaria.", en: "BCV official rate by value date, Binance P2P parallel rate, gap and FX intervention." },
   monetario: { es: "Liquidez (M1 y M2) desde 1997, base monetaria desde 2001, multiplicador y encaje (BCV). Saldos en miles de bolívares actuales: use escala log para ver toda la serie.", en: "Money (M1, M2) since 1997, monetary base since 2001, multiplier and reserve requirement (BCV). Balances in thousand current bolivars: use log scale for the full series." },
   precios: { es: "Inflación oficial del BCV (INPC), serie mensual desde 1986.", en: "BCV official inflation (CPI), monthly series since 1986." },
-  externo: { es: "Reservas internacionales (desde 1996), balanza de pagos trimestral del BCV (desde 1997) y comercio exterior espejo.", en: "International reserves (since 1996), BCV quarterly balance of payments (since 1997) and mirror trade." },
+  externo: { es: "Reservas internacionales (desde 1996), balanza de pagos trimestral del BCV (desde 1997), exportaciones petroleras mensuales, comercio mensual con EE.UU. (Census, casi al día) y comercio exterior espejo.", en: "International reserves (since 1996), BCV quarterly balance of payments (since 1997), monthly oil exports, monthly trade with the US (Census, near real time) and mirror trade." },
   banca: { es: "Cartera de créditos y captaciones del sistema bancario, en bolívares y en dólares, y ranking por banco.", en: "Banking system loans and deposits in bolivars and dollars, and bank ranking." },
   petroleo: { es: "Producción de crudo (OPEP y EIA), cesta Merey y precios de referencia.", en: "Crude output (OPEC and EIA), Merey basket and benchmark prices." },
   mercados: { es: "Índices y volúmenes de la Bolsa de Valores de Caracas y BOLPRIAVEN.", en: "Caracas Stock Exchange and BOLPRIAVEN indices and volumes." },
@@ -27,7 +27,7 @@ const INTRO: Record<Category, { es: string; en: string }> = {
   deuda: { es: "Bonos de la República y de PDVSA (precio en % del valor nominal).", en: "Republic and PDVSA bonds (price as % of par)." },
   commodities: { es: "Precios internacionales de materias primas relevantes para Venezuela (Banco Mundial, desde 1960).", en: "International prices of commodities relevant to Venezuela (World Bank, since 1960)." },
 };
-const BARS = new Set(["intervencion_bcv_mensual", "intervencion_bcv", "inflacion_mensual", "mob_monto", "mob_operaciones", "bvc_volumen_usd",
+const BARS = new Set(["eeuu_importa_de_ve", "eeuu_importa_petroleo_ve", "eeuu_exporta_a_ve", "exportaciones_petroleras_bd", "intervencion_bcv_mensual", "intervencion_bcv", "inflacion_mensual", "mob_monto", "mob_operaciones", "bvc_volumen_usd",
   "bolpriaven_monto", "recaudacion_seniat", "recaudacion_seniat_usd", "pib_real_var", "exportaciones_espejo", "importaciones_espejo",
   "pib_petrolero_var", "pib_no_petrolero_var", "pib_anual_var", "pib_petrolero_anual_var", "pib_no_petrolero_anual_var", "cuenta_corriente",
   "exportaciones_bienes", "exportaciones_petroleras", "exportaciones_no_petroleras", "importaciones_bienes", "transferencias_corrientes", "inversion_directa_pais"]);
@@ -39,6 +39,8 @@ const NOTES: Record<string, { es: string; en: string }> = {
   brent: { es: "Spot de la EIA; los días más recientes, mientras la EIA publica (≈1 semana de rezago), son el cierre del futuro del primer mes.", en: "EIA spot; the latest days, until EIA publishes (≈1 week lag), are the front-month futures close." },
   wti: { es: "Spot de la EIA; los días más recientes, mientras la EIA publica (≈1 semana de rezago), son el cierre del futuro del primer mes.", en: "EIA spot; the latest days, until EIA publishes (≈1 week lag), are the front-month futures close." },
   intervencion_bcv_mensual: { es: "2025: ventas del BCV + USDT; 2026: subastas (ene-mar) e intervención del BCV, según AGPV (oct-2026). Desde octubre se completa con las cifras que reporta la prensa.", en: "2025: BCV sales + USDT; 2026: auctions (Jan-Mar) and BCV intervention, per AGPV (Oct-2026). From October, filled with press-reported figures." },
+  eeuu_importa_de_ve: { es: "Lo que EE.UU. compra a Venezuela cada mes según su aduana (Census). Sirve como termómetro mensual de las exportaciones mientras el BCV publica la balanza por trimestre.", en: "What the US buys from Venezuela each month per US customs (Census): a monthly gauge of exports while the BCV publishes quarterly." },
+  exportaciones_petroleras_bd: { es: "Barriles diarios embarcados en el mes según los datos de seguimiento de buques que publica Reuters a inicios de cada mes.", en: "Barrels per day shipped in the month, per the tanker-tracking data Reuters publishes early each month." },
   pib_real_var: { es: "El BCV publica el PIB solo por trimestre: no existe una cifra oficial mensual.", en: "The BCV publishes GDP only quarterly: there is no official monthly figure." },
 };
 const HIDDEN = new Set(["petroleo_prod_opep_fs", "petroleo_prod_opep_cd", "petroleo_prod_eia"]);

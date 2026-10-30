@@ -1,12 +1,28 @@
 {
- "_ayuda": "Reglas de alertas. tipo 'umbral': avisa cuando la serie CRUZA el valor (no cada día que esté por encima). 'variacion': cambio entre los dos últimos datos mayor al % indicado. 'nuevo_dato': avisa cuando sale un dato nuevo. 'resumen_diario': mensaje con las series listadas, una vez al día (robot diario). {valor}, {fecha}, {cambio} se reemplazan.",
+ "_ayuda": "Reglas de alertas a Telegram. Tipos: 'umbral' (la serie CRUZA un valor), 'variacion' (cambio entre los dos últimos datos ≥ pct %), 'nuevo_dato' (sale un dato nuevo; min_dias limita series diarias), 'resumen_hora' (mensaje a una hora fija, hora de Venezuela), 'resumen_diario' (al cierre, 7:40 p. m.), 'acciones' (acción de la BVC que se mueve ≥ pct % con monto ≥ monto_min Bs), 'volumen' (monto negociado del día ≥ veces el promedio del año), 'noticia' (titular que coincide con el patrón; máximo max_dia al día), 'ofac' (nueva acción de OFAC sobre Venezuela), 'robots' (un robot falla dos veces seguidas). Para apagar una regla, bórrala o cambia su 'id'.",
  "reglas": [
-  {"id": "brecha_sube_30", "tipo": "umbral", "serie": "brecha_cambiaria", "op": ">", "valor": 30, "texto": "⚠️ La brecha cambiaria superó 30%: {valor}% ({fecha})"},
+  {"id": "manana", "tipo": "resumen_hora", "hora": "08:00", "series": ["usd_bcv", "usd_paralelo", "brecha_cambiaria", "eur_bcv"], "texto": "☀️ Buenos días · tipo de cambio {fecha}"},
+
+  {"id": "paralelo_salto", "tipo": "variacion", "serie": "usd_paralelo", "pct": 2, "texto": "💵 Dólar paralelo se movió {cambio}% → Bs {valor} ({fecha})"},
+  {"id": "oficial_salto", "tipo": "variacion", "serie": "usd_bcv", "pct": 1.5, "texto": "🏦 Dólar oficial BCV se movió {cambio}% → Bs {valor} ({fecha})"},
+  {"id": "brecha_sube_20", "tipo": "umbral", "serie": "brecha_cambiaria", "op": ">", "valor": 20, "texto": "⚠️ La brecha cambiaria superó 20%: {valor}% ({fecha})"},
   {"id": "brecha_baja_10", "tipo": "umbral", "serie": "brecha_cambiaria", "op": "<", "valor": 10, "texto": "✅ La brecha cambiaria bajó de 10%: {valor}% ({fecha})"},
-  {"id": "paralelo_salto", "tipo": "variacion", "serie": "usd_paralelo", "pct": 3, "texto": "💵 Dólar paralelo se movió {cambio}% → Bs {valor} ({fecha})"},
-  {"id": "oficial_salto", "tipo": "variacion", "serie": "usd_bcv", "pct": 2, "texto": "🏦 Dólar oficial BCV se movió {cambio}% → Bs {valor} ({fecha})"},
-  {"id": "ibc_salto", "tipo": "variacion", "serie": "ibc", "pct": 4, "texto": "📈 El IBC se movió {cambio}% → {valor} puntos ({fecha})"},
-  {"id": "nuevos_datos", "tipo": "nuevo_dato", "series": ["inflacion_mensual", "reservas_internacionales", "liquidez_m2", "petroleo_prod_eia", "petroleo_prod_opep_cd", "merey", "pib_real_var", "pib_petrolero_var", "intervencion_bcv_mensual"], "texto": "🆕 Nuevo dato · {nombre}: {valor} {unidad} ({fecha})"},
-  {"id": "resumen", "tipo": "resumen_diario", "series": ["usd_bcv", "usd_paralelo", "brecha_cambiaria", "ibc", "ibc_usd_paralelo", "brent"], "texto": "📊 Resumen Monitor Venezuela · {fecha}"}
+  {"id": "ibc_salto", "tipo": "variacion", "serie": "ibc", "pct": 3, "texto": "📈 El IBC se movió {cambio}% → {valor} puntos ({fecha})"},
+  {"id": "accion_salto", "tipo": "acciones", "pct": 8, "monto_min": 50000, "texto": "📊 {simbolo} {empresa}: {cambio}% → Bs {precio} ({fecha})"},
+  {"id": "volumen_alto", "tipo": "volumen", "veces": 2, "texto": "🔥 Volumen alto en la BVC: Bs {valor} millones, {veces}x el promedio del año y {veces20}x el de las últimas 20 sesiones ({fecha})"},
+  {"id": "brent_salto", "tipo": "variacion", "serie": "brent", "pct": 4, "texto": "🛢️ Brent se movió {cambio}% → US$ {valor} ({fecha})"},
+
+  {"id": "bcv_publica", "tipo": "nuevo_dato", "series": ["inflacion_mensual", "liquidez_m2", "base_monetaria", "cuenta_corriente", "exportaciones_bienes", "importaciones_bienes", "pib_real_var", "tasa_activa", "encaje_legal"], "texto": "🏛️ BCV publicó · {nombre}: {valor} {unidad} ({fecha})"},
+  {"id": "reservas", "tipo": "nuevo_dato", "min_dias": 7, "series": ["reservas_internacionales"], "texto": "🏛️ Reservas internacionales: {valor} {unidad} ({fecha})"},
+  {"id": "intervencion", "tipo": "nuevo_dato", "series": ["intervencion_bcv", "intervencion_bcv_mensual"], "texto": "💱 Intervención cambiaria · {nombre}: {valor} {unidad} ({fecha})"},
+  {"id": "bancos", "tipo": "nuevo_dato", "series": ["cartera_credito", "depositos_totales"], "texto": "🏦 Salieron los balances bancarios · {nombre}: {valor} {unidad} ({fecha})"},
+  {"id": "sunaval", "tipo": "nuevo_dato", "series": ["mob_monto", "bvc_volumen_usd", "bolpriaven_monto"], "texto": "📑 Informe mensual de SUNAVAL · {nombre}: {valor} {unidad} ({fecha})"},
+  {"id": "momr", "tipo": "nuevo_dato", "series": ["petroleo_prod_opep_cd", "merey"], "texto": "🛢️ Informe OPEP (MOMR) · {nombre}: {valor} {unidad} ({fecha})"},
+  {"id": "exportaciones", "tipo": "nuevo_dato", "series": ["exportaciones_petroleras_bd", "eeuu_importa_de_ve"], "texto": "🚢 Comercio · {nombre}: {valor} {unidad} ({fecha})"},
+  {"id": "ofac", "tipo": "ofac", "texto": "🇺🇸 OFAC · {titulo} ({fecha})\n{url}"},
+  {"id": "noticia", "tipo": "noticia", "max_dia": 5, "patron": "OFAC|licencia general|sanci[oó]n|devalu|unificaci[oó]n cambiaria|FMI|\\bIMF\\b|reestructuraci[oó]n|bonos|eurobonos|Chevron|PDVSA (firma|acuerdo)|BCV (anuncia|aumenta|reduce|eleva|baja)|encaje|inflaci[oó]n de|salario m[ií]nimo|Citgo|default|Asamblea Nacional aprueba|ley de hidrocarburos", "texto": "📰 {titulo}\n{fuente} · {url}"},
+  {"id": "robots", "tipo": "robots", "texto": "🤖 El robot «{robot}» falló dos veces seguidas. Revisa Metodología → Robots."},
+
+  {"id": "resumen", "tipo": "resumen_diario", "series": ["usd_bcv", "usd_paralelo", "brecha_cambiaria", "ibc", "bvc_monto", "brent", "merey"], "texto": "📊 Cierre del día · {fecha}"}
  ]
 }

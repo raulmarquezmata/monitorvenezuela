@@ -103,19 +103,17 @@ def run():
                 content = fetch(f["url"], timeout=30, retries=2).content
                 got = parse_feed(content, None if agg else f["name"], f.get("lang", "es"), f.get("filter", True))
                 for it in got:
-                    k = re.sub(r"\W+", "", it["title"].lower())[:80]
-                    if k in seen_titles:
-                        continue
-                    seen_titles.add(k)
-                    items.append(it)
+                    # títulos repetidos en varios medios se guardan todos: la web los agrupa y ofrece cada enlace
+                    if it["url"] not in seen_titles:
+                        seen_titles.add(it["url"])
+                        items.append(it)
                 st.update(last_ok=now, last_items=len(got))
             except Exception as e:  # noqa: BLE001
                 got = google_fallback(f)
                 if got is not None:
                     for it in got:
-                        k = re.sub(r"\W+", "", it["title"].lower())[:80]
-                        if k not in seen_titles:
-                            seen_titles.add(k)
+                        if it["url"] not in seen_titles:
+                            seen_titles.add(it["url"])
                             items.append(it)
                     st.update(last_ok=now, last_items=len(got), last_error="RSS propio bloqueado; vía Google News")
                 else:

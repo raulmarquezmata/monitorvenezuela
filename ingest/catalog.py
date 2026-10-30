@@ -45,6 +45,10 @@ _S = [
     ("inversion_directa_pais", "externo", "Inversión extranjera directa en el país", "FDI into Venezuela", "millones US$", "US$ million", "Q", "BCV", BCV, 0, 18),
     ("exportaciones_espejo", "externo", "Exportaciones (datos espejo)", "Exports (mirror data)", "millones US$", "US$ million", "A", "UN Comtrade", "https://comtradeplus.un.org", 0, 20),
     ("importaciones_espejo", "externo", "Importaciones (datos espejo)", "Imports (mirror data)", "millones US$", "US$ million", "A", "UN Comtrade", "https://comtradeplus.un.org", 0, 30),
+    ("exportaciones_petroleras_bd", "externo", "Exportaciones petroleras (volumen)", "Oil exports (volume)", "miles b/d", "kb/d", "M", "Reuters (datos de embarque), vía prensa", "https://www.reuters.com", 0, 205),
+    ("eeuu_importa_de_ve", "externo", "Exportaciones a EE.UU. (EE.UU. importa de Venezuela)", "Exports to the US (US imports from Venezuela)", "millones US$", "US$ million", "M", "US Census Bureau", "https://www.census.gov/foreign-trade/balance/c3070.html", 1, 206),
+    ("eeuu_importa_petroleo_ve", "externo", "Exportaciones petroleras a EE.UU. (cap. 27)", "Oil exports to the US (HS 27)", "millones US$", "US$ million", "M", "US Census Bureau", "https://www.census.gov/foreign-trade/balance/c3070.html", 1, 207),
+    ("eeuu_exporta_a_ve", "externo", "Importaciones desde EE.UU. (EE.UU. exporta a Venezuela)", "Imports from the US (US exports to Venezuela)", "millones US$", "US$ million", "M", "US Census Bureau", "https://www.census.gov/foreign-trade/balance/c3070.html", 1, 208),
 
     # ---------------- Banca
     ("cartera_credito", "banca", "Cartera de créditos (sistema)", "Loan book (system)", "millones Bs", "Bs million", "M", "SUDEBAN (vía Finanzas Digital)", "https://finanzasdigital.com/estadisticas/ve/financieras/instituciones/tabla/creditos", 0, 10),
@@ -122,6 +126,9 @@ PLAN = {
     "multiplicador": (A, 14, "Se calcula solo: M2 ÷ base monetaria."),
     
     "encaje_legal": (A, 120, "Robot bcv_stats diario: descarga el archivo del BCV y guarda cuando hay publicación nueva. Mensual, desde 2004."),
+    "exportaciones_petroleras_bd": (A, 45, "Robot press diario: cifras mensuales de embarques que publica Reuters (sale los primeros días de cada mes)."),
+    "eeuu_importa_de_ve": (A, 75, "Robot census diario (Census Bureau; sale ~5 semanas después de cada mes)."),
+    "eeuu_importa_petroleo_ve": (A, 75, "Robot census diario."), "eeuu_exporta_a_ve": (A, 75, "Robot census diario."),
     "ipc_eeuu": (A, 60, "Robot fx_historico semanal (FRED, serie CPIAUCSL). Sirve para la calculadora de inflación en dólares."),
     "inflacion_mensual": (A, 40, "Robot inflation diario (cifras oficiales del BCV), histórico desde 1986."),
     "inflacion_interanual": (A, 40, "Robot inflation diario, histórico desde 1986."),

@@ -4,6 +4,7 @@ import { chartLabels, Kpi, NotConfigured, SectionHead } from "@/components/ui";
 import { bvcLatest, configured, events, history, latest, news } from "@/lib/data";
 import { num, pct, fmtDateFor } from "@/lib/format";
 import { t, type Lang } from "@/lib/i18n";
+import { groupNews } from "@/lib/newsgroup";
 
 export const revalidate = 300;
 
@@ -15,9 +16,10 @@ export default async function Home({ params }: { params: { lang: Lang } }) {
   const d = t(lang);
   if (!configured) return <NotConfigured />;
   const [all, hist, quotes, items, evs] = await Promise.all([
-    latest(), history([...KPIS, "ibc", "inflacion_acumulada", "inflacion_interanual"], 12), bvcLatest(), news(5), events(4),
+    latest(), history([...KPIS, "ibc", "inflacion_acumulada", "inflacion_interanual"], 12), bvcLatest(), news(40), events(4),
   ]);
   const by = Object.fromEntries(all.map((s) => [s.code, s]));
+  const headlines = groupNews(items).slice(0, 6);
   const href = (c: string) => by[c] ? `/${lang}/indicadores/${by[c].category}#${c}` : undefined;
   const ibc = by.ibc;
   const ibcPts = hist.ibc ?? [];
@@ -67,10 +69,11 @@ export default async function Home({ params }: { params: { lang: Lang } }) {
         <div>
           <SectionHead label={d.headlines} href={`/${lang}/noticias`} more={d.allHeadlines} />
           <ul className="headlines">
-            {items.map((n) => (
+            {headlines.map((n) => (
               <li key={n.id}>
                 <div className="m">{n.category && <span className="tag">{d.cats[n.category] ?? n.category}</span>}<span>{n.source} · {time(n.published_at)}</span></div>
                 <a className="t" href={n.url} target="_blank" rel="noreferrer">{n.title}</a>
+                {n.also.length > 0 && <p className="also">{lang === "es" ? "También en: " : "Also in: "}{n.also.slice(0, 4).map((a, i) => <span key={a.url}>{i > 0 && " · "}<a href={a.url} target="_blank" rel="noreferrer">{a.source}</a></span>)}</p>}
               </li>
             ))}
             {!items.length && <li className="muted">{d.noData}</li>}

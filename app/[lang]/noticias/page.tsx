@@ -4,6 +4,7 @@ import { NotConfigured } from "@/components/ui";
 import { configured, news, ofacActions } from "@/lib/data";
 import { date, dateTime } from "@/lib/format";
 import { t, type Lang } from "@/lib/i18n";
+import { groupNews } from "@/lib/newsgroup";
 
 // los filtros llegan por la URL (?cat=, ?m=…): se renderiza en cada visita
 export const dynamic = "force-dynamic";
@@ -15,7 +16,8 @@ export default async function Noticias({ params, searchParams }: { params: { lan
   const d = t(lang);
   if (!configured) return <NotConfigured />;
   const cat = searchParams.cat && CATS.includes(searchParams.cat) ? searchParams.cat : undefined;
-  const [items, ofac] = await Promise.all([news(120, cat), ofacActions(12)]);
+  const [raw, ofac] = await Promise.all([news(300, cat), ofacActions(12)]);
+  const items = groupNews(raw).slice(0, 120);
   return (
     <>
       <NewsNav lang={lang} />
@@ -37,6 +39,11 @@ export default async function Noticias({ params, searchParams }: { params: { lan
               </div>
               <a className="t" href={n.url} target="_blank" rel="noreferrer">{n.title}</a>
               {n.summary && <p>{n.summary}</p>}
+              {n.also.length > 0 && (
+                <p className="also">{lang === "es" ? "También en: " : "Also in: "}
+                  {n.also.slice(0, 6).map((a, i) => <span key={a.url}>{i > 0 && " · "}<a href={a.url} target="_blank" rel="noreferrer">{a.source}</a></span>)}
+                </p>
+              )}
             </li>
           ))}
           {!items.length && <li className="muted">{d.noData}</li>}
