@@ -14,7 +14,7 @@ on:
       tarea:
         description: "Qué correr"
         type: choice
-        options: [backfill, frequent, daily, weekly, files]
+        options: [backfill, frequent, oficial, daily, weekly, files]
         default: backfill
 concurrency:
   group: robots-${{ github.event.schedule || github.event_name }}
