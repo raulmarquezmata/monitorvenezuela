@@ -28,26 +28,44 @@ CATEGORIES = [  # orden = prioridad. Cambiario y precios van en economía; sanci
     ("banca", r"\bbanc[oa]s?\b|cr[eé]dito|encaje|sudeban|dep[oó]sito|cartera crediticia|\bbank|\bloan|fintech|cashea"),
     ("mercados", r"bolsa de valores|\bbvc\b|\bibc\b|acciones|papeles comerciales|sunaval|casa de bolsa|stock|\bshares\b|bolpriaven"),
     ("agro", r"agr[ií]col|cosecha|ma[ií]z|arroz|caf[eé]|cacao|ganad|fedeagro|fertiliz|\bagro|siembra|alimentos"),
-    ("politica", r"ofac|sanci[oó]n|licencia general|sanction|general license|elecci|asamblea nacional|tsj|gobierno|presiden|canciller|di[aá]logo|oposici|delcy|trump|rubio|embajad|ministr|diplomac|political|election|government"),
+    ("politica", r"ofac|sanci[oó]n|licencia general|sanction|general license|elecci|asamblea nacional|tsj|gobierno|presiden|canciller|di[aá]logo|oposici|delcy|trump|rubio|embajad|ministr|diplomac|machado|maduro|cabello|political|election|government"),
     ("economia", r"inflaci[oó]n|\bpib\b|econom|import|export|liquidez|reservas|recaudaci|seniat|presupuesto|d[oó]lar|tipo de cambio|bol[ií]var|divisa|intervenci[oó]n cambiaria|salario|precios|gdp|inflation|economy|exchange rate"),
 ]
 RELEVANT = re.compile(r"venezuel|caracas|\bbcv\b|pdvsa|bol[ií]var|sudeban|seniat|sunaval|\bbvc\b|fedec[aá]maras|conindustria|consecomercio|"
                       r"delcy|maracaibo|zulia|carabobo|anzo[aá]tegui|monagas|guayana|orinoco|\bfaja\b|corpoelec|cantv|cashea|citgo|"
                       r"esequibo|bolpriaven|casa de bolsa|banesco|mercantil|provincial|bancaribe|banco de venezuela|\bbnc\b|maduro|machado", re.I)
 # temas que no son de Venezuela (salvo que el titular también la mencione): se descartan aunque vengan de medios venezolanos
-FOREIGN = re.compile(r"\bir[aá]n\b|ormuz|hormuz|israel|gaza|ucrania|ukraine|rusia\b|putin|zelensk|taiw[aá]n|corea del norte|"
+FOREIGN = re.compile(r"\bir[aá]n\b|ormuz|hormuz|\bPIF\b|saud[ií]|arabia|emiratos|dub[aá]i|fenalco|israel|gaza|ucrania|ukraine|rusia\b|putin|zelensk|taiw[aá]n|corea del norte|"
                      r"bitcoin|ethereum|\bcripto|crypto|\bnft\b|blockchain|memecoin|solana|dogecoin|lazarus|trader ?traitor|"
                      r"argentina|milei|chile\b|per[uú]\b|ecuador|bolivia|m[eé]xico|brasil|lula|colombia(?! .*venezuel)|petro\b|"
                      r"champions|f[uú]tbol|mundial de|nba\b|mlb\b|hollywood|celebrity", re.I)
 
 
+FOOTER = re.compile(r"(la entrada|the post)\s.*?(apareci[oó] primero en|appeared first on)\s.*$|\[…\]|\[\.\.\.\]", re.I | re.S)
+
+
+def clean_summary(summary: str | None, title: str = "") -> str | None:
+    """Quita el pie de los RSS de WordPress («La entrada … apareció primero en Banca y Negocios»), que
+    confundía la clasificación (la palabra «Banca») y la relevancia."""
+    if not summary:
+        return None
+    s_ = FOOTER.sub("", summary).strip()
+    if not s_ or (title and s_.startswith(title[:40])):
+        return None
+    return s_
+
+
 def is_relevant(title: str, summary: str | None, strict: bool) -> bool:
-    """strict (medios internacionales): debe mencionar Venezuela o algo propio del país.
-    No strict (medios venezolanos): se acepta todo salvo temas claramente extranjeros que no mencionen a Venezuela."""
-    blob = f"{title} {summary or ''}"
-    if RELEVANT.search(blob):
+    """Medios venezolanos (strict=False): se acepta todo salvo temas claramente extranjeros que no mencionen
+    a Venezuela en el titular. Medios internacionales y búsquedas (strict=True): el titular o el resumen deben
+    mencionar Venezuela o algo propio del país."""
+    if RELEVANT.search(title):
         return True
-    return not strict and not FOREIGN.search(title)
+    if FOREIGN.search(title):
+        return False
+    if strict:
+        return bool(summary and RELEVANT.search(summary))
+    return True
 
 
 def categorize(text: str) -> str:
@@ -77,9 +95,8 @@ def parse_feed(content: bytes, default_source: str | None, lang: str, require_re
         published = dt.datetime.fromtimestamp(calendar.timegm(tp), dt.timezone.utc) if tp else dt.datetime.now(dt.timezone.utc)
         if published < cutoff:
             continue
-        summary = clean_text(e.get("summary"), 400)
-        if summary and summary.startswith(title[:40]):
-            summary = None  # Google News repite el titular en el resumen
+        # Google News no trae resumen propio (repite titulares de otras notas): se ignora
+        summary = None if not default_source else clean_summary(clean_text(e.get("summary"), 400), title)
         blob = f"{title} {summary or ''}"
         if not is_relevant(title, summary, require_relevance):
             continue
@@ -114,8 +131,9 @@ def cleanup() -> int:
     """Quita de la base las noticias recientes que no son sobre Venezuela (reglas actuales)."""
     from .common import delete, select
     since = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=45)).isoformat()
+    ve = {f["name"] for f in load_feeds() if f.get("kind") == "medio" and not f.get("filter", True)}
     bad = [x["url"] for x in select("news", {"select": "url,title,summary,source", "published_at": f"gte.{since}"})
-           if not is_relevant(x["title"], x.get("summary"), False)]
+           if not is_relevant(x["title"], clean_summary(x.get("summary"), x["title"]), x.get("source") not in ve)]
     for u in bad:
         try:
             delete("news", {"url": f"eq.{u}"})
@@ -131,7 +149,7 @@ def recategorize() -> int:
     rows = select("news", {"select": "url,title,summary,source,published_at,category,lang", "published_at": f"gte.{since}"})
     changed = []
     for x in rows:
-        c = categorize(f"{x['title']} {x.get('summary') or ''}")
+        c = categorize(f"{x['title']} {clean_summary(x.get('summary'), x['title']) or ''}")
         if c != x.get("category"):
             x["category"] = c
             changed.append(x)

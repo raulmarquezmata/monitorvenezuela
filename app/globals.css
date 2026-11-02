@@ -256,3 +256,20 @@ footer a { color: var(--text-3); }
 .hilo span { display: flex; flex-direction: column; } .hilo small { color: var(--text-3); font-size: 12px; } .hilo b { font-weight: 500; font-variant-numeric: tabular-nums; }
 .hilo-bar { position: relative; height: 4px; border-radius: 2px; background: var(--line); }
 .hilo-bar i { position: absolute; top: -4px; width: 12px; height: 12px; margin-left: -6px; border-radius: 50%; background: var(--accent); }
+
+/* ---------------- Móvil: nada se sale de la pantalla */
+.grid > *, .card { min-width: 0; }
+.card { overflow-wrap: anywhere; }
+.tbl-wrap { max-width: 100%; }
+.short { display: none; }
+@media (max-width: 640px) {
+  th, td { padding: 8px 6px; font-size: 14px; }
+  th { font-size: 11px; letter-spacing: .03em; }
+  table.compact .long { display: none; } table.compact .short { display: inline; }
+  .card { padding-left: 16px; padding-right: 16px; }
+  .card-top { flex-wrap: wrap; gap: 4px 12px; }
+}
+@media (max-width: 640px) {
+  td:first-child, th:first-child { white-space: normal; }
+  .card:not(.tbl-wrap) > table { display: block; overflow-x: auto; }
+}

@@ -59,10 +59,14 @@ export default async function BVC({ params, searchParams }: { params: { lang: La
         </ChartCard>
         <div className="card">
           <div className="card-top"><h3>{es ? "Rendimiento del IBC" : "IBC return"}</h3><span className="date">{es ? "en bolívares y en dólares" : "in bolivars and dollars"}</span></div>
-          <table className="tbl" style={{ marginTop: 14 }}>
-            <thead><tr><th>{es ? "Período" : "Period"}</th><th style={{ textAlign: "right" }}>Bs</th><th style={{ textAlign: "right" }}>{es ? "US$ oficial" : "US$ official"}</th><th style={{ textAlign: "right" }}>{es ? "US$ paralelo" : "US$ parallel"}</th></tr></thead>
+          <div className="tbl-wrap">
+          <table className="tbl compact" style={{ marginTop: 14 }}>
+            <thead><tr><th>{es ? "Período" : "Period"}</th><th style={{ textAlign: "right" }}>Bs</th>
+              <th style={{ textAlign: "right" }}><span className="long">{es ? "US$ oficial" : "US$ official"}</span><span className="short">{es ? "US$ of." : "US$ off."}</span></th>
+              <th style={{ textAlign: "right" }}><span className="long">{es ? "US$ paralelo" : "US$ parallel"}</span><span className="short">{es ? "US$ par." : "US$ par."}</span></th></tr></thead>
             <tbody>{ret.map((r) => <tr key={r.p}><td>{PERIOD_LABEL[r.p][lang]}</td>{pctCell(r.bs)}{pctCell(r.of)}{pctCell(r.par)}</tr>)}</tbody>
           </table>
+          </div>
           <p className="muted" style={{ fontSize: 13, marginTop: 12 }}>{es
             ? "Cuánto ganó o perdió quien tenía el índice, medido en bolívares y convertido a dólares con la tasa de cada fecha. Si el rendimiento en US$ es menor que en Bs, la devaluación se comió parte de la subida."
             : "Gain or loss for a holder of the index, in bolivars and converted to dollars at each date's rate. A lower US$ return means devaluation ate part of the rally."}</p>
