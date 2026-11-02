@@ -196,9 +196,10 @@ def send_telegram(text: str) -> bool:
     tok, chat = os.environ.get("TELEGRAM_BOT_TOKEN"), os.environ.get("TELEGRAM_CHAT_ID")
     if not (tok and chat):
         return False
-    r = http.post(f"https://api.telegram.org/bot{tok}/sendMessage",
-                  json={"chat_id": chat, "text": text, "disable_web_page_preview": True}, timeout=30)
-    r.raise_for_status()
+    r = http.post(f"https://api.telegram.org/bot{tok.strip()}/sendMessage",
+                  json={"chat_id": chat.strip(), "text": text, "disable_web_page_preview": True}, timeout=30)
+    if r.status_code >= 300:  # se muestra la respuesta de Telegram (p. ej. «chat not found», «Unauthorized»)
+        raise RuntimeError(f"{r.status_code} {r.text[:200]}")
     return True
 
 
@@ -245,8 +246,8 @@ def run(daily: bool = False):
             rule = by_id.get(rid, {})
             tipo = rule.get("tipo")
             prefix = ":".join(key.split(":")[:2]) + ":"
-            # regla nueva: la primera vez solo registra lo que ya existía (salvo mensajes con hora fija)
-            silent = first_run or (rid not in known_rules and tipo not in TIMED)
+            # regla nueva o primera corrida: solo registra lo que ya existía (los mensajes con hora fija sí salen)
+            silent = (first_run or rid not in known_rules) and tipo not in TIMED
             if tipo == "nuevo_dato" and not any(x["key"].startswith(prefix) for x in log_all):
                 silent = True  # serie recién agregada a la regla: no avisar el dato viejo
             if rule.get("min_dias") and any(x["key"].startswith(prefix) and (x.get("sent_at") or "")[:10] > (dt.date.today() - dt.timedelta(days=rule["min_dias"])).isoformat() for x in recent):
@@ -271,3 +272,4 @@ def run(daily: bool = False):
                     r.note(f"Correo: {e}")
             log.append({"key": key, "rule": rid, "message": text, "channels": ",".join(channels) or None, "sent_at": dt.datetime.now(dt.timezone.utc).isoformat()})
         r.rows = upsert("alerts_log", log, "key")
+        r.log.info("Alertas: %d candidatas, %d enviadas a Telegram", len(log), n_sent)
