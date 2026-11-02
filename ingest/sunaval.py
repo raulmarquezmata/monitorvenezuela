@@ -138,22 +138,47 @@ def pdf_text(content: bytes) -> str:
         return "\n".join((p.extract_text() or "") for p in pdf.pages)
 
 
+LOCAL = __import__("pathlib").Path(__file__).resolve().parent.parent / "data" / "sunaval"
+
+
+def period_from_name(name: str) -> str | None:
+    n = name.lower()
+    mm = next((v for k, v in MONTHS.items() if k in n), None)
+    yy = re.search(r"(20\d\d)", n)
+    return f"{yy.group(1)}-{mm:02d}" if mm and yy else None
+
+
+def parse_report(content: bytes, period: str) -> dict:
+    data = parse_text(pdf_text(content), period)
+    if not data["bvc_volumen_usd"] or not data["mob_monto"]:
+        for k, v in parse_ocr(ocr_pages(content), period).items():
+            if v:
+                data[k] = v
+    return data
+
+
 def run(backfill: bool = False):
     with Run("sunaval") as r:
-        reports = list_reports()
+        # 1) informes subidos a mano a data/sunaval/ (SUNAVAL bloquea a veces al robot)
+        for pth in sorted(LOCAL.glob("*.pdf")):
+            per = period_from_name(pth.name)
+            if not per:
+                r.note(f"{pth.name}: no se reconoce el mes en el nombre")
+                continue
+            for code, pts in parse_report(pth.read_bytes(), per).items():
+                r.rows += save_obs(code, pts, f"SUNAVAL ({per})")
+        try:
+            reports = list_reports()
+        except Exception as e:  # noqa: BLE001
+            r.note(f"La página de SUNAVAL no respondió ({str(e)[:80]}). Si hace falta, sube el informe a data/sunaval/.")
+            return
         if not reports:
             r.note("No se encontraron informes mensuales en la página de SUNAVAL")
             return
         todo = list(reversed(reports[:48])) if backfill else reports[:2]
         for url, period in todo:
             try:
-                content = fetch(url, timeout=120).content
-                data = parse_text(pdf_text(content), period)
-                if not data["bvc_volumen_usd"] or not data["mob_monto"]:
-                    extra = parse_ocr(ocr_pages(content), period)
-                    for k, v in extra.items():
-                        if v:
-                            data[k] = v
+                data = parse_report(fetch(url, timeout=120).content, period)
             except Exception as e:  # noqa: BLE001
                 r.note(f"{period}: {e}")
                 continue

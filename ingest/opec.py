@@ -157,4 +157,7 @@ def run(backfill: bool = False, local_only: bool = False):
             if not backfill:
                 break  # el más reciente basta: trae los últimos 3 meses (con revisiones)
         if not got:
-            r.note("No se pudo descargar el MOMR (opec.org o espejo). Reintenta mañana.")
+            from .common import select
+            last = select("observations", {"select": "date", "series_code": "eq.merey", "order": "date.desc", "limit": 1})
+            if not last or last[0]["date"] < (today_caracas() - dt.timedelta(days=50)).isoformat():
+                r.note("No se pudo descargar el MOMR más reciente (opec.org o espejo). Si ya salió, súbelo a data/momr/.")

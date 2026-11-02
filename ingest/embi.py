@@ -34,7 +34,8 @@ def bcrp(code: str, start: str, end: str) -> tuple[str, list]:
 
 def from_press() -> list:
     from .press import google_posts, wp_posts
-    posts = wp_posts("www.finanzasdigital.com", "riesgo país Venezuela", 2) + google_posts("riesgo país Venezuela puntos EMBI")
+    posts = wp_posts("www.finanzasdigital.com", "riesgo país Venezuela", 2) + wp_posts("www.bancaynegocios.com", "riesgo país", 2)
+    posts += google_posts("riesgo país Venezuela puntos EMBI") + google_posts("riesgo país Venezuela puntos básicos")
     out = {}
     for p in posts:
         t = f"{p['title']} {p.get('excerpt', '')}"
@@ -67,5 +68,11 @@ def run(backfill: bool = False):
                 got = True
                 break
         if not got:
-            r.note("BCRP no respondió o no tiene la serie de Venezuela; se usan cifras de prensa")
-            r.rows += save_obs("embi_venezuela", from_press(), "JPMorgan EMBI (vía prensa)")
+            r.log.info("BCRP sin la serie de Venezuela: solo prensa")
+        # la prensa completa lo más reciente (el BCRP puede ir atrasado o haber dejado de publicar Venezuela)
+        last = select("observations", {"select": "date", "series_code": "eq.embi_venezuela", "order": "date.desc", "limit": 1})
+        cut = last[0]["date"] if last else "2000-01-01"
+        press = [p for p in from_press() if p[0] > cut]
+        r.rows += save_obs("embi_venezuela", press, "JPMorgan EMBI (vía prensa)")
+        if not got and not press and cut < (dt.date.today() - dt.timedelta(days=20)).isoformat():
+            r.note(f"Sin dato nuevo del EMBI desde {cut}: ni el BCRP ni la prensa lo publicaron")

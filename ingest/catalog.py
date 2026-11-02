@@ -213,3 +213,15 @@ assert len({s["code"] for s in SERIES}) == len(SERIES), "códigos duplicados en 
 def run():
     with Run("catalog") as r:
         r.rows = upsert("series", SERIES, "code")
+
+
+# Ajustes de plazo (días) para que "Atrasada" solo aparezca cuando de verdad falta una publicación
+for code, days in {"pib_real_var": 150, "pib_petrolero_var": 150, "pib_no_petrolero_var": 150, "pib_anual_var": 450,
+                   "pib_petrolero_anual_var": 450, "pib_no_petrolero_anual_var": 450, "petroleo_prod_eia": 160,
+                   "tasa_plazo": 80, "tasa_ahorro": 80, "recaudacion_seniat": 75, "recaudacion_seniat_usd": 75,
+                   "maiz": 75, "trigo": 75, "arroz": 75, "soya": 75, "urea": 75, "dap": 75, "embi_venezuela": 21}.items():
+    if code in PLAN:
+        PLAN[code] = (PLAN[code][0], days, PLAN[code][2])
+for s_ in SERIES:
+    if s_["code"] in PLAN:
+        s_["stale_days"] = PLAN[s_["code"]][1]

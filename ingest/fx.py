@@ -84,7 +84,7 @@ RECONVERSIONS = [("2021-10-01", 1e6), ("2018-08-20", 1e5), ("2008-01-01", 1e3)]
 
 
 def fred_series(sid: str) -> list[tuple[str, float]]:
-    txt = fetch(FRED, params={"id": sid}, timeout=90).text
+    txt = fetch(FRED, params={"id": sid}, timeout=45, retries=2).text
     out = []
     for row in csv.reader(io.StringIO(txt)):
         if len(row) >= 2 and re.match(r"\d{4}-\d{2}-\d{2}$", row[0]):
@@ -112,14 +112,37 @@ def respliced(pts: list[tuple[str, float]]) -> list[tuple[str, float]]:
     return pts
 
 
+def h10_series(country: str) -> list[tuple[str, float]]:
+    """Tabla histórica de la Fed (H.10) — respaldo cuando FRED no responde desde GitHub.
+    country: 've' (bolívares por US$) o 'eu' (US$ por euro)."""
+    html = fetch(f"https://www.federalreserve.gov/releases/h10/hist/dat00_{country}.htm", timeout=90).text
+    out = []
+    for m in re.finditer(r"<th[^>]*>\s*(\d{1,2})-([A-Za-z]{3})-(\d{2})\s*</th>\s*<td[^>]*>\s*([\d.]+)\s*</td>", html):
+        d, mon, y, v = m.groups()
+        mm = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"].index(mon.title()) + 1
+        yy = 2000 + int(y) if int(y) < 70 else 1900 + int(y)
+        out.append((f"{yy}-{mm:02d}-{int(d):02d}", float(v)))
+    return out
+
+
+def safe_series(fred_id: str, h10: str) -> list[tuple[str, float]]:
+    try:
+        pts = fred_series(fred_id)
+        if pts:
+            return pts
+    except Exception:  # noqa: BLE001
+        pass
+    return h10_series(h10)
+
+
 def fred_history() -> dict[str, list]:
     """Oficial diario desde 2000 (Fed H.10 vía FRED), reexpresado; el euro por cruce con EUR/USD.
     Solo rellena fechas anteriores a los datos del BCV (SMC 2020+ y Frankfurter 2021+)."""
     first = select("observations", {"select": "date", "series_code": "eq.usd_bcv", "source": "not.like.FRED*",
                                     "order": "date", "limit": 1})
     cut = first[0]["date"] if first else "2020-01-01"
-    usd = [p for p in respliced(fred_series("DEXVZUS")) if p[0] < cut]
-    eurusd = dict(fred_series("DEXUSEU"))  # US$ por euro
+    usd = [p for p in respliced(safe_series("DEXVZUS", "ve")) if p[0] < cut]
+    eurusd = dict(safe_series("DEXUSEU", "eu"))  # US$ por euro
     eur = [(d, v * eurusd[d]) for d, v in usd if d in eurusd]
     return {"usd_bcv": usd, "eur_bcv": eur}
 
@@ -189,8 +212,12 @@ def run_cpi():
                 j = fetch("https://api.bls.gov/publicAPI/v2/timeseries/data/", method="POST",
                           json={"seriesid": ["CUSR0000SA0"], "startyear": str(a), "endyear": str(min(a + 9, y))}, timeout=60).json()
                 for d in j["Results"]["series"][0]["data"]:
+                    try:
+                        v = float(d["value"])
+                    except (TypeError, ValueError):
+                        continue  # meses sin dato publicado ('-')
                     if d["period"].startswith("M") and d["period"] != "M13":
-                        pts.append((f"{d['year']}-{d['period'][1:]}-01", float(d["value"])))
+                        pts.append((f"{d['year']}-{d['period'][1:]}-01", v))
             r.rows += save_obs("ipc_eeuu", pts, "BLS")
             if not pts:
                 r.note("IPC EE.UU.: FRED y BLS sin datos")

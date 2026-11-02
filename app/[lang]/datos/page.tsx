@@ -74,7 +74,7 @@ export default async function Datos({ params }: { params: { lang: Lang } }) {
                 <td className="l">{r.job}</td><td>{dateTime(r.finished_at, lang)}</td>
                 <td className="l"><i className="status-dot" style={{ background: DOT[r.status] }} />{d.statusOk[r.status] ?? r.status}</td>
                 <td>{num(r.rows, lang, 0)}</td>
-                <td className="l" style={{ whiteSpace: "normal", maxWidth: 520, fontSize: 12 }}>{r.message ?? ""}</td>
+                <td className="l" style={{ whiteSpace: "normal", maxWidth: 520, fontSize: 12 }}>{(r.message ?? "").replace(/bot\d{6,}:[\w-]{20,}/g, "bot***").replace(/(api_key|key|token)=[^&\s|]+/gi, "$1=***")}</td>
               </tr>
             ))}
           </tbody>

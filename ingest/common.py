@@ -194,6 +194,19 @@ def save_obs(series_code: str, points: Iterable[tuple], source: str | None = Non
 
 
 # ---------------------------------------------------------------- Bitácora
+_SECRETS = [re.compile(r"bot\d{6,}:[\w-]{20,}"), re.compile(r"(api_key|apikey|key|token|subscription-key)=[^&\s|]+", re.I)]
+
+
+def redact(text: str) -> str:
+    """La bitácora se ve en la página pública: nunca debe mostrar claves ni tokens."""
+    for rx in _SECRETS:
+        text = rx.sub(lambda m: (m.group(1) + "=***") if m.lastindex else "bot***", text)
+    for k in ("TELEGRAM_BOT_TOKEN", "EIA_API_KEY", "COMTRADE_API_KEY", "SUPABASE_SERVICE_ROLE_KEY", "GMAIL_APP_PASSWORD"):
+        v = os.environ.get(k)
+        if v and len(v) > 6:
+            text = text.replace(v, "***")
+    return text
+
 class Run:
     """Context manager que registra cada corrida en ingest_runs y nunca tumba al resto de robots."""
 
@@ -222,7 +235,7 @@ class Run:
                 "job": self.job, "started_at": self.t0.isoformat(),
                 "finished_at": dt.datetime.now(dt.timezone.utc).isoformat(),
                 "status": self.status, "rows": self.rows,
-                "message": " | ".join(self.notes)[:4000] or None,
+                "message": redact(" | ".join(self.notes))[:4000] or None,
             }])
         except Exception as e:  # noqa: BLE001
             self.log.error("No se pudo registrar la corrida: %s", e)

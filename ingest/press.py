@@ -306,6 +306,17 @@ def run(backfill: bool = False):
             posts += google_posts("Seniat recaudó millones")
             bs, usd = parse_seniat(posts)
             r.rows += save_obs("recaudacion_seniat", bs, "Prensa · Finanzas Digital")
+            # meses con la cifra solo en US$: equivalente en Bs al oficial promedio del mes
+            have_bs = {x["date"] for x in select("observations", {"select": "date", "series_code": "eq.recaudacion_seniat"})} | {d for d, _ in bs}
+            rates = select("observations", {"select": "date,value", "series_code": "eq.usd_bcv", "date": "gte.2021-10-01", "order": "date"})
+            est = []
+            for d, v in usd:
+                if d in have_bs:
+                    continue
+                mon = [x["value"] for x in rates if x["date"][:7] == d[:7]]
+                if mon:
+                    est.append((d, v * sum(mon) / len(mon)))
+            r.rows += save_obs("recaudacion_seniat", est, "SENIAT en US$ × oficial promedio del mes")
             r.rows += save_obs("recaudacion_seniat_usd", usd, "Prensa · Finanzas Digital")
         except Exception as e:  # noqa: BLE001
             r.note(f"SENIAT: {e}")

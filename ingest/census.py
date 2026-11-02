@@ -22,10 +22,33 @@ def eom(ym: str) -> str:
 
 
 def query(path: str, value: str, comm: str, since: str = "2015-01") -> dict[str, dict[str, float]]:
-    """{mes: {capítulo HS2: millones US$}} — se pide por capítulo (COMM_LVL=HS2) y el total es la suma."""
-    params = {"get": f"CTY_CODE,{value},{comm}", "CTY_CODE": VE, "COMM_LVL": "HS2", "time": f"from {since}"}
-    rows = fetch(f"{API}/{path}", params=params, timeout=120).json()
+    """{mes: {capítulo HS2: millones US$}} — se pide por capítulo (COMM_LVL=HS2) y el total es la suma.
+    Si el formato 'from AAAA-MM' no responde, se pide año por año."""
+    import datetime as _dt
+    base = {"get": f"CTY_CODE,{value},{comm}", "CTY_CODE": VE, "COMM_LVL": "HS2"}
+    attempts = [dict(base, time=f"from {since}")] + [dict(base, get=base["get"] + ",MONTH", YEAR=str(y)) for y in range(int(since[:4]), _dt.date.today().year + 1)]
+    rows, last_err = [], ""
+    for i, params in enumerate(attempts):
+        try:
+            resp = fetch(f"{API}/{path}", params=params, timeout=120, retries=1)
+            data = resp.json() if resp.text.strip() else []
+        except ValueError:
+            last_err = resp.text[:160]
+            continue
+        except Exception as e:  # noqa: BLE001
+            last_err = str(e)[:160]
+            continue
+        if data:
+            rows += data if not rows else data[1:]
+        if i == 0 and data:
+            break
+    if not rows:
+        raise RuntimeError(f"Census sin datos ({last_err})")
     head = rows[0]
+    if "time" not in head:  # consultas por año: se arma AAAA-MM con YEAR y MONTH
+        iy, im = head.index("YEAR"), head.index("MONTH")
+        rows = [head + ["time"]] + [r + [f"{r[iy]}-{int(r[im]):02d}"] for r in rows[1:] if r[im] and str(r[im]).isdigit()]
+        head = rows[0]
     iv, it, ic = head.index(value), head.index("time"), head.index(comm)
     out: dict[str, dict[str, float]] = {}
     for r in rows[1:]:

@@ -79,12 +79,16 @@ def run(backfill: bool = False):
         except Exception as e:  # noqa: BLE001
             r.note(f"EIA Henry Hub: {e}")
         # Importaciones de crudo de EE.UU. desde Venezuela (miles de b/d): mensual y semanal
-        for code, route, sid, freq in (("eeuu_importa_crudo_ve_bd", "petroleum/move/impcus", "MCRIMUSVE2", "monthly"),
-                                       ("eeuu_importa_crudo_ve_sem", "petroleum/move/wkly", "WCRIMUSVE2", "weekly")):
+        for code, routes, sid, freq in (("eeuu_importa_crudo_ve_bd", ["petroleum/move/impcus"], "MCRIMUSVE2", "monthly"),
+                                        ("eeuu_importa_crudo_ve_sem", ["petroleum/move/wimpc", "petroleum/move/wkly"], "WCRIMUSVE2", "weekly")):
             try:
-                j = fetch(f"{API}/{route}/data/", params={
-                    "api_key": key, "frequency": freq, "data[0]": "value", "facets[series][]": sid,
-                    "sort[0][column]": "period", "sort[0][direction]": "desc", "length": 5000}).json()
+                j = {"response": {"data": []}}
+                for route in routes:
+                    j = fetch(f"{API}/{route}/data/", params={
+                        "api_key": key, "frequency": freq, "data[0]": "value", "facets[series][]": sid,
+                        "sort[0][column]": "period", "sort[0][direction]": "desc", "length": 5000}).json()
+                    if j.get("response", {}).get("data"):
+                        break
                 pts = []
                 for d in j["response"]["data"]:
                     if d.get("value") in (None, ""):
