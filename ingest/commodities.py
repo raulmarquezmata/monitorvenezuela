@@ -21,7 +21,6 @@ COLUMNS = {
     "oro": r"^gold", "mineral_hierro": r"^iron ore", "aluminio": r"^aluminum", "maiz": r"^maize",
     "trigo": r"^wheat, us hrw", "arroz": r"^rice, thai 5", "cafe": r"^coffee, arabica", "cacao": r"^cocoa",
     "azucar": r"^sugar, world", "soya": r"^soybeans$", "urea": r"^urea", "dap": r"^dap",
-    "henry_hub": r"^natural gas, us",
 }
 
 

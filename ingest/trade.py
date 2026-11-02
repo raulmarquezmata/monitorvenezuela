@@ -91,3 +91,55 @@ def run(backfill: bool = False):
                            [(f"{y}-12-31", v / 1e6) for y, v in totals["M"].items() if v], "UN Comtrade (espejo)")
         if errors:
             r.note(f"{errors} consultas Comtrade fallidas (límite de velocidad o año sin datos)")
+
+
+def run_monthly():
+    """Datos MENSUALES del año en curso (y el anterior) que ya reportaron los socios a Comtrade.
+
+    Permite ver 2026 sin esperar el cierre del año: totales mensuales de exportaciones (total y petroleras,
+    capítulo 27) e importaciones, y el acumulado del año por capítulo y socio para la página de comercio.
+    Requiere COMTRADE_API_KEY (el endpoint público no admite consultas mensuales de varios socios)."""
+    import calendar
+    with Run("trade_mensual") as r:
+        key = os.environ.get("COMTRADE_API_KEY")
+        if not key:
+            r.note("Falta COMTRADE_API_KEY")
+            return
+        url = "https://comtradeapi.un.org/data/v1/get/C/M/HS"
+        hdr = {"Ocp-Apim-Subscription-Key": key}
+        reps = ",".join(str(c) for c in PARTNERS)
+        this_year = dt.date.today().year
+        eom = lambda p: f"{p[:4]}-{p[4:6]}-{calendar.monthrange(int(p[:4]), int(p[4:6]))[1]:02d}"
+        for year in (this_year - 1, this_year):
+            periods = ",".join(f"{year}{m:02d}" for m in range(1, 13))
+            for partner_flow, ven_flow in (("M", "X"), ("X", "M")):
+                try:
+                    data = fetch(url, params={"reporterCode": reps, "period": periods, "partnerCode": VEN, "flowCode": partner_flow,
+                                              "cmdCode": "AG2", "includeDesc": "true"}, headers=hdr, timeout=180).json().get("data") or []
+                except Exception as e:  # noqa: BLE001
+                    r.note(f"{year} {partner_flow}: {e}")
+                    continue
+                tot: dict[str, float] = defaultdict(float)
+                oil: dict[str, float] = defaultdict(float)
+                ytd: dict[tuple, dict] = {}
+                for d in data:
+                    hs2, val, per, rep = str(d.get("cmdCode") or ""), d.get("primaryValue"), str(d.get("period") or ""), d.get("reporterCode")
+                    if not hs2 or hs2 == "TOTAL" or val is None or len(per) != 6:
+                        continue
+                    if d.get("motCode") not in (None, 0) or d.get("partner2Code") not in (None, 0) or d.get("customsCode") not in (None, "C00", ""):
+                        continue
+                    tot[per] += float(val)
+                    if hs2.zfill(2) == "27":
+                        oil[per] += float(val)
+                    k = (rep, hs2.zfill(2))
+                    row = ytd.setdefault(k, {"year": year, "flow": ven_flow, "partner_code": rep, "partner": PARTNERS.get(rep, str(rep)),
+                                             "hs2": hs2.zfill(2), "hs2_desc": d.get("cmdDesc"), "value_usd": 0.0, "net_kg": None})
+                    row["value_usd"] += float(val)
+                if ven_flow == "X":
+                    r.rows += save_obs("exportaciones_espejo_mensual", [(eom(p), v / 1e6) for p, v in tot.items()], "UN Comtrade (espejo, mensual)")
+                    r.rows += save_obs("exportaciones_petroleras_espejo_mensual", [(eom(p), v / 1e6) for p, v in oil.items()], "UN Comtrade (espejo, mensual)")
+                else:
+                    r.rows += save_obs("importaciones_espejo_mensual", [(eom(p), v / 1e6) for p, v in tot.items()], "UN Comtrade (espejo, mensual)")
+                if year == this_year and ytd:  # acumulado del año en curso (parcial) para la página de comercio
+                    r.rows += upsert("trade_flows", list(ytd.values()), "year,flow,partner_code,hs2")
+                time.sleep(2)

@@ -154,6 +154,12 @@ export async function bankRanking(): Promise<BankRow[]> {
   return (data as BankRow[]) ?? [];
 }
 
+/** Todo el sistema (tablas de Finanzas Digital/SUDEBAN): todas las métricas que no son de la muestra, todos los meses. */
+export async function bankSystem(): Promise<BankRow[]> {
+  if (!sb) return [];
+  return all<BankRow>((a, b) => sb!.from("bank_ranking").select("period,bank,metric,value,share").not("metric", "like", "muestra_%").order("period").range(a, b));
+}
+
 /** Muestra de bancos (archivo data/bancos/Bancos.xlsx): todas las métricas, todos los meses. */
 export async function bankSample(): Promise<BankRow[]> {
   if (!sb) return [];

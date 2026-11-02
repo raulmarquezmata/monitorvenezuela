@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import sys
 
-from . import (agro, alerts, bancos_muestra, banking, census, embi, bcv_stats, bonds, bvc, catalog, commodities, events, fx, inflation, manual,
+from . import (agro, alerts, bancos_muestra, banking, census, embi, futures, bcv_stats, bonds, bvc, catalog, commodities, events, fx, inflation, manual,
                news, ofac, oil, opec, press, sudeban, sunaval, trade)
 from .common import DRY_RUN, log
 
@@ -20,13 +20,15 @@ JOBS = {
     "bcv_stats": bcv_stats.run, "inflation": inflation.run, "press": press.run, "banking": banking.run,
     "opec": opec.run, "sunaval": sunaval.run, "oil": oil.run, "ofac": ofac.run, "events": events.run,
     "manual": manual.run, "bonds": bonds.run, "trade": trade.run, "agro": agro.run, "commodities": commodities.run,
-    "sudeban": sudeban.run, "bancos_muestra": bancos_muestra.run, "census": census.run, "embi": embi.run, "opec_local": lambda: opec.run(local_only=True), "alerts": alerts.run, "alerts_daily": lambda: alerts.run(daily=True),
+    "sudeban": sudeban.run, "bancos_muestra": bancos_muestra.run, "census": census.run, "trade_mensual": trade.run_monthly, "agro_usda": agro.run_usda, "futuros": futures.run, "ipc": fx.run_cpi, "embi": embi.run, "opec_local": lambda: opec.run(local_only=True), "alerts": alerts.run, "alerts_daily": lambda: alerts.run(daily=True),
 }
 GROUPS = {
-    "frequent": ["catalog", "fx", "bvc", "news", "alerts"],
-    "daily": ["catalog", "fx", "bvc_full", "bcv_stats", "inflation", "press", "banking", "opec", "sunaval", "oil", "census", "embi",
+    "frequent": ["catalog", "fx", "bvc", "news", "futuros", "alerts"],
+    # publicaciones oficiales: cada 2 horas en días hábiles, para cargarlas y avisar apenas salgan
+    "oficial": ["bcv_stats", "inflation", "press", "banking", "opec", "sunaval", "embi", "oil", "alerts"],
+    "daily": ["catalog", "fx", "bvc_full", "bcv_stats", "inflation", "press", "banking", "opec", "sunaval", "oil", "census", "embi", "trade_mensual", "ipc", "agro_usda",
               "ofac", "events", "alerts_daily"],
-    "weekly": ["catalog", "fx_hist", "trade", "agro", "commodities", "sudeban"],
+    "weekly": ["catalog", "fx_hist", "trade", "agro", "agro_usda", "commodities", "sudeban"],
     "files": ["catalog", "manual", "bonds", "events", "bancos_muestra", "opec_local"],
 }
 
@@ -44,6 +46,8 @@ def backfill():
     sunaval.run(backfill=True)
     oil.run(backfill=True)
     census.run()
+    trade.run_monthly()
+    futures.run()
     embi.run(backfill=True)
     commodities.run()
     ofac.run()
@@ -53,6 +57,7 @@ def backfill():
     news.run()
     trade.run(backfill=True)
     agro.run()
+    agro.run_usda()
     sudeban.run()
     events.run()
     alerts.run()  # primera corrida: registra sin enviar

@@ -45,10 +45,15 @@ _S = [
     ("inversion_directa_pais", "externo", "Inversión extranjera directa en el país", "FDI into Venezuela", "millones US$", "US$ million", "Q", "BCV", BCV, 0, 18),
     ("exportaciones_espejo", "externo", "Exportaciones (datos espejo)", "Exports (mirror data)", "millones US$", "US$ million", "A", "UN Comtrade", "https://comtradeplus.un.org", 0, 20),
     ("importaciones_espejo", "externo", "Importaciones (datos espejo)", "Imports (mirror data)", "millones US$", "US$ million", "A", "UN Comtrade", "https://comtradeplus.un.org", 0, 30),
+    ("exportaciones_espejo_mensual", "externo", "Exportaciones espejo mensuales (lo que declaran los socios)", "Monthly mirror exports (partner-reported)", "millones US$", "US$ million", "M", "UN Comtrade (espejo)", "https://comtradeplus.un.org", 1, 201),
+    ("exportaciones_petroleras_espejo_mensual", "externo", "Exportaciones petroleras espejo mensuales (cap. 27)", "Monthly mirror oil exports (HS 27)", "millones US$", "US$ million", "M", "UN Comtrade (espejo)", "https://comtradeplus.un.org", 1, 202),
+    ("importaciones_espejo_mensual", "externo", "Importaciones espejo mensuales (lo que declaran los socios)", "Monthly mirror imports (partner-reported)", "millones US$", "US$ million", "M", "UN Comtrade (espejo)", "https://comtradeplus.un.org", 1, 203),
     ("exportaciones_petroleras_bd", "externo", "Exportaciones petroleras (volumen)", "Oil exports (volume)", "miles b/d", "kb/d", "M", "Reuters (datos de embarque), vía prensa", "https://www.reuters.com", 0, 205),
     ("eeuu_importa_de_ve", "externo", "Exportaciones a EE.UU. (EE.UU. importa de Venezuela)", "Exports to the US (US imports from Venezuela)", "millones US$", "US$ million", "M", "US Census Bureau", "https://www.census.gov/foreign-trade/balance/c3070.html", 1, 206),
     ("eeuu_importa_petroleo_ve", "externo", "Exportaciones petroleras a EE.UU. (cap. 27)", "Oil exports to the US (HS 27)", "millones US$", "US$ million", "M", "US Census Bureau", "https://www.census.gov/foreign-trade/balance/c3070.html", 1, 207),
     ("eeuu_exporta_a_ve", "externo", "Importaciones desde EE.UU. (EE.UU. exporta a Venezuela)", "Imports from the US (US exports to Venezuela)", "millones US$", "US$ million", "M", "US Census Bureau", "https://www.census.gov/foreign-trade/balance/c3070.html", 1, 208),
+    ("eeuu_importa_crudo_ve_bd", "externo", "Crudo venezolano que importa EE.UU. (mensual)", "US crude imports from Venezuela (monthly)", "miles b/d", "kb/d", "M", "EIA", "https://www.eia.gov/dnav/pet/hist/LeafHandler.ashx?n=PET&s=MCRIMUSVE2&f=M", 0, 209),
+    ("eeuu_importa_crudo_ve_sem", "externo", "Crudo venezolano que importa EE.UU. (semanal)", "US crude imports from Venezuela (weekly)", "miles b/d", "kb/d", "W", "EIA", "https://www.eia.gov/dnav/pet/hist/LeafHandler.ashx?n=PET&s=WCRIMUSVE2&f=W", 0, 210),
 
     # ---------------- Banca
     ("cartera_credito", "banca", "Cartera de créditos (sistema)", "Loan book (system)", "millones Bs", "Bs million", "M", "SUDEBAN (vía Finanzas Digital)", "https://finanzasdigital.com/estadisticas/ve/financieras/instituciones/tabla/creditos", 0, 10),
@@ -65,7 +70,7 @@ _S = [
     ("merey", "petroleo", "Cesta venezolana (Merey)", "Venezuelan basket (Merey)", "US$/b", "US$/bbl", "M", "OPEP MOMR", OPEP, 2, 40),
     ("brent", "petroleo", "Brent", "Brent", "US$/b", "US$/bbl", "D", "EIA", EIA, 2, 50),
     ("wti", "petroleo", "WTI", "WTI", "US$/b", "US$/bbl", "D", "EIA", EIA, 2, 60),
-    ("henry_hub", "petroleo", "Gas natural Henry Hub (referencia EE.UU.)", "Henry Hub natural gas (US benchmark)", "US$/MMBtu", "US$/MMBtu", "M", "Banco Mundial", WB, 2, 70),
+    ("henry_hub", "petroleo", "Gas natural Henry Hub (referencia EE.UU.)", "Henry Hub natural gas (US benchmark)", "US$/MMBtu", "US$/MMBtu", "D", "EIA y NYMEX", EIA, 2, 70),
 
     # ---------------- Mercados
     ("ibc", "mercados", "Índice Bursátil Caracas (IBC)", "Caracas Stock Index (IBC)", "puntos", "points", "D", "BVC", "https://www.bolsadecaracas.com", 2, 10),
@@ -98,6 +103,11 @@ _S = [
     ("soya", "commodities", "Soya", "Soybeans", "US$/t", "US$/t", "M", "Banco Mundial", WB, 2, 100),
     ("urea", "commodities", "Urea", "Urea", "US$/t", "US$/t", "M", "Banco Mundial", WB, 2, 110),
     ("dap", "commodities", "Fosfato diamónico (DAP)", "DAP fertilizer", "US$/t", "US$/t", "M", "Banco Mundial", WB, 2, 120),
+    ("plata", "commodities", "Plata", "Silver", "US$/oz", "US$/oz", "D", "COMEX (futuro 1er mes)", "https://finance.yahoo.com/quote/SI=F", 2, 12),
+    ("cobre", "commodities", "Cobre", "Copper", "US$/t", "US$/t", "D", "COMEX (futuro 1er mes)", "https://finance.yahoo.com/quote/HG=F", 0, 25),
+    ("maiz_cbot", "commodities", "Maíz (CBOT, diario)", "Corn (CBOT, daily)", "US$/t", "US$/t", "D", "CBOT (futuro 1er mes)", "https://finance.yahoo.com/quote/ZC=F", 2, 41),
+    ("trigo_kc", "commodities", "Trigo HRW (Kansas, diario)", "HRW wheat (Kansas, daily)", "US$/t", "US$/t", "D", "KCBT (futuro 1er mes)", "https://finance.yahoo.com/quote/KE=F", 2, 51),
+    ("soya_cbot", "commodities", "Soya (CBOT, diario)", "Soybeans (CBOT, daily)", "US$/t", "US$/t", "D", "CBOT (futuro 1er mes)", "https://finance.yahoo.com/quote/ZS=F", 2, 101),
 
     # ---------------- Actividad y fiscal
     ("pib_real_var", "actividad", "PIB real trimestral (var. interanual)", "Quarterly real GDP (y/y)", "%", "%", "Q", "BCV", BCV, 2, 10),
@@ -131,6 +141,10 @@ PLAN = {
     "eeuu_importa_de_ve": (A, 75, "Robot census diario (Census Bureau; sale ~5 semanas después de cada mes)."),
     "eeuu_importa_petroleo_ve": (A, 75, "Robot census diario."), "eeuu_exporta_a_ve": (A, 75, "Robot census diario."),
     "embi_venezuela": (A, 10, "Robot embi diario: EMBIG de JPMorgan que publica el BCRP (Perú); si no responde, cifras de prensa."),
+    "eeuu_importa_crudo_ve_bd": (A, 75, "Robot oil diario (EIA, mensual; ~2 meses de rezago)."),
+    "eeuu_importa_crudo_ve_sem": (A, 12, "Robot oil diario (EIA, semanal; sale los miércoles con la semana anterior)."),
+    "exportaciones_espejo_mensual": (A, 120, "Robot trade_mensual diario (Comtrade, meses que ya reportaron los socios; los recientes son parciales)."),
+    "exportaciones_petroleras_espejo_mensual": (A, 120, "Robot trade_mensual diario."), "importaciones_espejo_mensual": (A, 120, "Robot trade_mensual diario."),
     "ipc_eeuu": (A, 60, "Robot fx_historico semanal (FRED, serie CPIAUCSL). Sirve para la calculadora de inflación en dólares."),
     "inflacion_mensual": (A, 40, "Robot inflation diario (cifras oficiales del BCV), histórico desde 1986."),
     "inflacion_interanual": (A, 40, "Robot inflation diario, histórico desde 1986."),
@@ -177,8 +191,13 @@ PLAN = {
     "recaudacion_seniat": (A, 45, "Robot de prensa diario: cifras mensuales del SENIAT."),
     "recaudacion_seniat_usd": (A, 45, "Robot de prensa diario."),
 }
-for code in ("oro", "mineral_hierro", "aluminio", "maiz", "trigo", "arroz", "cafe", "cacao", "azucar", "soya", "urea", "dap"):
-    PLAN[code] = (A, 45, "Robot commodities semanal (Banco Mundial 'Pink Sheet', desde 1960).")
+for code in ("maiz", "trigo", "arroz", "soya", "urea", "dap"):
+    PLAN[code] = (A, 45, "Robot commodities semanal (Banco Mundial 'Pink Sheet', promedio mensual desde 1960).")
+for code in ("oro", "mineral_hierro", "aluminio", "cafe", "cacao", "azucar"):
+    PLAN[code] = (A, 4, "Promedio mensual del Banco Mundial desde 1960 + cierre diario del futuro del primer mes (robot futuros, cada hora).")
+for code in ("plata", "cobre", "maiz_cbot", "trigo_kc", "soya_cbot"):
+    PLAN[code] = (A, 4, "Robot futuros cada hora: cierre diario del contrato del primer mes (Yahoo Finance).")
+PLAN["henry_hub"] = (A, 4, "Spot diario de la EIA desde 1997 + futuro del primer mes para los días más recientes.")
 
 _KEYS = ["code", "category", "name_es", "name_en", "unit_es", "unit_en", "frequency", "source", "source_url", "decimals", "sort"]
 SERIES = []

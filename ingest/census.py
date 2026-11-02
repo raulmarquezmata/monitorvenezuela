@@ -21,27 +21,31 @@ def eom(ym: str) -> str:
     return f"{y}-{m:02d}-{calendar.monthrange(y, m)[1]:02d}"
 
 
-def query(path: str, value: str, extra: dict | None = None, since: str = "2015-01") -> list[tuple[str, float]]:
-    params = {"get": f"CTY_CODE,{value}", "CTY_CODE": VE, "time": f"from {since}", **(extra or {})}
-    rows = fetch(f"{API}/{path}", params=params, timeout=90).json()
-    head, out = rows[0], {}
-    iv, it = head.index(value), head.index("time")
+def query(path: str, value: str, comm: str, since: str = "2015-01") -> dict[str, dict[str, float]]:
+    """{mes: {capítulo HS2: millones US$}} — se pide por capítulo (COMM_LVL=HS2) y el total es la suma."""
+    params = {"get": f"CTY_CODE,{value},{comm}", "CTY_CODE": VE, "COMM_LVL": "HS2", "time": f"from {since}"}
+    rows = fetch(f"{API}/{path}", params=params, timeout=120).json()
+    head = rows[0]
+    iv, it, ic = head.index(value), head.index("time"), head.index(comm)
+    out: dict[str, dict[str, float]] = {}
     for r in rows[1:]:
         try:
-            out[eom(r[it])] = out.get(eom(r[it]), 0) + float(r[iv]) / 1e6
+            out.setdefault(eom(r[it]), {})[str(r[ic])] = out.get(eom(r[it]), {}).get(str(r[ic]), 0) + float(r[iv]) / 1e6
         except (TypeError, ValueError):
             continue
-    return sorted(out.items())
+    return out
 
 
 def run():
     with Run("census") as r:
-        for code, path, value, extra in (
-            ("eeuu_importa_de_ve", "imports/hs", "GEN_VAL_MO", None),
-            ("eeuu_importa_petroleo_ve", "imports/hs", "GEN_VAL_MO", {"I_COMMODITY": "27", "COMM_LVL": "HS2"}),
-            ("eeuu_exporta_a_ve", "exports/hs", "ALL_VAL_MO", None),
-        ):
-            try:
-                r.rows += save_obs(code, query(path, value, extra), "US Census Bureau")
-            except Exception as e:  # noqa: BLE001
-                r.note(f"{code}: {e}")
+        try:
+            imp = query("imports/hs", "GEN_VAL_MO", "I_COMMODITY")
+            r.rows += save_obs("eeuu_importa_de_ve", [(d, sum(v.values())) for d, v in sorted(imp.items())], "US Census Bureau")
+            r.rows += save_obs("eeuu_importa_petroleo_ve", [(d, v.get("27", 0)) for d, v in sorted(imp.items())], "US Census Bureau")
+        except Exception as e:  # noqa: BLE001
+            r.note(f"Census importaciones: {e}")
+        try:
+            exp = query("exports/hs", "ALL_VAL_MO", "E_COMMODITY")
+            r.rows += save_obs("eeuu_exporta_a_ve", [(d, sum(v.values())) for d, v in sorted(exp.items())], "US Census Bureau")
+        except Exception as e:  # noqa: BLE001
+            r.note(f"Census exportaciones: {e}")

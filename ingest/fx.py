@@ -172,6 +172,32 @@ def sanitize() -> int:
     return n
 
 
+def run_cpi():
+    """IPC de EE.UU. (para la inflación en dólares): FRED y, si no responde, la API pública del BLS."""
+    with Run("ipc_eeuu") as r:
+        try:
+            pts = fred_series("CPIAUCSL")
+            if pts:
+                r.rows += save_obs("ipc_eeuu", pts, "BLS vía FRED")
+                return
+        except Exception as e:  # noqa: BLE001
+            r.log.info("FRED IPC: %s", e)
+        try:
+            y = dt.date.today().year
+            pts = []
+            for a in range(y - 19, y + 1, 10):  # el BLS sin clave entrega hasta 10 años por consulta
+                j = fetch("https://api.bls.gov/publicAPI/v2/timeseries/data/", method="POST",
+                          json={"seriesid": ["CUSR0000SA0"], "startyear": str(a), "endyear": str(min(a + 9, y))}, timeout=60).json()
+                for d in j["Results"]["series"][0]["data"]:
+                    if d["period"].startswith("M") and d["period"] != "M13":
+                        pts.append((f"{d['year']}-{d['period'][1:]}-01", float(d["value"])))
+            r.rows += save_obs("ipc_eeuu", pts, "BLS")
+            if not pts:
+                r.note("IPC EE.UU.: FRED y BLS sin datos")
+        except Exception as e:  # noqa: BLE001
+            r.note(f"IPC EE.UU.: {e}")
+
+
 def run_history():
     with Run("fx_historico") as r:
         try:

@@ -252,3 +252,7 @@ footer a { color: var(--text-3); }
 .stats .up { color: var(--up, #2f7d4f); } .stats .down { color: var(--down, #b5473a); }
 .headlines p.also { font-size: 14px; color: var(--text-3); margin-top: 6px; }
 .headlines p.also a { color: var(--accent); font-weight: 500; }
+.hilo { display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: center; margin: 8px 0 4px; font-size: 14px; }
+.hilo span { display: flex; flex-direction: column; } .hilo small { color: var(--text-3); font-size: 12px; } .hilo b { font-weight: 500; font-variant-numeric: tabular-nums; }
+.hilo-bar { position: relative; height: 4px; border-radius: 2px; background: var(--line); }
+.hilo-bar i { position: absolute; top: -4px; width: 12px; height: 12px; margin-left: -6px; border-radius: 50%; background: var(--accent); }

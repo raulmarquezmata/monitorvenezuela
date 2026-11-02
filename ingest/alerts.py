@@ -21,10 +21,15 @@ SITE = os.environ.get("SITE_URL", "")
 VET = dt.timezone(dt.timedelta(hours=-4))
 
 
-def gather_extra(rules: list[dict]) -> dict:
+def gather_extra(rules: list[dict], daily: bool = False) -> dict:
     """Datos que necesitan las reglas que no son de una sola serie."""
     tipos = {r["tipo"] for r in rules}
-    ex: dict = {}
+    ex: dict = {"hist": {}}
+    need = {c for r in rules if r["tipo"] in ("cierre_semana", "cierre_mes") for c in r.get("series", [])}
+    if daily and need:
+        since = (today_caracas() - dt.timedelta(days=400)).isoformat()
+        for c in need:
+            ex["hist"][c] = [(x["date"], x["value"]) for x in select("observations", {"select": "date,value", "series_code": f"eq.{c}", "date": f"gte.{since}", "order": "date"})]
     since = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(hours=6)).isoformat()
     if "acciones" in tipos:
         ex["quotes"] = select("bvc_latest", {"select": "symbol,company,date,close,var_pct,amount", "market": "eq.RV"})
@@ -90,7 +95,7 @@ def evaluate(rules: list[dict], meta: dict[str, dict], data: dict[str, list[dict
             # mensaje a una hora fija (p. ej. 08:00 VET): sale en la primera corrida después de esa hora
             now = dt.datetime.now(VET)
             hh, mm = map(int, rule["hora"].split(":"))
-            if (now.hour, now.minute) >= (hh, mm) and now.hour < hh + 3:
+            if (now.hour, now.minute) >= (hh, mm) and now.hour < hh + 6:
                 hoy = now.date().isoformat()
                 lines = [rule["texto"].format(fecha=hoy)]
                 for code in rule["series"]:
@@ -135,6 +140,41 @@ def evaluate(rules: list[dict], meta: dict[str, dict], data: dict[str, list[dict
         elif t == "robots":
             for j in extra.get("failing", []):
                 out.append((f"{rule['id']}:{j}:{today_caracas().isoformat()}", rule["texto"].format(robot=j)))
+        elif t == "una_vez":
+            out.append((f"{rule['id']}:1", rule["texto"] + (f"\n{SITE}" if SITE else "")))
+        elif t in ("cierre_semana", "cierre_mes") and daily:
+            hoy = today_caracas()
+            if t == "cierre_semana" and hoy.weekday() != 4:
+                continue
+            if t == "cierre_mes" and (hoy + dt.timedelta(days=1)).day != 1:
+                continue
+            ref = (hoy - dt.timedelta(days=7)) if t == "cierre_semana" else hoy.replace(day=1) - dt.timedelta(days=1)
+            jan = dt.date(hoy.year - 1, 12, 31)
+            def at(pts, d):
+                v = None
+                for x, y in pts:
+                    if x <= d.isoformat():
+                        v = y
+                    else:
+                        break
+                return v
+            lines = [rule["texto"].format(fecha=hoy.isoformat())]
+            for code in rule["series"]:
+                pts, m = extra.get("hist", {}).get(code, []), meta.get(code, {})
+                if not pts:
+                    continue
+                last, base, y0 = pts[-1][1], at(pts, ref), at(pts, jan)
+                pct = m.get("unit_es") == "%"
+                def ch(b):
+                    if b is None or (not pct and not b):
+                        return "—"
+                    v = last - b if pct else (last / b - 1) * 100
+                    return f"{'+' if v > 0 else ''}{fmt(v, 1)}{' pp' if pct else '%'}"
+                lines.append(f"• {m.get('name_es', code)}: {fmt(last, min(m.get('decimals', 2), 2))} {m.get('unit_es', '')} · "
+                             f"{'semana' if t == 'cierre_semana' else 'mes'} {ch(base)} · año {ch(y0)}")
+            if SITE:
+                lines.append(SITE)
+            out.append((f"{rule['id']}:{hoy.isoformat()}", "\n".join(lines)))
         elif t == "resumen_diario" and daily:
             hoy = today_caracas().isoformat()
             lines = [rule["texto"].format(fecha=hoy)]
@@ -176,43 +216,52 @@ def send_email(text: str) -> bool:
 
 
 def run(daily: bool = False):
+    import time
     with Run("alerts") as r:
         rules = json.loads(CONFIG.read_text(encoding="utf-8"))["reglas"]
+        if not (os.environ.get("TELEGRAM_BOT_TOKEN") and os.environ.get("TELEGRAM_CHAT_ID")):
+            r.note("Faltan los secretos TELEGRAM_BOT_TOKEN o TELEGRAM_CHAT_ID en GitHub: no se puede enviar nada")
         codes = sorted({c for x in rules for c in ([x["serie"]] if "serie" in x else x.get("series", []))})
         meta = {s["code"]: s for s in select("series", {"select": "code,name_es,unit_es,decimals"})}
         data = {c: last_two(c) for c in codes}
-        candidates = evaluate(rules, meta, data, daily, gather_extra(rules))
+        candidates = evaluate(rules, meta, data, daily, gather_extra(rules, daily))
         if not candidates:
             return
-        sent: set[str] = set()
-        keys = [k for k, _ in candidates]
-        for i in range(0, len(keys), 40):
-            sent |= {x["key"] for x in select("alerts_log", {"select": "key", "key": "in.(" + ",".join('"' + k.replace('"', "") + '"' for k in keys[i:i + 40]) + ")"})}
-        recent = select("alerts_log", {"select": "key,rule,sent_at", "sent_at": f"gte.{(dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=30)).isoformat()}"})
-        first_run = not select("alerts_log", {"select": "key", "limit": 1})
-        known_rules = {x["rule"] for x in select("alerts_log", {"select": "rule"})}
+        # bitácora completa (sin filtros con caracteres especiales en la URL de la consulta)
+        log_all = select("alerts_log", {"select": "key,rule,sent_at"})
+        sent = {x["key"] for x in log_all}
+        first_run = not log_all
+        known_rules = {x["rule"] for x in log_all}
         by_id = {x["id"]: x for x in rules}
         today = today_caracas().isoformat()
-        log = []
+        since30 = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=30)).isoformat()
+        recent = [x for x in log_all if (x.get("sent_at") or "") >= since30]
+        TIMED = ("resumen_hora", "resumen_diario", "cierre_semana", "cierre_mes", "una_vez", "robots")
+        log, n_sent = [], 0
         for key, text in candidates:
             if key in sent:
                 continue
             rid = key.split(":")[0]
             rule = by_id.get(rid, {})
+            tipo = rule.get("tipo")
             prefix = ":".join(key.split(":")[:2]) + ":"
-            silent = first_run or rid not in known_rules  # regla nueva: la primera vez solo registra lo que ya existía
-            if rule.get("tipo") == "nuevo_dato" and not any(x["key"].startswith(prefix) for x in recent) \
-                    and not select("alerts_log", {"select": "key", "key": f"like.{prefix}*", "limit": 1}):
-                silent = True  # serie recién agregada a la regla
-            if rule.get("min_dias") and any(x["key"].startswith(prefix) and x["sent_at"][:10] > (dt.date.today() - dt.timedelta(days=rule["min_dias"])).isoformat() for x in recent):
+            # regla nueva: la primera vez solo registra lo que ya existía (salvo mensajes con hora fija)
+            silent = first_run or (rid not in known_rules and tipo not in TIMED)
+            if tipo == "nuevo_dato" and not any(x["key"].startswith(prefix) for x in log_all):
+                silent = True  # serie recién agregada a la regla: no avisar el dato viejo
+            if rule.get("min_dias") and any(x["key"].startswith(prefix) and (x.get("sent_at") or "")[:10] > (dt.date.today() - dt.timedelta(days=rule["min_dias"])).isoformat() for x in recent):
                 continue  # series diarias (p. ej. reservas): como máximo un aviso cada N días
-            if rule.get("max_dia") and sum(1 for x in recent + log if x["rule"] == rid and str(x.get("sent_at", today))[:10] == today) >= rule["max_dia"]:
+            if rule.get("max_dia") and sum(1 for x in recent + log if x["rule"] == rid and str(x.get("sent_at", ""))[:10] == today and x.get("channels")) >= rule["max_dia"]:
                 silent = True  # tope diario (noticias): se registra sin enviar
+            if not silent and n_sent >= 25:
+                continue  # demasiados mensajes en una corrida: el resto sale en la siguiente
             channels = []
-            if not silent:  # la primera vez solo se registra, para no inundar el canal con datos viejos
+            if not silent:
                 try:
                     if send_telegram(text):
                         channels.append("telegram")
+                        n_sent += 1
+                        time.sleep(3)  # Telegram admite ~20 mensajes por minuto en un canal
                 except Exception as e:  # noqa: BLE001
                     r.note(f"Telegram: {e}")
                 try:

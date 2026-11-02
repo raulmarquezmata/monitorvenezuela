@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 
-from .common import Run, fetch, save_obs, select
+from .common import Run, delete, fetch, save_obs, select
 
 API = "https://api.eia.gov/v2"
 
@@ -59,9 +59,50 @@ def run(backfill: bool = False):
             r.rows += save_obs("wti", by["RWTC"], "EIA")
         except Exception as e:  # noqa: BLE001
             r.note(f"EIA precios: {e}")
+        # Henry Hub: spot diario de la EIA (desde 1997). Se retiran los promedios mensuales viejos del Banco Mundial
+        # desde 1997 para no mezclar frecuencias en la misma serie.
+        try:
+            full_gas = backfill or have("henry_hub") < 2000
+            rows, off = [], 0
+            while True:
+                j = fetch(f"{API}/natural-gas/pri/fut/data/", params={
+                    "api_key": key, "frequency": "daily", "data[0]": "value", "facets[series][]": "RNGWHHD",
+                    "sort[0][column]": "period", "sort[0][direction]": "desc", "length": 5000 if full_gas else 60, "offset": off}).json()
+                batch = j["response"]["data"]
+                rows += [(d["period"], float(d["value"])) for d in batch if d.get("value") not in (None, "")]
+                if not full_gas or len(batch) < 5000:
+                    break
+                off += 5000
+            r.rows += save_obs("henry_hub", rows, "EIA")
+            if full_gas and rows:
+                delete("observations", {"series_code": "eq.henry_hub", "source": "eq.Banco Mundial", "date": "gte.1997-01-01"})
+        except Exception as e:  # noqa: BLE001
+            r.note(f"EIA Henry Hub: {e}")
+        # Importaciones de crudo de EE.UU. desde Venezuela (miles de b/d): mensual y semanal
+        for code, route, sid, freq in (("eeuu_importa_crudo_ve_bd", "petroleum/move/impcus", "MCRIMUSVE2", "monthly"),
+                                       ("eeuu_importa_crudo_ve_sem", "petroleum/move/wkly", "WCRIMUSVE2", "weekly")):
+            try:
+                j = fetch(f"{API}/{route}/data/", params={
+                    "api_key": key, "frequency": freq, "data[0]": "value", "facets[series][]": sid,
+                    "sort[0][column]": "period", "sort[0][direction]": "desc", "length": 5000}).json()
+                pts = []
+                for d in j["response"]["data"]:
+                    if d.get("value") in (None, ""):
+                        continue
+                    per = d["period"]
+                    if freq == "monthly":
+                        import calendar
+                        y, m = map(int, per[:7].split("-"))
+                        per = f"{y}-{m:02d}-{calendar.monthrange(y, m)[1]:02d}"
+                    pts.append((per, float(d["value"])))
+                r.rows += save_obs(code, pts, "EIA")
+                if not pts:
+                    r.note(f"EIA {sid}: sin datos")
+            except Exception as e:  # noqa: BLE001
+                r.note(f"EIA {sid}: {e}")
         # La EIA publica con ~1 semana de rezago: los días más recientes se completan con el futuro
         # del primer mes (cierre diario, Yahoo Finance) y se reemplazan cuando la EIA publica el spot.
-        for code, sym in (("brent", "BZ=F"), ("wti", "CL=F")):
+        for code, sym in (("brent", "BZ=F"), ("wti", "CL=F"), ("henry_hub", "NG=F")):
             try:
                 last_eia = select("observations", {"select": "date", "series_code": f"eq.{code}", "source": "eq.EIA",
                                                    "order": "date.desc", "limit": 1})

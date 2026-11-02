@@ -1,7 +1,8 @@
 import Link from "next/link";
 import LineChart from "@/components/LineChart";
 import { BarList, chartLabels, NotConfigured } from "@/components/ui";
-import { configured, trade } from "@/lib/data";
+import { configured, history, trade } from "@/lib/data";
+import ChartCard from "@/components/ChartCard";
 import { hsName } from "@/lib/hs";
 import MacroNav from "@/components/MacroNav";
 import { t, type Lang } from "@/lib/i18n";
@@ -14,7 +15,7 @@ export default async function Comercio({ params, searchParams }: { params: { lan
   const { lang } = params;
   const d = t(lang);
   if (!configured) return <NotConfigured />;
-  const rows = await trade();
+  const [rows, mh] = await Promise.all([trade(), history(["exportaciones_espejo_mensual", "exportaciones_petroleras_espejo_mensual", "importaciones_espejo_mensual", "eeuu_importa_de_ve", "eeuu_exporta_a_ve"], 3)]);
   if (!rows.length) return (<><MacroNav lang={lang} /><h1>{d.nav.trade}</h1><p className="sub">{d.mirrorNote}</p><div className="empty">{d.noData}</div></>);
 
   // Totales por año y flujo
@@ -50,8 +51,20 @@ export default async function Comercio({ params, searchParams }: { params: { lan
       <h1>{d.nav.trade}</h1>
       <p className="sub">{d.mirrorNote}</p>
       <div className="chips">
-        {years.map((y) => <Link key={y} href={`/${lang}/comercio?year=${y}`} className={y === year ? "on" : ""}>{y}</Link>)}
+        {years.map((y) => <Link key={y} href={`/${lang}/comercio?year=${y}`} className={y === year ? "on" : ""}>{y}{partnersByYear[y].size < maxP * 0.6 ? (lang === "es" ? " · parcial" : " · partial") : ""}</Link>)}
       </div>
+      {(mh.exportaciones_espejo_mensual ?? []).length > 0 && (
+        <div style={{ marginBottom: 12 }}>
+          <ChartCard lang={lang} title={lang === "es" ? "Mes a mes (últimos 3 años)" : "Month by month (last 3 years)"} date={lang === "es" ? "millones US$" : "US$ million"} decimals={0} height={260}
+            labels={chartLabels(lang)} rangeLabels={d.range} ranges={["YTD", "1A", "MAX"]} initial="1A" unit={lang === "es" ? "millones US$" : "US$ million"}
+            series={[{ name: lang === "es" ? "Exportaciones (espejo)" : "Exports (mirror)", points: mh.exportaciones_espejo_mensual ?? [] },
+              { name: lang === "es" ? "de ellas, petroleras" : "of which oil", points: mh.exportaciones_petroleras_espejo_mensual ?? [] },
+              { name: lang === "es" ? "Importaciones (espejo)" : "Imports (mirror)", points: mh.importaciones_espejo_mensual ?? [] }]}
+            footer={<p className="muted" style={{ marginTop: 10, fontSize: 13 }}>{lang === "es"
+              ? `Lo que los socios comerciales declaran a UN Comtrade cada mes. Los meses más recientes son parciales: faltan los socios que aún no reportan. Último mes con datos: ${(mh.exportaciones_espejo_mensual ?? []).at(-1)?.[0].slice(0, 7)}. EE.UU. (Census) llega a ${(mh.eeuu_importa_de_ve ?? []).at(-1)?.[0].slice(0, 7) ?? "—"}.`
+              : `What trading partners report to UN Comtrade each month. Recent months are partial. Latest month: ${(mh.exportaciones_espejo_mensual ?? []).at(-1)?.[0].slice(0, 7)}.`}</p>} />
+        </div>
+      )}
       <div className="card">
         <div className="card-head"><h3>{d.exports} / {d.imports}</h3><span className="muted">{lang === "es" ? "millones US$" : "US$ million"}</span></div>
         <LineChart lang={lang} decimals={0} height={240} ignoreRange labels={chartLabels(lang)}

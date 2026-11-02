@@ -193,10 +193,13 @@ def parse_seniat(posts: list[dict]) -> tuple[list, list]:
         if not ym:
             continue
         d = eom(*ym)
-        mb = re.search(r"Bs\.?\s?([\d.]+(?:,\d+)?)\s*millones", text)
+        mb = re.search(r"Bs\.?\s?([\d.]+(?:,\d+)?)\s*millones|([\d.]+(?:,\d+)?)\s*millones de bol[ií]vares", text)
+        mbb = re.search(r"Bs\.?\s?([\d.]+(?:,\d+)?)\s*billones|([\d.]+(?:,\d+)?)\s*billones de bol[ií]vares", text)
+        if mbb and d not in bs:
+            bs[d] = (es_num(mbb.group(1) or mbb.group(2)) or 0) * 1e6
         mu = re.search(AMOUNT, text, re.I)
         if mb and d not in bs:
-            bs[d] = es_num(mb.group(1))
+            bs[d] = es_num(mb.group(1) or mb.group(2))
         if mu and d not in usd and (v := es_num(mu.group(1))) and v < 10000:
             usd[d] = v
     return sorted(bs.items()), sorted(usd.items())
@@ -299,7 +302,9 @@ def run(backfill: bool = False):
         except Exception as e:  # noqa: BLE001
             r.note(f"PIB: {e}")
         try:
-            bs, usd = parse_seniat(wp_posts("www.finanzasdigital.com", "recaudación Seniat", pages))
+            posts = wp_posts("www.finanzasdigital.com", "recaudación Seniat", pages) + wp_posts("www.bancaynegocios.com", "Seniat recaudó", pages)
+            posts += google_posts("Seniat recaudó millones")
+            bs, usd = parse_seniat(posts)
             r.rows += save_obs("recaudacion_seniat", bs, "Prensa · Finanzas Digital")
             r.rows += save_obs("recaudacion_seniat_usd", usd, "Prensa · Finanzas Digital")
         except Exception as e:  # noqa: BLE001

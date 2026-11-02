@@ -40,9 +40,9 @@ export function SectionHead({ label, href, more }: { label: string; href?: strin
 }
 
 /** Tarjeta de serie: nombre, último valor, gráfico (rango global), fuente y descarga. */
-export function SeriesCard({ s, points, lang, allowLog = false, bars = false, area = false, height = 220, ranges, initial, stats = true, logDefault = false, note }: {
+export function SeriesCard({ s, points, lang, allowLog = false, bars = false, area = false, height = 220, ranges, initial, stats = true, logDefault = false, note, hiLo = false }: {
   s: Latest; points: Point[]; lang: Lang; allowLog?: boolean; bars?: boolean; area?: boolean; height?: number;
-  ranges?: Range[]; initial?: Range; stats?: boolean; logDefault?: boolean; note?: string;
+  ranges?: Range[]; initial?: Range; stats?: boolean; logDefault?: boolean; note?: string; hiLo?: boolean;
 }) {
   const d = t(lang);
   const unit = lang === "es" ? s.unit_es : s.unit_en;
@@ -53,13 +53,14 @@ export function SeriesCard({ s, points, lang, allowLog = false, bars = false, ar
         <span className="date">{s.last_date ? fmtDateFor(s.last_date, s.frequency, lang) : ""}</span></div>
       <CardControls lang={lang} money={isBsUnit(s.unit_es)} ranges={ranges} rangeLabels={d.range} />
       <SeriesBody name={lang === "es" ? s.name_es : s.name_en} points={points} unitEs={s.unit_es} unit={unit ?? ""} decimals={s.decimals}
-        lang={lang} height={height} allowLog={allowLog} bars={bars} area={area} logDefault={logDefault}
+        lang={lang} height={height} allowLog={allowLog} bars={bars} area={area} logDefault={logDefault} hiLo={hiLo}
         stats={stats && points.length > 2 ? { periods: defaultPeriods(s.frequency), pctUnit: s.unit_es === "%" } : undefined}
         labels={{ ...chartLabels(lang), noData: s.method !== "auto" ? `${d.noData} · ${d.method[s.method]}` : d.noData }} />
       {note && <p className="muted" style={{ fontSize: 13, marginTop: 8 }}>{note}</p>}
       </CardScope>
       <div className="src">
-        <span>{d.source}: {s.source_url ? <a href={s.source_url} target="_blank" rel="noreferrer">{s.source}</a> : s.source}</span>
+        <span>{d.source}: {s.source_url ? <a href={s.source_url} target="_blank" rel="noreferrer">{s.source}</a> : s.source}
+          {points.length > 0 && <> · {lang === "es" ? "serie" : "series"} {fmtDateFor(points[0][0], s.frequency, lang)} – {fmtDateFor(points[points.length - 1][0], s.frequency, lang)}</>}</span>
         {s.method !== "auto" && <span className={`method ${s.method}`}>{d.method[s.method]}</span>}
         {points.length > 0 && <a className="dl" href={`/api/export?codes=${s.code}&format=xlsx&lang=${lang}`}>⬇ Excel</a>}
       </div>
