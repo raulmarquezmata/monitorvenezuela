@@ -70,7 +70,9 @@ export async function bvcSymbol(symbol: string) {
 export async function news(limit = 60, category?: string): Promise<News[]> {
   if (!sb) return [];
   let q = sb.from("news").select("*").order("published_at", { ascending: false }).limit(limit);
-  if (category) q = q.eq("category", category);
+  // categorías unificadas: cambiario y precios → economía; sanciones → política
+  const ALIAS: Record<string, string[]> = { economia: ["economia", "cambiario", "precios"], politica: ["politica", "sanciones"] };
+  if (category) q = q.in("category", ALIAS[category] ?? [category]);
   const { data } = await q;
   return (data as News[]) ?? [];
 }

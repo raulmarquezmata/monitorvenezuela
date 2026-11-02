@@ -20,14 +20,15 @@ def load_feeds() -> list[dict]:
     return json.loads(CONFIG.read_text(encoding="utf-8"))["feeds"]
 
 
-CATEGORIES = [  # orden = prioridad
-    ("petroleo", r"petr[oó]le|pdvsa|crudo|barril|chevron|opep|opec|\boil\b|crude|gas natural|refiner|hidrocarbur|merey|faja"),
-    ("cambiario", r"d[oó]lar|tipo de cambio|tasa (bcv|oficial)|paralelo|divisa|intervenci[oó]n cambiaria|exchange rate|bol[ií]var"),
-    ("mercados", r"bolsa de valores|\bbvc\b|\bibc\b|acciones|bonos|eurobonos|papeles comerciales|stock|bond|sunaval|emisi[oó]n"),
-    ("banca", r"banc[oa]|cr[eé]dito|encaje|sudeban|dep[oó]sito|cartera|bank|loan"),
-    ("sanciones", r"ofac|sanci[oó]n|licencia general|sanction|general license|tesoro"),
-    ("agro", r"agr[ií]col|cosecha|ma[ií]z|arroz|caf[eé]|cacao|ganad|fedeagro|fertiliz|agro"),
-    ("economia", r"inflaci[oó]n|\bpib\b|econom|import|export|liquidez|reservas|recaudaci|seniat|presupuesto|gdp|inflation|economy"),
+CATEGORIES = [  # orden = prioridad. Cambiario y precios van en economía; sanciones en política.
+    ("deuda", r"bonos? (soberan|de la rep|de pdvsa|venz)|eurobono|deuda (externa|p[uú]blica|soberana)|reestructuraci[oó]n de (la )?deuda|acreedor|default|impago|riesgo pa[ií]s|\bembi\b|bondholder|debt restructuring|sovereign bond|creditors"),
+    ("mineria", r"miner[ií]a|minero|\boro\b|coltan|coltán|hierro|bauxita|arco minero|ferrominera|\bcvg\b|mining|\bgold\b|iron ore"),
+    ("petroleo", r"petr[oó]le|pdvsa|crudo|barril|chevron|opep|opec|\boil\b|crude|gas natural|\bgas\b|refiner|hidrocarbur|merey|faja|citgo|\blng\b"),
+    ("banca", r"\bbanc[oa]s?\b|cr[eé]dito|encaje|sudeban|dep[oó]sito|cartera crediticia|\bbank|\bloan|fintech|cashea"),
+    ("mercados", r"bolsa de valores|\bbvc\b|\bibc\b|acciones|papeles comerciales|sunaval|casa de bolsa|stock|\bshares\b|bolpriaven"),
+    ("agro", r"agr[ií]col|cosecha|ma[ií]z|arroz|caf[eé]|cacao|ganad|fedeagro|fertiliz|\bagro|siembra|alimentos"),
+    ("politica", r"ofac|sanci[oó]n|licencia general|sanction|general license|elecci|asamblea nacional|tsj|gobierno|presiden|canciller|di[aá]logo|oposici|delcy|trump|rubio|embajad|ministr|diplomac|political|election|government"),
+    ("economia", r"inflaci[oó]n|\bpib\b|econom|import|export|liquidez|reservas|recaudaci|seniat|presupuesto|d[oó]lar|tipo de cambio|bol[ií]var|divisa|intervenci[oó]n cambiaria|salario|precios|gdp|inflation|economy|exchange rate"),
 ]
 RELEVANT = re.compile(r"venezuel|caracas|bcv|pdvsa|bol[ií]var", re.I)
 
@@ -89,6 +90,18 @@ def google_fallback(f: dict) -> list[dict] | None:
     return got
 
 
+OLD_CATS = ("cambiario", "precios", "sanciones")
+
+
+def recategorize() -> int:
+    """Pasa las noticias guardadas con las categorías viejas a las nuevas (una sola vez por noticia)."""
+    from .common import select
+    rows = select("news", {"select": "url,title,summary,source,published_at,category,lang", "category": f"in.({','.join(OLD_CATS)})"})
+    for x in rows:
+        x["category"] = categorize(f"{x['title']} {x.get('summary') or ''}")
+    return upsert("news", rows, "url") if rows else 0
+
+
 def run():
     with Run("news") as r:
         seen_titles: set[str] = set()
@@ -101,7 +114,7 @@ def run():
                   "last_ok": None, "last_items": 0, "last_error": None}
             try:
                 content = fetch(f["url"], timeout=30, retries=2).content
-                got = parse_feed(content, None if agg else f["name"], f.get("lang", "es"), f.get("filter", True))
+                got = parse_feed(content, None if agg else re.sub(r"\s*\((RSS|búsqueda)\)$", "", f["name"]), f.get("lang", "es"), f.get("filter", True))
                 for it in got:
                     # títulos repetidos en varios medios se guardan todos: la web los agrupa y ofrece cada enlace
                     if it["url"] not in seen_titles:
@@ -121,6 +134,10 @@ def run():
                     r.note(f"{f['name']}: sin respuesta")
             health.append(st)
         r.rows = upsert("news", items, "url")
+        try:
+            r.rows += recategorize()
+        except Exception as e:  # noqa: BLE001
+            r.log.info("recategorizar: %s", e)
         ok = [h for h in health if h["last_ok"]]
         upsert("news_sources", ok, "name")
         upsert("news_sources", [{k: v for k, v in h.items() if k != "last_ok"} for h in health if not h["last_ok"]], "name")

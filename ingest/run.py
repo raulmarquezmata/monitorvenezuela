@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import sys
 
-from . import (agro, alerts, bancos_muestra, banking, census, bcv_stats, bonds, bvc, catalog, commodities, events, fx, inflation, manual,
+from . import (agro, alerts, bancos_muestra, banking, census, embi, bcv_stats, bonds, bvc, catalog, commodities, events, fx, inflation, manual,
                news, ofac, oil, opec, press, sudeban, sunaval, trade)
 from .common import DRY_RUN, log
 
@@ -20,11 +20,11 @@ JOBS = {
     "bcv_stats": bcv_stats.run, "inflation": inflation.run, "press": press.run, "banking": banking.run,
     "opec": opec.run, "sunaval": sunaval.run, "oil": oil.run, "ofac": ofac.run, "events": events.run,
     "manual": manual.run, "bonds": bonds.run, "trade": trade.run, "agro": agro.run, "commodities": commodities.run,
-    "sudeban": sudeban.run, "bancos_muestra": bancos_muestra.run, "census": census.run, "opec_local": lambda: opec.run(local_only=True), "alerts": alerts.run, "alerts_daily": lambda: alerts.run(daily=True),
+    "sudeban": sudeban.run, "bancos_muestra": bancos_muestra.run, "census": census.run, "embi": embi.run, "opec_local": lambda: opec.run(local_only=True), "alerts": alerts.run, "alerts_daily": lambda: alerts.run(daily=True),
 }
 GROUPS = {
     "frequent": ["catalog", "fx", "bvc", "news", "alerts"],
-    "daily": ["catalog", "fx", "bvc_full", "bcv_stats", "inflation", "press", "banking", "opec", "sunaval", "oil", "census",
+    "daily": ["catalog", "fx", "bvc_full", "bcv_stats", "inflation", "press", "banking", "opec", "sunaval", "oil", "census", "embi",
               "ofac", "events", "alerts_daily"],
     "weekly": ["catalog", "fx_hist", "trade", "agro", "commodities", "sudeban"],
     "files": ["catalog", "manual", "bonds", "events", "bancos_muestra", "opec_local"],
@@ -44,6 +44,7 @@ def backfill():
     sunaval.run(backfill=True)
     oil.run(backfill=True)
     census.run()
+    embi.run(backfill=True)
     commodities.run()
     ofac.run()
     manual.run()

@@ -4,7 +4,7 @@ import { chartLabels, Kpi, NotConfigured, SectionHead } from "@/components/ui";
 import { bvcLatest, configured, events, history, latest, news } from "@/lib/data";
 import { num, pct, fmtDateFor } from "@/lib/format";
 import { t, type Lang } from "@/lib/i18n";
-import { groupNews } from "@/lib/newsgroup";
+import { balanced, groupNews } from "@/lib/newsgroup";
 
 export const revalidate = 300;
 
@@ -16,10 +16,10 @@ export default async function Home({ params }: { params: { lang: Lang } }) {
   const d = t(lang);
   if (!configured) return <NotConfigured />;
   const [all, hist, quotes, items, evs] = await Promise.all([
-    latest(), history([...KPIS, "ibc", "inflacion_acumulada", "inflacion_interanual"], 12), bvcLatest(), news(40), events(4),
+    latest(), history([...KPIS, "ibc", "inflacion_acumulada", "inflacion_interanual"], 12), bvcLatest(), news(150), events(4),
   ]);
   const by = Object.fromEntries(all.map((s) => [s.code, s]));
-  const headlines = groupNews(items).slice(0, 6);
+  const headlines = balanced(groupNews(items), 2, 6);
   const href = (c: string) => by[c] ? `/${lang}/indicadores/${by[c].category}#${c}` : undefined;
   const ibc = by.ibc;
   const ibcPts = hist.ibc ?? [];

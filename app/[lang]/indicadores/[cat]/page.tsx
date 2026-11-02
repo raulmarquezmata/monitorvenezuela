@@ -24,7 +24,7 @@ const INTRO: Record<Category, { es: string; en: string }> = {
   petroleo: { es: "Producción de crudo (OPEP y EIA), cesta Merey y precios de referencia.", en: "Crude output (OPEC and EIA), Merey basket and benchmark prices." },
   mercados: { es: "Índices y volúmenes de la Bolsa de Valores de Caracas y BOLPRIAVEN.", en: "Caracas Stock Exchange and BOLPRIAVEN indices and volumes." },
   actividad: { es: "PIB real del BCV (trimestral y anual, total, petrolero y no petrolero) y recaudación del SENIAT.", en: "BCV real GDP (quarterly and annual; total, oil and non-oil) and SENIAT tax collection." },
-  deuda: { es: "Bonos de la República y de PDVSA (precio en % del valor nominal).", en: "Republic and PDVSA bonds (price as % of par)." },
+  deuda: { es: "Riesgo país (EMBI de JPMorgan) y bonos de la República y de PDVSA (precio en % del valor nominal).", en: "Country risk (JPMorgan EMBI) and Republic and PDVSA bonds (price as % of par)." },
   commodities: { es: "Precios internacionales de materias primas relevantes para Venezuela (Banco Mundial, desde 1960).", en: "International prices of commodities relevant to Venezuela (World Bank, since 1960)." },
 };
 const BARS = new Set(["eeuu_importa_de_ve", "eeuu_importa_petroleo_ve", "eeuu_exporta_a_ve", "exportaciones_petroleras_bd", "intervencion_bcv_mensual", "intervencion_bcv", "inflacion_mensual", "mob_monto", "mob_operaciones", "bvc_volumen_usd",
@@ -41,6 +41,7 @@ const NOTES: Record<string, { es: string; en: string }> = {
   intervencion_bcv_mensual: { es: "2025: ventas del BCV + USDT; 2026: subastas (ene-mar) e intervención del BCV, según AGPV (oct-2026). Desde octubre se completa con las cifras que reporta la prensa.", en: "2025: BCV sales + USDT; 2026: auctions (Jan-Mar) and BCV intervention, per AGPV (Oct-2026). From October, filled with press-reported figures." },
   eeuu_importa_de_ve: { es: "Lo que EE.UU. compra a Venezuela cada mes según su aduana (Census). Sirve como termómetro mensual de las exportaciones mientras el BCV publica la balanza por trimestre.", en: "What the US buys from Venezuela each month per US customs (Census): a monthly gauge of exports while the BCV publishes quarterly." },
   exportaciones_petroleras_bd: { es: "Barriles diarios embarcados en el mes según los datos de seguimiento de buques que publica Reuters a inicios de cada mes.", en: "Barrels per day shipped in the month, per the tanker-tracking data Reuters publishes early each month." },
+  embi_venezuela: { es: "Diferencial en puntos básicos entre el rendimiento de los bonos venezolanos y el de los bonos del Tesoro de EE.UU. (EMBI de JPMorgan): cuanto más alto, más caro le resulta al país endeudarse. 100 pbs = 1 punto porcentual.", en: "Spread in basis points of Venezuelan bonds over US Treasuries (JPMorgan EMBI): higher means costlier borrowing. 100 bps = 1 percentage point." },
   pib_real_var: { es: "El BCV publica el PIB solo por trimestre: no existe una cifra oficial mensual.", en: "The BCV publishes GDP only quarterly: there is no official monthly figure." },
 };
 const HIDDEN = new Set(["petroleo_prod_opep_fs", "petroleo_prod_opep_cd", "petroleo_prod_eia"]);
@@ -73,7 +74,7 @@ export default async function CategoryPage({ params }: { params: { lang: Lang; c
   const by = Object.fromEntries(series.map((s) => [s.code, s]));
   const featured = cat === "cambiario" ? ["usd_bcv", "usd_paralelo", "brecha_cambiaria"] : [];
   const rest = series.filter((s) => !featured.includes(s.code) && !(cat === "cambiario" && ["usd_paralelo", "eur_bcv"].includes(s.code))
-    && !(cat === "petroleo" && HIDDEN.has(s.code)));
+    && !(cat === "petroleo" && HIDDEN.has(s.code)) && s.code !== "embi_venezuela");
   const note = (code: string) => code.endsWith("_espejo") ? mirrorNote(hist[code] ?? [], lang === "es") : NOTES[code]?.[lang];
   const infl2026 = cat === "precios" ? cumulative(hist.inflacion_mensual ?? [], "2026-01") : [];
   const es = lang === "es";
@@ -103,6 +104,12 @@ export default async function CategoryPage({ params }: { params: { lang: Lang; c
               : "All in today's bolivars: values before the 2008, 2018 and 2021 redenominations are re-expressed (hence tiny before 2021; use log scale). Official since 2000 (Fed/FRED and BCV); daily parallel since 2022."}</p>} />
           </div>
         </>
+      )}
+
+      {cat === "deuda" && by.embi_venezuela && (
+        <div style={{ marginBottom: 20 }}>
+          <SeriesCard s={by.embi_venezuela} points={hist.embi_venezuela ?? []} lang={lang} height={300} initial="YTD" note={note("embi_venezuela")} />
+        </div>
       )}
 
       {cat === "deuda" && bnd && (

@@ -13,7 +13,7 @@ export function groupNews<T extends NewsItem>(items: T[], hours = 48): NewsGroup
     const g = out.find((g) => {
       if (Math.abs(g._t - t) > hours * 3600e3) return false;
       let inter = 0; for (const x of w) if (g._w.has(x)) inter++;
-      return inter >= 3 && inter / Math.min(w.size, g._w.size) >= 0.5;
+      return inter >= 3 && (inter >= 5 || inter / Math.min(w.size, g._w.size) >= 0.45);
     });
     if (g) {
       if (it.source !== g.source && !g.also.some((a) => a.source === it.source)) g.also.push({ source: it.source ?? "—", url: it.url });
@@ -21,4 +21,22 @@ export function groupNews<T extends NewsItem>(items: T[], hours = 48): NewsGroup
     } else out.push({ ...it, also: [], _w: w, _t: t });
   }
   return out.map(({ _w, _t, ...g }) => g as unknown as NewsGroup<T>);
+}
+
+/** Medios venezolanos (el resto cuenta como prensa internacional). */
+export const VE_SOURCES = ["Banca y Negocios", "Finanzas Digital", "Tal Cual", "El Estímulo", "Ecosistema", "Bitácora Económica", "Venevisión",
+  "Efecto Cocuyo", "El Nacional", "Noticias Venevision", "El Universal", "Últimas Noticias", "Globovisión", "Descifrado", "Petroguía", "El Pitazo", "Runrunes"];
+export const isVenezuelan = (src?: string | null) => !!src && VE_SOURCES.some((v) => src.toLowerCase().includes(v.toLowerCase()));
+
+/** Reparte la portada entre medios: como máximo `perSource` noticias de un mismo medio por cada tramo,
+ *  para que un medio que publica mucho no tape a los demás. Mantiene el orden por fecha dentro de lo elegido. */
+export function balanced<T extends { source: string | null; published_at: string }>(items: T[], perSource: number, total: number): T[] {
+  const count = new Map<string, number>();
+  const first: T[] = [], rest: T[] = [];
+  for (const it of items) {
+    const k = it.source ?? "—";
+    const n = count.get(k) ?? 0;
+    if (n < perSource) { first.push(it); count.set(k, n + 1); } else rest.push(it);
+  }
+  return [...first, ...rest].slice(0, total).sort((a, b) => b.published_at.localeCompare(a.published_at));
 }

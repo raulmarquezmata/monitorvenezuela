@@ -81,6 +81,7 @@ _S = [
     ("bolpriaven_monto", "mercados", "BOLPRIAVEN · monto negociado", "BOLPRIAVEN · traded value", "millones US$", "US$ million", "M", "SUNAVAL", "https://www.sunaval.gob.ve/mensuales-2/", 2, 70),
 
     # ---------------- Deuda soberana
+    ("embi_venezuela", "deuda", "Riesgo país (EMBI de JPMorgan)", "Country risk (JPMorgan EMBI)", "pbs", "bps", "D", "JPMorgan (vía BCRP / prensa)", "https://estadisticas.bcrp.gob.pe/estadisticas/series/diarias/tasas-de-interes-embig-variacion-en-pbs", 0, 1),
     ("deuda_venz_prom", "deuda", "Bonos de la República · precio promedio", "Republic bonds · average price", "% del nominal", "% of par", "D", "Bloomberg", None, 2, 10),
     ("deuda_pdvsa_prom", "deuda", "Bonos de PDVSA · precio promedio", "PDVSA bonds · average price", "% del nominal", "% of par", "D", "Bloomberg", None, 2, 20),
 
@@ -129,6 +130,7 @@ PLAN = {
     "exportaciones_petroleras_bd": (A, 45, "Robot press diario: cifras mensuales de embarques que publica Reuters (sale los primeros días de cada mes)."),
     "eeuu_importa_de_ve": (A, 75, "Robot census diario (Census Bureau; sale ~5 semanas después de cada mes)."),
     "eeuu_importa_petroleo_ve": (A, 75, "Robot census diario."), "eeuu_exporta_a_ve": (A, 75, "Robot census diario."),
+    "embi_venezuela": (A, 10, "Robot embi diario: EMBIG de JPMorgan que publica el BCRP (Perú); si no responde, cifras de prensa."),
     "ipc_eeuu": (A, 60, "Robot fx_historico semanal (FRED, serie CPIAUCSL). Sirve para la calculadora de inflación en dólares."),
     "inflacion_mensual": (A, 40, "Robot inflation diario (cifras oficiales del BCV), histórico desde 1986."),
     "inflacion_interanual": (A, 40, "Robot inflation diario, histórico desde 1986."),
