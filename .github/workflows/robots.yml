@@ -39,6 +39,7 @@ jobs:
             "push:"*)               echo "g=files" >> $GITHUB_OUTPUT ;;
             "workflow_dispatch:"*)  echo "g=${{ inputs.tarea }}" >> $GITHUB_OUTPUT ;;
             "schedule:40 23 * * *") echo "g=daily" >> $GITHUB_OUTPUT ;;
+            "schedule:5 13-23/2 * * 1-5") echo "g=oficial" >> $GITHUB_OUTPUT ;;
             "schedule:15 10 * * 0") echo "g=weekly" >> $GITHUB_OUTPUT ;;
             *)                      echo "g=frequent" >> $GITHUB_OUTPUT ;;
           esac
