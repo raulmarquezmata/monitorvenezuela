@@ -51,6 +51,14 @@ def from_press() -> list:
 
 def run(backfill: bool = False):
     with Run("embi") as r:
+        try:
+            _run(r, backfill)
+        except Exception as e:  # noqa: BLE001
+            r.note(f"EMBI: {str(e)[:200]}")
+
+
+def _run(r, backfill: bool):
+    if True:
         end = dt.date.today().isoformat()
         start = "2015-01-01" if backfill or not select("observations", {"select": "date", "series_code": "eq.embi_venezuela", "source": "like.JPMorgan vía BCRP*", "limit": 1}) else (dt.date.today() - dt.timedelta(days=40)).isoformat()
         got, fails = False, 0
@@ -63,7 +71,10 @@ def run(backfill: bool = False):
                     break
                 continue
             if "venezuela" in name.lower() and ("embi" in name.lower() or "diferencial" in name.lower() or "spread" in name.lower()):
-                _, pts = bcrp(code, start, end)
+                try:
+                    _, pts = bcrp(code, start, end)
+                except Exception:  # noqa: BLE001  (rango largo: se piden los últimos 2 años)
+                    _, pts = bcrp(code, (dt.date.today() - dt.timedelta(days=730)).isoformat(), end)
                 r.rows += save_obs("embi_venezuela", pts, f"JPMorgan vía BCRP ({code})")
                 got = True
                 break

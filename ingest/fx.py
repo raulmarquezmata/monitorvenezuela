@@ -117,8 +117,10 @@ def h10_series(country: str) -> list[tuple[str, float]]:
     country: 've' (bolívares por US$) o 'eu' (US$ por euro)."""
     html = fetch(f"https://www.federalreserve.gov/releases/h10/hist/dat00_{country}.htm", timeout=90).text
     out = []
-    for m in re.finditer(r"<th[^>]*>\s*(\d{1,2})-([A-Za-z]{3})-(\d{2})\s*</th>\s*<td[^>]*>\s*([\d.]+)\s*</td>", html):
+    for m in re.finditer(r"(\d{1,2})-([A-Za-z]{3})-(\d{2})\s*(?:<[^>]*>\s*)*([\d.]+|ND)\b", html):
         d, mon, y, v = m.groups()
+        if v == "ND":
+            continue
         mm = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"].index(mon.title()) + 1
         yy = 2000 + int(y) if int(y) < 70 else 1900 + int(y)
         out.append((f"{yy}-{mm:02d}-{int(d):02d}", float(v)))

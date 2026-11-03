@@ -87,7 +87,9 @@ export default async function CategoryPage({ params }: { params: { lang: Lang; c
   const by = Object.fromEntries(series.map((s) => [s.code, s]));
   const featured = cat === "cambiario" ? ["usd_bcv", "usd_paralelo", "brecha_cambiaria"] : [];
   const rest = series.filter((s) => !featured.includes(s.code) && !(cat === "cambiario" && ["usd_paralelo", "eur_bcv"].includes(s.code))
-    && !HIDDEN.has(s.code) && s.code !== "embi_venezuela");
+    && !HIDDEN.has(s.code) && s.code !== "embi_venezuela"
+    // series automáticas que todavía no tienen ningún dato no se muestran (sí en Metodología)
+    && ((hist[s.code] ?? []).length > 0 || s.method !== "auto"));
   const note = (code: string) => code.endsWith("_espejo") ? mirrorNote(hist[code] ?? [], lang === "es") : NOTES[code]?.[lang];
   const infl2026 = cat === "precios" ? cumulative(hist.inflacion_mensual ?? [], "2026-01") : [];
   // inflación de EE.UU. interanual (para comparar con la inflación en dólares)

@@ -219,7 +219,10 @@ def run():
 for code, days in {"pib_real_var": 150, "pib_petrolero_var": 150, "pib_no_petrolero_var": 150, "pib_anual_var": 450,
                    "pib_petrolero_anual_var": 450, "pib_no_petrolero_anual_var": 450, "petroleo_prod_eia": 160,
                    "tasa_plazo": 80, "tasa_ahorro": 80, "recaudacion_seniat": 75, "recaudacion_seniat_usd": 75,
-                   "maiz": 75, "trigo": 75, "arroz": 75, "soya": 75, "urea": 75, "dap": 75, "embi_venezuela": 21}.items():
+                   "maiz": 75, "trigo": 75, "arroz": 75, "soya": 75, "urea": 75, "dap": 75, "embi_venezuela": 21,
+                   "cuenta_corriente": 200, "exportaciones_bienes": 200, "exportaciones_petroleras": 200, "exportaciones_no_petroleras": 200,
+                   "importaciones_bienes": 200, "transferencias_corrientes": 200, "inversion_directa_pais": 200, "ipc_eeuu": 75,
+                   "eeuu_importa_crudo_ve_bd": 100, "intervencion_bcv": 9999}.items():
     if code in PLAN:
         PLAN[code] = (PLAN[code][0], days, PLAN[code][2])
 for s_ in SERIES:
