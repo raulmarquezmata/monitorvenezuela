@@ -98,7 +98,7 @@ export async function status() {
 
 export async function lastRun(): Promise<string | null> {
   if (!sb) return null;
-  const { data } = await sb.from("ingest_runs").select("finished_at").eq("status", "ok").order("finished_at", { ascending: false }).limit(1);
+  const { data } = await sb.from("ingest_runs").select("finished_at").in("status", ["ok", "partial"]).order("finished_at", { ascending: false }).limit(1);
   return data?.[0]?.finished_at ?? null;
 }
 
