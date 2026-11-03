@@ -6,6 +6,10 @@ on:
     - cron: "5 13-23/2 * * 1-5"
     - cron: "40 23 * * *"
     - cron: "15 10 * * 0"
+    # Telegram: buenos días (8:47 y 8:53 am VET) y cierre (4:22 y 4:28 pm VET, lunes a viernes).
+    # Van a minutos "raros" y unos minutos antes porque GitHub atrasa más las corridas en punto.
+    - cron: "47,53 12 * * *"
+    - cron: "22,28 20 * * 1-5"
   push:
     branches: [main]
     paths: ["data/**", "config/**", "ingest/catalog.py"]
@@ -14,14 +18,16 @@ on:
       tarea:
         description: "Qué correr"
         type: choice
-        options: [backfill, frequent, oficial, daily, weekly, files]
+        options: [backfill, frequent, oficial, daily, weekly, files, telegram]
         default: backfill
 concurrency:
   group: robots-${{ github.event.schedule || github.event_name }}
+  # las corridas de cada 20 minutos: si una se quedó pegada, la nueva la reemplaza
   cancel-in-progress: ${{ github.event.schedule == '*/20 10-23 * * *' || github.event.schedule == '*/20 0-3 * * *' }}
 jobs:
   robots:
     runs-on: ubuntu-latest
+    # corridas frecuentes: máximo 25 min; diaria, semanal y manuales: hasta 5 h
     timeout-minutes: ${{ (github.event_name == 'schedule' && github.event.schedule != '40 23 * * *' && github.event.schedule != '15 10 * * 0') && 25 || 300 }}
     steps:
       - uses: actions/checkout@v4
@@ -31,6 +37,7 @@ jobs:
           cache: pip
           cache-dependency-path: ingest/requirements.txt
       - name: OCR (para los informes de SUNAVAL)
+        if: ${{ !contains(github.event.schedule, ' 12 * * *') && !contains(github.event.schedule, ' 20 * * 1-5') }}
         continue-on-error: true
         run: sudo apt-get update -qq && sudo apt-get install -y -qq tesseract-ocr
       - run: pip install -r ingest/requirements.txt
@@ -43,6 +50,7 @@ jobs:
             "schedule:40 23 * * *") echo "g=daily" >> $GITHUB_OUTPUT ;;
             "schedule:5 13-23/2 * * 1-5") echo "g=oficial" >> $GITHUB_OUTPUT ;;
             "schedule:15 10 * * 0") echo "g=weekly" >> $GITHUB_OUTPUT ;;
+            "schedule:47,53 12 * * *"|"schedule:22,28 20 * * 1-5") echo "g=telegram" >> $GITHUB_OUTPUT ;;
             *)                      echo "g=frequent" >> $GITHUB_OUTPUT ;;
           esac
       - name: Ejecutar robots
