@@ -46,6 +46,22 @@ export default async function SymbolPage({ params }: { params: { lang: Lang; sym
   const capBs = shares && last?.close ? shares * last.close : null;
   const company = classes.length > 1 ? classes.reduce((a, c) => a + (c.market_cap_bs ?? 0), 0) : null;
   const lastSession = quotes.at(-1);
+  // monto negociado acumulado: última sesión, semana, mes y año en curso (cada día a su tasa)
+  const rateAt = (pts: Point[], d: string) => { let v: number | null = null; for (const p of pts) { if (p[0] <= d) v = p[1]; else break; } return v; };
+  const lastD = quotes.at(-1)?.date ?? "";
+  const monday = (() => { if (!lastD) return ""; const x = new Date(`${lastD}T12:00:00Z`); x.setUTCDate(x.getUTCDate() - ((x.getUTCDay() + 6) % 7)); return x.toISOString().slice(0, 10); })();
+  const sumFrom = (from: string, label: string, sub?: string) => {
+    const rows = quotes.filter((q) => q.date >= from && (q.amount ?? 0) > 0);
+    let b = 0, o = 0, p = 0;
+    for (const q of rows) { const a = q.amount!; b += a; const ro = rateAt(fx.usd_bcv ?? [], q.date), rp = rateAt(fx.usd_paralelo ?? [], q.date); if (ro) o += a / ro; if (rp) p += a / rp; }
+    return { label, sub, bs: b, of: o, par: p, n: rows.length };
+  };
+  const flows = lastD ? [
+    sumFrom(lastD, es ? "Última sesión" : "Last session", date(lastD, lang)),
+    sumFrom(monday, es ? "En la semana" : "Week to date"),
+    sumFrom(`${lastD.slice(0, 7)}-01`, es ? "En el mes" : "Month to date"),
+    sumFrom(`${lastD.slice(0, 4)}-01-01`, es ? "En el año" : "Year to date"),
+  ] : [];
   const rets = PERIODS.map((p) => ({ p, bs: change(bs, p), of: change(usdOf, p), par: change(usdPar, p) }));
   const pctCell = (v: number | null) => <td className={v == null ? "" : v >= 0 ? "up" : "down"} style={{ textAlign: "right" }}>{v == null ? "—" : `${v > 0 ? "+" : ""}${num(v, lang, 2)}%`}</td>;
   const today = new Date().toISOString().slice(0, 10);
@@ -77,13 +93,16 @@ export default async function SymbolPage({ params }: { params: { lang: Lang; sym
         )}
       </div>
       {desc && <p className="stock-desc">{desc}</p>}
+      <div style={{ marginTop: 12 }}>
+        <StockChart lang={lang} symbol={symbol} bs={bs} usdOf={usdOf} usdPar={usdPar} shares={shares} labels={chartLabels(lang)} rangeLabels={d.range} initial="1A" />
+      </div>
 
-      <div className="grid kpis k4" style={{ marginTop: 12 }}>
+      <div className="grid kpis k4" style={{ marginTop: 16 }}>
         <Kpi label={es ? "Precio (Bs)" : "Price (Bs)"} val={num(last?.close, lang)}
           meta={<><span className={(rets[0].bs ?? 0) > 0 ? "up" : (rets[0].bs ?? 0) < 0 ? "down" : "flat"}>{rets[0].bs != null ? `${rets[0].bs > 0 ? "+" : ""}${num(rets[0].bs, lang, 2)}%` : "—"}</span><span>{date(last?.date, lang)}</span></>} />
         <Kpi label={es ? "Precio en US$ oficial" : "Price in US$ (official)"} val={num(usdOf.at(-1)?.[1], lang, 4)} meta={rateOf ? `Bs ${num(rateOf, lang, 2)} / US$` : undefined} />
         <Kpi label={es ? "Precio en US$ paralelo" : "Price in US$ (parallel)"} val={num(usdPar.at(-1)?.[1], lang, 4)} meta={ratePar ? `Bs ${num(ratePar, lang, 2)} / US$` : undefined} />
-        <Kpi label={es ? "Monto negociado" : "Traded amount"} val={lastSession?.amount ? `Bs ${compact(lastSession.amount, lang)}` : "—"}
+        <Kpi label={es ? "Monto negociado (última sesión)" : "Traded amount (last session)"} val={lastSession?.amount ? `Bs ${compact(lastSession.amount, lang)}` : "—"}
           meta={lastSession?.amount ? `US$ ${compact(usd(lastSession.amount, rateOf), lang)} ${es ? "of." : "off."} · US$ ${compact(usd(lastSession.amount, ratePar), lang)} par.${lastSession.trades ? ` · ${lastSession.trades} ${es ? "op." : "trades"}` : ""}` : (es ? "sin operaciones en la última sesión" : "no trades in the last session")} />
         <Kpi label={es ? "Acciones en circulación" : "Shares outstanding"} val={shares ? compact(shares, lang) : "—"} meta={shares ? num(shares, lang, 0) : undefined} />
         <Kpi label={es ? "Capitalización (Bs)" : "Market cap (Bs)"} val={capBs ? compact(capBs, lang) : "—"}
@@ -95,7 +114,6 @@ export default async function SymbolPage({ params }: { params: { lang: Lang; sym
       </div>
 
       <div className="grid g2" style={{ marginTop: 16, alignItems: "start" }}>
-        <StockChart lang={lang} symbol={symbol} bs={bs} usdOf={usdOf} usdPar={usdPar} shares={shares} labels={chartLabels(lang)} rangeLabels={d.range} initial="1A" />
         <div className="card">
           <div className="card-top"><h3>{es ? "Rendimiento" : "Return"}</h3><span className="date">{es ? "en bolívares y en dólares" : "in bolivars and dollars"}</span></div>
           <div className="tbl-wrap">
@@ -109,6 +127,24 @@ export default async function SymbolPage({ params }: { params: { lang: Lang; sym
           <p className="muted" style={{ fontSize: 13, marginTop: 12 }}>{es
             ? "«En la semana» compara con el último cierre de la semana anterior; «Semana» con el cierre de hace 7 días. Los rendimientos en US$ usan el tipo de cambio de cada fecha."
             : "“Week to date” compares with last week's final close; “Week” with the close 7 days earlier. US$ returns use each date's exchange rate."}</p>
+        </div>
+        <div className="card">
+          <div className="card-top"><h3>{es ? "Monto negociado" : "Traded amount"}</h3><span className="date">{es ? "suma de lo transado en cada período" : "sum traded in each period"}</span></div>
+          <div className="tbl-wrap">
+            <table className="tbl compact" style={{ marginTop: 14 }}>
+              <thead><tr><th>{es ? "Período" : "Period"}</th><th style={{ textAlign: "right" }}>Bs</th>
+                <th style={{ textAlign: "right" }}><span className="long">{es ? "US$ oficial" : "US$ official"}</span><span className="short">{es ? "US$ of." : "US$ off."}</span></th>
+                <th style={{ textAlign: "right" }}><span className="long">{es ? "US$ paralelo" : "US$ parallel"}</span><span className="short">US$ par.</span></th></tr></thead>
+              <tbody>{flows.map((f) => (
+                <tr key={f.label}><td>{f.label}<div className="muted" style={{ fontSize: 12 }}>{f.sub ? `${f.sub} · ` : ""}{f.n} {es ? (f.n === 1 ? "sesión" : "sesiones") : f.n === 1 ? "session" : "sessions"}</div></td>
+                  <td style={{ textAlign: "right" }}>{f.bs ? compact(f.bs, lang) : "—"}</td>
+                  <td style={{ textAlign: "right" }}>{f.of ? compact(f.of, lang) : "—"}</td>
+                  <td style={{ textAlign: "right" }}>{f.par ? compact(f.par, lang) : "—"}</td></tr>))}</tbody>
+            </table>
+          </div>
+          <p className="muted" style={{ fontSize: 13, marginTop: 12 }}>{es
+            ? `Lo que se transó de ${symbol} en la última sesión y en lo que va de la semana, del mes y del año. Cada día se convierte a dólares con la tasa de ese día.`
+            : `What was traded in ${symbol} in the last session and so far this week, month and year. Each day is converted to dollars at that day's rate.`}</p>
         </div>
       </div>
 

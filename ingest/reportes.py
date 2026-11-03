@@ -109,11 +109,13 @@ def class_label(sym: str, t: dict, multi: bool = False) -> str:
 
 # ---------------------------------------------------------------- gráficos (matplotlib → SVG)
 def _svg(fig) -> str:
-    buf = io.StringIO()
-    fig.savefig(buf, format="svg", bbox_inches="tight", pad_inches=0.02, transparent=True)
+    """El gráfico va como imagen PNG de alta resolución: se ve igual en cualquier computadora
+    (como SVG, el tamaño de las letras dependía de las fuentes instaladas en el robot)."""
+    buf = io.BytesIO()
+    fig.savefig(buf, format="png", dpi=220, bbox_inches="tight", pad_inches=0.02, facecolor="white")
     import matplotlib.pyplot as plt
     plt.close(fig)
-    return "data:image/svg+xml;base64," + base64.b64encode(buf.getvalue().encode()).decode()
+    return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode()
 
 
 def _setup():
@@ -123,7 +125,7 @@ def _setup():
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     plt.rcParams.update({"font.family": ["Lato", "Carlito", "DejaVu Sans"], "font.size": 7, "axes.edgecolor": GRID,
-                         "axes.linewidth": 0.6, "xtick.color": "#666", "ytick.color": "#666", "svg.fonttype": "none"})
+                         "axes.linewidth": 0.6, "xtick.color": "#666", "ytick.color": "#666", "svg.fonttype": "path"})
     return plt
 
 

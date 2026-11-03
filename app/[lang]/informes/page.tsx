@@ -2,7 +2,6 @@ import Link from "next/link";
 import { informes } from "@/lib/data";
 import { date } from "@/lib/format";
 import { t, type Lang } from "@/lib/i18n";
-import { listPosts } from "@/lib/research";
 
 // los filtros llegan por la URL (?tema=, ?idioma=, ?q=): se renderiza en cada visita
 export const dynamic = "force-dynamic";
@@ -15,7 +14,6 @@ const TOPICS: Record<string, { es: string; en: string }> = {
   economia: { es: "Economía", en: "Economy" },
   finanzas: { es: "Banca y mercados", en: "Banking & markets" },
   agro: { es: "Agro", en: "Agriculture" },
-  comentario: { es: "Comentarios", en: "Commentary" },
 };
 
 type Item = { key: string; title: string; date: string | null; topic: string; lang: string; summary: string | null;
@@ -28,18 +26,23 @@ export default async function Informes({ params, searchParams }: { params: { lan
   const d = t(lang);
   const es = lang === "es";
   const pdfs = await informes();
-  const posts = listPosts(lang);
-  const all: Item[] = [
-    ...pdfs.map((x) => ({ key: x.id, title: x.title, date: x.date, topic: x.topic || "economia", lang: x.lang || "es", summary: x.summary,
-      href: x.url, pdf: x.url, thumb: x.thumb_url, pages: x.pages, internal: false })),
-    ...posts.map((p) => ({ key: p.slug, title: p.title, date: p.date, topic: "comentario", lang: lang === "en" && !p.translated ? "es" : lang,
-      summary: p.summary, href: `/${lang}/research/${p.slug}`, pdf: p.pdf, thumb: null, pages: null, internal: true })),
-  ].sort((a, b) => (b.date ?? "").localeCompare(a.date ?? ""));
+  // ordenados por fecha de publicación del informe (los que no tienen fecha, al final)
+  const all: Item[] = pdfs.map((x) => ({ key: x.id, title: x.title, date: x.date, topic: x.topic || "economia", lang: x.lang || "es", summary: x.summary,
+      href: x.url, pdf: x.url, thumb: x.thumb_url, pages: x.pages, internal: false }))
+    .sort((a, b) => (b.date ?? "0000").localeCompare(a.date ?? "0000") || a.title.localeCompare(b.title));
   const tema = searchParams.tema && TOPICS[searchParams.tema] ? searchParams.tema : undefined;
   const idioma = searchParams.idioma === "es" || searchParams.idioma === "en" ? searchParams.idioma : undefined;
   const q = (searchParams.q ?? "").trim();
   const items = all.filter((x) => (!tema || x.topic === tema) && (!idioma || x.lang === idioma)
     && (!q || norm(`${x.title} ${x.summary ?? ""}`).includes(norm(q))));
+  const month = (d: string) => new Intl.DateTimeFormat(es ? "es-VE" : "en-US", { month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(`${d}T12:00:00Z`));
+  const groups: { key: string; label: string; items: Item[] }[] = [];
+  for (const x of items) {
+    const k = x.date ? x.date.slice(0, 4) : "sin";
+    let g = groups.find((y) => y.key === k);
+    if (!g) groups.push((g = { key: k, label: x.date ? k : (es ? "Sin fecha" : "Undated"), items: [] }));
+    g.items.push(x);
+  }
   const present = Object.keys(TOPICS).filter((k) => all.some((x) => x.topic === k));
   const href = (o: Record<string, string | undefined>) => {
     const p = new URLSearchParams();
@@ -52,7 +55,7 @@ export default async function Informes({ params, searchParams }: { params: { lan
       <div className="head-row">
         <div>
           <h1>{d.research}</h1>
-          <p className="sub">{d.researchSub} {all.length > 0 && (es ? `${all.length} publicaciones.` : `${all.length} publications.`)}</p>
+          <p className="sub">{d.researchSub} {all.length > 0 && (es ? `${all.length} informes.` : `${all.length} reports.`)}</p>
         </div>
         <form action={`/${lang}/informes`} style={{ display: "flex", gap: 6 }}>
           {tema && <input type="hidden" name="tema" value={tema} />}
@@ -69,35 +72,38 @@ export default async function Informes({ params, searchParams }: { params: { lan
         <Link href={href({ idioma: "es" })} className={idioma === "es" ? "on" : ""}>{es ? "En español" : "In Spanish"}</Link>
         <Link href={href({ idioma: "en" })} className={idioma === "en" ? "on" : ""}>{es ? "En inglés" : "In English"}</Link>
       </div>
-      <div className="grid g3 informes">
-        {items.map((x) => (
-          <article className="card informe" key={x.key}>
-            {x.thumb && (
-              <a href={x.href} target={x.internal ? undefined : "_blank"} rel="noreferrer" className="portada">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={x.thumb} alt="" loading="lazy" />
-              </a>
-            )}
-            <div className="m muted" style={{ display: "flex", gap: 8, flexWrap: "wrap", fontSize: 13 }}>
-              {x.date && <span>{date(x.date, lang)}</span>}
-              <span className="tag">{TOPICS[x.topic]?.[lang] ?? x.topic}</span>
-              <span className="tag">{x.lang.toUpperCase()}</span>
-              {x.pages ? <span>{x.pages} {es ? (x.pages === 1 ? "pág." : "págs.") : x.pages === 1 ? "page" : "pages"}</span> : null}
-            </div>
-            <h3 style={{ margin: "8px 0 6px", lineHeight: 1.3 }}>
-              {x.internal ? <Link href={x.href} style={{ textDecoration: "none" }}>{x.title}</Link>
-                : <a href={x.href} target="_blank" rel="noreferrer" style={{ textDecoration: "none" }}>{x.title}</a>}
-            </h3>
-            {x.summary && <p className="resumen">{x.summary}</p>}
-            <p style={{ marginBottom: 0, display: "flex", gap: 6, flexWrap: "wrap" }}>
-              {x.internal && <Link href={x.href} className="btn">{d.readMore} →</Link>}
-              {x.pdf && <a href={x.pdf} className="btn" target="_blank" rel="noreferrer">{es ? "Abrir PDF" : "Open PDF"}</a>}
-              {x.pdf && !x.internal && <a href={`${x.pdf}?download=`} className="btn">⬇ {es ? "Descargar" : "Download"}</a>}
-            </p>
-          </article>
-        ))}
-        {!items.length && <div className="empty">{q || tema || idioma ? (es ? "No hay informes con ese filtro." : "No reports match that filter.") : d.noData}</div>}
-      </div>
+      {groups.map((g) => (
+        <section key={g.key} style={{ marginBottom: 28 }}>
+          <h2 className="year-head">{g.label} <span className="muted">· {g.items.length}</span></h2>
+          <div className="grid g3 informes">
+            {g.items.map((x) => (
+              <article className="card informe" key={x.key}>
+                {x.thumb && (
+                  <a href={x.href} target="_blank" rel="noreferrer" className="portada">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={x.thumb} alt="" loading="lazy" />
+                  </a>
+                )}
+                <div className="m muted" style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", fontSize: 13 }}>
+                  {x.date && <span>{month(x.date).replace(/^./, (c) => c.toUpperCase())}</span>}
+                  <span className="tag">{TOPICS[x.topic]?.[lang] ?? x.topic}</span>
+                  <span className="tag">{x.lang.toUpperCase()}</span>
+                  {x.pages ? <span>{x.pages} {es ? (x.pages === 1 ? "pág." : "págs.") : x.pages === 1 ? "page" : "pages"}</span> : null}
+                </div>
+                <h3 style={{ margin: "8px 0 6px", lineHeight: 1.3 }}>
+                  <a href={x.href} target="_blank" rel="noreferrer" style={{ textDecoration: "none" }}>{x.title}</a>
+                </h3>
+                {x.summary && <p className="resumen">{x.summary}</p>}
+                <p style={{ marginBottom: 0, marginTop: "auto", display: "flex", gap: 6, flexWrap: "wrap" }}>
+                  <a href={x.href} className="btn" target="_blank" rel="noreferrer">{es ? "Abrir PDF" : "Open PDF"}</a>
+                  <a href={`${x.href}${x.href.includes("?") ? "&" : "?"}download=`} className="btn">⬇ {es ? "Descargar" : "Download"}</a>
+                </p>
+              </article>
+            ))}
+          </div>
+        </section>
+      ))}
+      {!items.length && <div className="empty">{q || tema || idioma ? (es ? "No hay informes con ese filtro." : "No reports match that filter.") : d.noData}</div>}
     </>
   );
 }
