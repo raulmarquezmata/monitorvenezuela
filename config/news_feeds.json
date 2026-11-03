@@ -315,6 +315,62 @@
    "lang": "en",
    "filter": true,
    "kind": "agregador"
+  },
+  {
+   "name": "Empresas e inversión (búsqueda)",
+   "url": "https://news.google.com/rss/search?q=Venezuela%20%28adquiere%20OR%20adquisici%C3%B3n%20OR%20invertir%C3%A1%20OR%20inversi%C3%B3n%20OR%20expansi%C3%B3n%20OR%20%22nueva%20planta%22%29%20empresa%20when%3A3d&hl=es-419&gl=VE&ceid=VE:es-419",
+   "lang": "es",
+   "filter": true,
+   "kind": "agregador"
+  },
+  {
+   "name": "Aerolíneas y turismo (búsqueda)",
+   "url": "https://news.google.com/rss/search?q=Venezuela%20%28aerol%C3%ADnea%20OR%20vuelos%20OR%20frecuencias%20OR%20ruta%20OR%20turismo%29%20when%3A3d&hl=es-419&gl=VE&ceid=VE:es-419",
+   "lang": "es",
+   "filter": true,
+   "kind": "agregador"
+  },
+  {
+   "name": "Electricidad (búsqueda)",
+   "url": "https://news.google.com/rss/search?q=Venezuela%20%28Corpoelec%20OR%20megavatios%20OR%20hidroel%C3%A9ctrica%20OR%20%22sistema%20el%C3%A9ctrico%22%20OR%20termoel%C3%A9ctrica%29%20when%3A3d&hl=es-419&gl=VE&ceid=VE:es-419",
+   "lang": "es",
+   "filter": true,
+   "kind": "agregador"
+  },
+  {
+   "name": "Comercio y fiscal (búsqueda)",
+   "url": "https://news.google.com/rss/search?q=Venezuela%20%28Seniat%20OR%20aranceles%20OR%20%22intercambio%20comercial%22%20OR%20exportaciones%20OR%20importaciones%20OR%20recaudaci%C3%B3n%29%20when%3A3d&hl=es-419&gl=VE&ceid=VE:es-419",
+   "lang": "es",
+   "filter": true,
+   "kind": "agregador"
+  },
+  {
+   "name": "Minería e industrias básicas (búsqueda)",
+   "url": "https://news.google.com/rss/search?q=Venezuela%20%28aluminio%20OR%20Venalum%20OR%20Sidor%20OR%20hierro%20OR%20%22oro%22%20OR%20miner%C3%ADa%20OR%20Ferrominera%29%20when%3A3d&hl=es-419&gl=VE&ceid=VE:es-419",
+   "lang": "es",
+   "filter": true,
+   "kind": "agregador"
+  },
+  {
+   "name": "Salarios y trabajo (búsqueda)",
+   "url": "https://news.google.com/rss/search?q=Venezuela%20%28salario%20OR%20%22ingreso%20m%C3%ADnimo%22%20OR%20bonos%20OR%20remuneraciones%20OR%20%22mesa%20de%20di%C3%A1logo%20laboral%22%29%20when%3A3d&hl=es-419&gl=VE&ceid=VE:es-419",
+   "lang": "es",
+   "filter": true,
+   "kind": "agregador"
+  },
+  {
+   "name": "Gobierno y diplomacia (búsqueda)",
+   "url": "https://news.google.com/rss/search?q=Venezuela%20%28canciller%20OR%20%22presidenta%20encargada%22%20OR%20embajada%20OR%20cooperaci%C3%B3n%20OR%20ministro%29%20when%3A3d&hl=es-419&gl=VE&ceid=VE:es-419",
+   "lang": "es",
+   "filter": true,
+   "kind": "agregador"
+  },
+  {
+   "name": "Consumo y empresas (búsqueda)",
+   "url": "https://news.google.com/rss/search?q=Venezuela%20%28consumo%20OR%20ventas%20OR%20%22Empresas%20Polar%22%20OR%20supermercados%20OR%20franquicias%20OR%20%22centros%20comerciales%22%29%20when%3A3d&hl=es-419&gl=VE&ceid=VE:es-419",
+   "lang": "es",
+   "filter": true,
+   "kind": "agregador"
   }
  ]
 }

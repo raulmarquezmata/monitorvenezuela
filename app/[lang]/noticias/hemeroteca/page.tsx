@@ -39,8 +39,8 @@ export default async function Hemeroteca({ params, searchParams }: { params: { l
       <NewsNav lang={lang} />
       <h1>{es ? "Hemeroteca 2026" : "2026 news archive"}</h1>
       <p className="sub">{es
-        ? `${NOTAS.length} noticias seleccionadas y resumidas, con sus fuentes${nAuto ? `, y ${nAuto} titulares recientes de medios económicos venezolanos que entran solos` : ""}. Filtra por tema, mes o palabra.`
-        : `${NOTAS.length} curated, summarized stories with their sources (summaries in Spanish)${nAuto ? `, plus ${nAuto} recent headlines from Venezuelan business media added automatically` : ""}. Filter by topic, month or keyword.`}</p>
+        ? `${NOTAS.length} noticias seleccionadas y resumidas, con sus fuentes${nAuto ? `, y ${nAuto} titulares recientes que entran solos desde las noticias del día` : ""}. Filtra por tema, mes o palabra.`
+        : `${NOTAS.length} curated, summarized stories with their sources (summaries in Spanish)${nAuto ? `, plus ${nAuto} recent headlines added automatically from the daily news` : ""}. Filter by topic, month or keyword.`}</p>
 
       <form className="hm-search" action={`/${lang}/noticias/hemeroteca`}>
         {cat && <input type="hidden" name="cat" value={cat} />}

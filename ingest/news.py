@@ -35,10 +35,15 @@ RELEVANT = re.compile(r"venezuel|caracas|\bbcv\b|pdvsa|bol[ií]var|sudeban|senia
                       r"delcy|maracaibo|zulia|carabobo|anzo[aá]tegui|monagas|guayana|orinoco|\bfaja\b|corpoelec|cantv|cashea|citgo|"
                       r"esequibo|bolpriaven|casa de bolsa|banesco|mercantil|provincial|bancaribe|banco de venezuela|\bbnc\b|maduro|machado", re.I)
 # temas que no son de Venezuela (salvo que el titular también la mencione): se descartan aunque vengan de medios venezolanos
-FOREIGN = re.compile(r"\bir[aá]n\b|ormuz|hormuz|\bPIF\b|saud[ií]|arabia|emiratos|dub[aá]i|fenalco|israel|gaza|ucrania|ukraine|rusia\b|putin|zelensk|taiw[aá]n|corea del norte|"
-                     r"bitcoin|ethereum|\bcripto|crypto|\bnft\b|blockchain|memecoin|solana|dogecoin|lazarus|trader ?traitor|"
-                     r"argentina|milei|chile\b|per[uú]\b|ecuador|bolivia|m[eé]xico|brasil|lula|colombia(?! .*venezuel)|petro\b|"
-                     r"champions|f[uú]tbol|mundial de|nba\b|mlb\b|hollywood|celebrity", re.I)
+# temas que no son de Venezuela (salvo que el titular también la mencione)
+FOREIGN_HARD = re.compile(r"\bir[aá]n\b|ormuz|hormuz|\bPIF\b|saud[ií]|arabia|emiratos|dub[aá]i|fenalco|israel|gaza|ucrania|ukraine|rusia\b|putin|zelensk|taiw[aá]n|corea del norte|"
+                          r"bitcoin|ethereum|\bcripto|crypto|\bnft\b|blockchain|memecoin|solana|dogecoin|lazarus|trader ?traitor|"
+                          r"champions|f[uú]tbol|mundial de|nba\b|mlb\b|hollywood|celebrity", re.I)
+FOREIGN_COUNTRY = re.compile(r"argentina|milei|chile\b|per[uú]\b|ecuador|bolivia|m[eé]xico|brasil|lula|colombia(?! .*venezuel)|petro\b", re.I)
+FOREIGN = re.compile(f"{FOREIGN_HARD.pattern}|{FOREIGN_COUNTRY.pattern}", re.I)
+# noticias de empresas (p. ej. «Grupo Nutresa de Colombia registra utilidad»): en medios venezolanos se aceptan
+BUSINESS = re.compile(r"empresa|compa[nñ][ií]a|grupo\b|adquiri|adquisici|utilidad|ganancia|ventas|inversi[oó]n|invertir|aerol[ií]nea|vuelos|"
+                      r"planta|f[aá]brica|exportaci|importaci|comercio|acuerdo|alianza|franquicia|marca", re.I)
 
 
 FOOTER = re.compile(r"(la entrada|the post)\s.*?(apareci[oó] primero en|appeared first on)\s.*$|\[…\]|\[\.\.\.\]", re.I | re.S)
@@ -61,7 +66,9 @@ def is_relevant(title: str, summary: str | None, strict: bool) -> bool:
     mencionar Venezuela o algo propio del país."""
     if RELEVANT.search(title):
         return True
-    if FOREIGN.search(title):
+    if FOREIGN_HARD.search(title):
+        return False
+    if FOREIGN_COUNTRY.search(title) and (strict or not BUSINESS.search(title)):
         return False
     if strict:
         return bool(summary and RELEVANT.search(summary))

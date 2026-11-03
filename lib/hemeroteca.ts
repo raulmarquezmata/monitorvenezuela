@@ -1,5 +1,6 @@
 import raw from "@/content/hemeroteca/noticias.json";
 import type { Lang } from "./i18n";
+import { groupNews } from "./newsgroup";
 
 type Raw = { cat: string; date: string; es: { title: string; preview?: string; body?: string }; en?: { title?: string; preview?: string; body?: string };
   sectors?: (string | { label: string })[]; sources?: { text: string; url: string }[] };
@@ -37,10 +38,11 @@ const SORT = (a: Nota, b: Nota) => (a.ym === b.ym ? b.day - a.day || a.i - b.i :
 const MON_ES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sept", "oct", "nov", "dic"];
 const keyT = (t: string) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim().slice(0, 70);
 
-/** Noticias recientes de medios económicos venezolanos que entran solas a la hemeroteca (además de las curadas). */
+/** Noticias recientes del robot que entran solas a la hemeroteca (además de las curadas); la misma nota en varios medios sale una vez. */
 export type AutoNews = { url: string; title: string; title_es?: string | null; title_en?: string | null; source: string | null; published_at: string; summary: string | null; category: string | null };
 export function withAuto(auto: AutoNews[]): Nota[] {
   const urls = new Set(NOTAS.flatMap((n) => n.sources.map((s) => s.url)));
+  auto = groupNews(auto.map((a, k) => ({ ...a, id: k, title: a.title_es || a.title })));
   const titles = new Set(NOTAS.map((n) => keyT(n.titleEs)));
   const CAT: Record<string, string> = { petroleo: "oil", economia: "mac", cambiario: "mac", precios: "mac", banca: "fin", deuda: "fin", mercados: "mkt", mineria: "min", politica: "pol", sanciones: "jur", agro: "inv" };
   const INV = /adquiri|adquisici|invertir|inversi[oó]n|expansi|nueva ruta|aerol[ií]nea|vuelos|planta|f[aá]brica|franquicia|abre (su|una|un)|inaugur|alianza|acuerdo comercial/i;
@@ -56,7 +58,8 @@ export function withAuto(auto: AutoNews[]): Nota[] {
     let cat = CAT[a.category ?? ""] ?? "mac";
     if (INV.test(t) && cat !== "oil" && cat !== "pol") cat = "inv";
     out.push({ i: 100000 + k, cat, dateLabel: `${day} ${MON_ES[d.getUTCMonth()]} ${d.getUTCFullYear()}`, ym, day, titleEs: t, titleEn: a.title_en ?? undefined,
-      preview: a.summary ?? undefined, sectors: [], sources: [{ text: a.source ?? "—", url: a.url }], auto: true });
+      preview: a.summary ?? undefined, sectors: [],
+      sources: [{ text: a.source ?? "—", url: a.url }, ...((a as AutoNews & { also?: { source: string; url: string }[] }).also ?? []).slice(0, 4).map((x) => ({ text: x.source, url: x.url }))], auto: true });
   });
   return [...NOTAS, ...out].sort(SORT);
 }

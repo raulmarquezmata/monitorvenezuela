@@ -120,12 +120,11 @@ export function stockReportUrl(symbol: string, lang: "es" | "en", version?: stri
   return `${url.replace(/\/$/, "")}/storage/v1/object/public/reportes/acciones/${encodeURIComponent(symbol)}_${lang}.pdf${version ? `?v=${version}` : ""}`;
 }
 
-/** Notas de medios económicos venezolanos para la hemeroteca automática. */
+/** Todas las noticias recientes que capta el robot (todos los medios y temas) para la hemeroteca automática. */
 export async function hemerotecaAuto(since = "2026-10-01"): Promise<News[]> {
   if (!sb) return [];
   const { data, error } = await sb.from("news").select("url,title,title_es,title_en,source,published_at,summary,category")
-    .in("source", ["Banca y Negocios", "Finanzas Digital", "Bloomberg Línea", "El Estímulo", "Bitácora Económica", "Ecosistema"])
-    .gte("published_at", since).order("published_at", { ascending: false }).limit(1500);
+    .gte("published_at", since).order("published_at", { ascending: false }).limit(4000);
   return error ? [] : ((data as News[]) ?? []);
 }
 
