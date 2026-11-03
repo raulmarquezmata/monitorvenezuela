@@ -18,11 +18,11 @@ on:
         default: backfill
 concurrency:
   group: robots-${{ github.event.schedule || github.event_name }}
-  cancel-in-progress: false
+  cancel-in-progress: ${{ github.event.schedule == '*/20 10-23 * * *' || github.event.schedule == '*/20 0-3 * * *' }}
 jobs:
   robots:
     runs-on: ubuntu-latest
-    timeout-minutes: 300
+    timeout-minutes: ${{ (github.event_name == 'schedule' && github.event.schedule != '40 23 * * *' && github.event.schedule != '15 10 * * 0') && 25 || 300 }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -30,7 +30,9 @@ jobs:
           python-version: "3.12"
           cache: pip
           cache-dependency-path: ingest/requirements.txt
-      - run: sudo apt-get install -y -qq tesseract-ocr
+      - name: OCR (para los informes de SUNAVAL)
+        continue-on-error: true
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq tesseract-ocr
       - run: pip install -r ingest/requirements.txt
       - name: Elegir tarea
         id: t
