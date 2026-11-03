@@ -11,7 +11,7 @@ import re
 
 from bs4 import BeautifulSoup
 
-from .common import Run, fetch, save_obs, today_caracas, ve_number
+from .common import Run, fetch, save_obs, select, today_caracas, ve_number
 
 URL = "https://finanzasdigital.com/inflacion-por-pais/venezuela/{y}/"
 MONTHS = {m: i for i, m in enumerate(["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto",
@@ -77,3 +77,31 @@ def run(backfill: bool = False):
             r.rows += save_obs("inflacion_interanual", data["interanual"], "BCV (vía Finanzas Digital)")
         if empty:
             r.note("Sin tabla de inflación para: " + ", ".join(empty[:10]))
+
+
+def derive_missing(months_back: int = 4) -> int:
+    """Si hay inflación mensual (p. ej. un anuncio oficial) sin su acumulada o interanual, las calcula con el mes
+    anterior: acumulada = (1+acum. previa)·(1+mensual) − 1; interanual = (1+interanual previa)·(1+mensual)/(1+mensual de hace 12 meses) − 1.
+    Solo rellena meses recientes que faltan; la cifra oficial, cuando sale, la reemplaza."""
+    get = lambda c: {x["date"]: x["value"] for x in select("observations", {"select": "date,value", "series_code": f"eq.{c}", "order": "date"})}  # noqa: E731
+    m, ac, ia = get("inflacion_mensual"), get("inflacion_acumulada"), get("inflacion_interanual")
+    if not m:
+        return 0
+    cutoff = sorted(m)[-months_back] if len(m) >= months_back else min(m)
+    new_ac, new_ia = [], []
+    for d in sorted(x for x in m if x >= cutoff):
+        y, mo = int(d[:4]), int(d[5:7])
+        prev = eom(y - (mo == 1), 12 if mo == 1 else mo - 1)
+        year_ago = eom(y - 1, mo)
+        if d not in ac:
+            if mo == 1:
+                ac[d] = m[d]
+            elif prev in ac:
+                ac[d] = ((1 + ac[prev] / 100) * (1 + m[d] / 100) - 1) * 100
+            if d in ac:
+                new_ac.append((d, round(ac[d], 2)))
+        if d not in ia and prev in ia and year_ago in m:
+            ia[d] = ((1 + ia[prev] / 100) * (1 + m[d] / 100) / (1 + m[year_ago] / 100) - 1) * 100
+            new_ia.append((d, round(ia[d], 2)))
+    src = "Cálculo propio con la inflación mensual anunciada"
+    return save_obs("inflacion_acumulada", new_ac, src) + save_obs("inflacion_interanual", new_ia, src)

@@ -44,6 +44,9 @@ def run():
                 pts = [p for p in pts if p[0] not in taken]
             n = save_obs(code, pts, src)
             r.rows += n
+            if n and code == "inflacion_mensual":
+                from .inflation import derive_missing
+                r.rows += derive_missing()
             if n and code in ("usd_paralelo", "usd_bcv"):
                 from .fx import gap_from_db
                 r.rows += gap_from_db(2000)

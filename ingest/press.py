@@ -234,6 +234,30 @@ def parse_gdp(posts: list[dict]) -> list:
     return sorted(pts.items())
 
 
+def parse_inflation(posts: list[dict]) -> list:
+    """Inflación mensual anunciada por el BCV o la Presidencia antes de que salga la cifra en las fuentes habituales."""
+    pts = {}
+    mon = "|".join(MONTHS)
+    for p in posts:
+        text = f"{p['title']} {p['excerpt']}"
+        if not re.search(r"inflaci[oó]n", text, re.I) or not re.search(r"\bBCV\b|banco central|presidenta|presidente|delcy|vicepresident", text, re.I):
+            continue
+        if re.search(r"proyect|estima|prev[eé]|podr[ií]a|espera|meta de|pron[oó]stic|interanual|acumulad|anual de", text, re.I):
+            continue
+        m = re.search(rf"inflaci[oó]n[^.%]{{0,60}}?\b({mon})\b[^.%]{{0,50}}?(\d+(?:,\d+)?)\s?%", text, re.I) \
+            or re.search(rf"inflaci[oó]n[^.%]{{0,20}}?(?:de|del)\s(\d+(?:,\d+)?)\s?%[^.]{{0,20}}?\ben\s({mon})\b", text, re.I)
+        if not m:
+            continue
+        a, b = m.groups()
+        month, val = (a, b) if a.lower() in MONTHS else (b, a)
+        mn = MONTHS[month.lower()]
+        y = int(p["date"][:4]) - (1 if mn > int(p["date"][5:7]) else 0)
+        v = es_num(val)
+        if v is not None and 0 < v < 100:
+            pts.setdefault(eom(y, mn), v)
+    return sorted(pts.items())
+
+
 MON_EN = {m: i for i, m in enumerate(["january", "february", "march", "april", "may", "june", "july", "august",
                                        "september", "october", "november", "december"], 1)}
 EXP_ES = re.compile(r"exportaci[oó]n(?:es)? (?:petroler|de (?:crudo|petr[oó]leo)|de venezuela)[^.]{0,120}?(\d+(?:[.,]\d+)?)\s*(millones? de |mill?\.? ?|mil |MM ?)?(?:bpd|b/d|barriles (?:por d[ií]a|diarios))[^.]{0,60}?\ben (" + "|".join(MONTHS) + r")", re.I)
@@ -306,6 +330,17 @@ def run(backfill: bool = False):
             r.rows += save_obs("pib_real_var", [p for p in parse_gdp(posts) if p[0] not in official], "Anuncio oficial (BCV o Presidencia), vía prensa")
         except Exception as e:  # noqa: BLE001
             r.note(f"PIB: {e}")
+        # inflación mensual anunciada (BCV o Presidencia) antes de que la publique la fuente habitual
+        try:
+            posts = google_posts("inflación mensual Venezuela BCV") + google_posts("presidenta inflación mensual Venezuela")
+            have = {x["date"] for x in select("observations", {"select": "date", "series_code": "eq.inflacion_mensual", "source": "eq.BCV (vía Finanzas Digital)"})}
+            n = save_obs("inflacion_mensual", [p for p in parse_inflation(posts) if p[0] not in have], "Anuncio oficial (BCV o Presidencia), vía prensa")
+            if n:
+                from .inflation import derive_missing
+                n += derive_missing()
+            r.rows += n
+        except Exception as e:  # noqa: BLE001
+            r.note(f"Inflación anunciada: {e}")
         try:
             posts = wp_posts("www.finanzasdigital.com", "recaudación Seniat", pages) + wp_posts("www.bancaynegocios.com", "Seniat recaudó", pages)
             posts += google_posts("Seniat recaudó millones")
