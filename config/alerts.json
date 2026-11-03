@@ -1,5 +1,5 @@
 {
-  "_ayuda": "Reglas de alertas a Telegram. Tipos: 'umbral' (la serie CRUZA un valor), 'variacion' (cambio entre los dos últimos datos ≥ pct %), 'nuevo_dato' (sale un dato nuevo; min_dias limita series diarias), 'resumen_hora' (mensaje a una hora fija, hora de Venezuela), 'resumen_diario' (al cierre, 7:40 p. m.), 'acciones' (acción de la BVC que se mueve ≥ pct % con monto ≥ monto_min Bs), 'volumen' (monto negociado del día ≥ veces el promedio del año), 'noticia' (titular que coincide con el patrón; máximo max_dia al día), 'ofac' (nueva acción de OFAC sobre Venezuela), 'robots' (un robot falla dos veces seguidas). Para apagar una regla, bórrala o cambia su 'id'. 'cierre_semana' (viernes al cierre) y 'cierre_mes' (último día del mes): variación de la semana/mes y en el año. 'una_vez': mensaje único (para confirmar que el canal funciona). resumen_mercado: resumen de mercado (oficial, paralelo, euro, brecha, IBC día/semana, monto RV y RF en Bs y US$, riesgo país, Brent, Merey) a la 'hora' VET; dias_habiles=true omite fines de semana.",
+  "_ayuda": "Reglas de alertas a Telegram. Tipos: 'umbral' (la serie CRUZA un valor), 'variacion' (cambio entre los dos últimos datos ≥ pct %), 'nuevo_dato' (sale un dato nuevo; min_dias limita series diarias), 'resumen_hora' (mensaje a una hora fija, hora de Venezuela), 'resumen_diario' (al cierre, 7:40 p. m.), 'acciones' (acción de la BVC que se mueve ≥ pct % con monto ≥ monto_min Bs), 'volumen' (monto negociado del día ≥ veces el promedio del año), 'noticia' (titular que coincide con el patrón; máximo max_dia al día), 'ofac' (nueva acción de OFAC sobre Venezuela), 'robots' (un robot falla dos veces seguidas). Para apagar una regla, bórrala o cambia su 'id'. 'cierre_semana' (viernes al cierre) y 'cierre_mes' (último día del mes): variación de la semana/mes y en el año. 'una_vez': mensaje único (para confirmar que el canal funciona). resumen_mercado: resumen de mercado (oficial, paralelo, euro, brecha, IBC día/semana, monto RV y RF en Bs y US$, riesgo país, Brent, Merey) a la 'hora' VET; dias_habiles=true omite fines de semana. Opcionales: adelanto (minutos antes de la hora en que ya se puede mandar) y ventana (minutos después de la hora en que deja de intentarlo).",
   "reglas": [
     {
       "id": "activacion_v3",
@@ -10,7 +10,9 @@
       "id": "buenos_dias",
       "tipo": "resumen_mercado",
       "hora": "09:00",
-      "texto": "☀️ Buenos días"
+      "texto": "☀️ Buenos días",
+      "adelanto": 15,
+      "ventana": 120
     },
     {
       "id": "paralelo_salto",
@@ -316,7 +318,9 @@
       "tipo": "resumen_mercado",
       "hora": "16:30",
       "dias_habiles": true,
-      "texto": "📊 Cierre del día"
+      "texto": "📊 Cierre del día",
+      "adelanto": 10,
+      "ventana": 180
     }
   ]
 }

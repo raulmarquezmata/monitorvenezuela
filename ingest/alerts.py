@@ -176,7 +176,10 @@ def evaluate(rules: list[dict], meta: dict[str, dict], data: dict[str, list[dict
             # mensaje a una hora fija (p. ej. 08:00 VET): sale en la primera corrida después de esa hora
             now = dt.datetime.now(VET)
             hh, mm = map(int, rule["hora"].split(":"))
-            if (now.hour, now.minute) >= (hh, mm) and now.hour < hh + 6:
+            # se puede adelantar unos minutos ("adelanto") para compensar el retraso de GitHub;
+            # pasada la "ventana" (minutos después de la hora) ya no se manda ese día
+            m = now.hour * 60 + now.minute
+            if hh * 60 + mm - rule.get("adelanto", 0) <= m < hh * 60 + mm + rule.get("ventana", 360):
                 hoy = now.date().isoformat()
                 lines = [rule["texto"].format(fecha=hoy)]
                 for code in rule["series"]:
@@ -195,7 +198,10 @@ def evaluate(rules: list[dict], meta: dict[str, dict], data: dict[str, list[dict
             hh, mm = map(int, rule["hora"].split(":"))
             if rule.get("dias_habiles") and now.weekday() >= 5:
                 continue
-            if (now.hour, now.minute) >= (hh, mm) and now.hour < hh + 6:
+            # se puede adelantar unos minutos ("adelanto") para compensar el retraso de GitHub;
+            # pasada la "ventana" (minutos después de la hora) ya no se manda ese día
+            m = now.hour * 60 + now.minute
+            if hh * 60 + mm - rule.get("adelanto", 0) <= m < hh * 60 + mm + rule.get("ventana", 360):
                 out.append((f"{rule['id']}:{now.date().isoformat()}", market_summary(rule["texto"], extra.get("hist", {}), now.date())))
         elif t == "acciones":
             # acciones de la BVC con movimientos fuertes en la última sesión

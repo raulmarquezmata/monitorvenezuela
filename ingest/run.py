@@ -24,6 +24,7 @@ JOBS = {
 }
 GROUPS = {
     "frequent": ["catalog", "fx", "bvc", "news", "futuros", "alerts"],
+    "telegram": ["fx", "alerts"],  # corrida corta para el buenos días y el cierre
     # publicaciones oficiales: cada 2 horas en días hábiles, para cargarlas y avisar apenas salgan
     "oficial": ["bcv_stats", "inflation", "press", "banking", "opec", "sunaval", "embi", "oil", "alerts"],
     "daily": ["catalog", "fx", "bvc_full", "bcv_stats", "inflation", "press", "banking", "opec", "sunaval", "oil", "embi", "trade_mensual", "ipc", "agro_usda",
