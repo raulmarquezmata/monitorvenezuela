@@ -17377,5 +17377,338 @@
     "url": "#"
    }
   ]
+ },
+ {
+  "cat": "mac",
+  "date": "3 nov 2026",
+  "es": {
+   "title": "Delcy Rodríguez: Economía de Venezuela creció 6,6% en el tercer trimestre de 2026",
+   "preview": "La presidenta (e) Delcy Rodríguez anunció que las cifras preliminares del tercer trimestre de 2026 muestran un crecimiento económico de 6,6% frente al mismo periodo de 2025, lo que representa 22 trimestres consecutivos de crecimiento, impulsado principalmente por los sectores energético, comercio y construcción.",
+   "body": "Según la funcionaria, el consumo de los últimos 12 meses se sitúa en 23%, lo que también se refleja en la producción petrolera y en la recaudación tributaria."
+  },
+  "en": {
+   "title": "Delcy Rodríguez: Venezuela's economy grew 6.6% in the third quarter of 2026"
+  },
+  "sectors": [
+   "PIB",
+   "Petróleo",
+   "Comercio"
+  ],
+  "sources": [
+   {
+    "text": "Banca y Negocios",
+    "url": "https://www.bancaynegocios.com/delcy-rodriguez-economia-de-venezuela-crecio-6punto6-porciento-en-el-tercer-trimestre-de-2026/"
+   }
+  ]
+ },
+ {
+  "cat": "inv",
+  "date": "29 oct 2026",
+  "es": {
+   "title": "Copa Airlines alcanzará 47 frecuencias semanales en Venezuela con nueva ruta Panamá-Barcelona",
+   "preview": "Copa Airlines incorporará una quinta frecuencia semanal en la ruta Panamá-Barcelona a partir del 16 de noviembre, lo que suma una capacidad adicional aproximada de 1.300 asientos mensuales.",
+   "body": "Con esta incorporación, la aerolínea alcanzará en noviembre 47 frecuencias semanales en Venezuela, operando seis destinos nacionales, y a partir del 26 de noviembre sumará Porlamar con 3 frecuencias semanales."
+  },
+  "en": {
+   "title": "Copa Airlines will reach 47 weekly frequencies in Venezuela with a new Panama-Barcelona route"
+  },
+  "sectors": [
+   "Aviación",
+   "Turismo"
+  ],
+  "sources": [
+   {
+    "text": "Banca y Negocios",
+    "url": "https://www.bancaynegocios.com/copa-airlines-alcanzara-47-frecuencias-semanales-en-venezuela-con-nueva-ruta-panama-barcelona/"
+   }
+  ]
+ },
+ {
+  "cat": "mac",
+  "date": "29 oct 2026",
+  "es": {
+   "title": "Delcy Rodríguez: Trabajadores recibirán cuatro aumentos de remuneraciones en 2027",
+   "preview": "La presidenta encargada, Delcy Rodríguez, anunció que están previstos cuatro incrementos de los ingresos de los trabajadores en 2027, que en ningún caso serán inferiores al porcentaje de crecimiento económico del trimestre precedente, según señaló tras el trabajo de la mesa de diálogo para consensos laborales.",
+   "body": "En el ámbito energético, indicó que se han firmado 65 contratos petroleros y que otros 44 convenios están en negociación; también habrá elecciones con una autoridad electoral renovada, sin fecha precisada."
+  },
+  "en": {
+   "title": "Delcy Rodríguez: Workers will receive four pay increases in 2027"
+  },
+  "sectors": [
+   "Salarios",
+   "Petróleo"
+  ],
+  "sources": [
+   {
+    "text": "Banca y Negocios",
+    "url": "https://www.bancaynegocios.com/delcy-rodriguez-trabajadores-recibiran-cuatro-aumentos-de-remuneraciones-en-2027/"
+   }
+  ]
+ },
+ {
+  "cat": "oil",
+  "date": "30 oct 2026",
+  "es": {
+   "title": "Estiman que producción petrolera en Zulia alcance los 400.000 bdp para finales de 2026",
+   "preview": "La Cámara Petrolera de Venezuela (CPV) capítulo Zulia estima que la producción petrolera de la entidad se sitúe en 400.000 barriles diarios para finales de 2026, según su presidente regional, Roy Biagioni.",
+   "body": "Chevron y North American Blue Energy Partners (NABEP) son actualmente los principales productores en la entidad, y otras multinacionales incrementarán su producción a partir de 2027. PDVSA proyecta incorporar 50 megavatios de generación eléctrica local para operar de manera independiente del Sistema Eléctrico Nacional."
+  },
+  "en": {
+   "title": "Oil output in Zulia estimated to reach 400,000 bpd by the end of 2026"
+  },
+  "sectors": [
+   "Petróleo",
+   "Zulia"
+  ],
+  "sources": [
+   {
+    "text": "Banca y Negocios",
+    "url": "https://www.bancaynegocios.com/estiman-que-produccion-petrolera-en-zulia-alcance-los-400000-bdp-para-finales-de-2026/"
+   }
+  ]
+ },
+ {
+  "cat": "inv",
+  "date": "30 oct 2026",
+  "es": {
+   "title": "Empresas Polar adquiere la compañía estadounidense Ricos Products e incrementa su expansión global",
+   "preview": "Empresas Polar, a través de su filial Alimentos Polar International, Inc., concretó la adquisición de Ricos Products Co., empresa de San Antonio, Texas, referente global en queso fundido y snacks.",
+   "body": "Según el artículo, la operación amplía de forma directa el portafolio de Polar en más de 80 países. Lorenzo Mendoza la calificó como un paso dentro de la estrategia de diversificación de la compañía."
+  },
+  "en": {
+   "title": "Empresas Polar acquires US company Ricos Products and expands its global reach"
+  },
+  "sectors": [
+   "Alimentos",
+   "Consumo masivo"
+  ],
+  "sources": [
+   {
+    "text": "Banca y Negocios",
+    "url": "https://www.bancaynegocios.com/empresas-polar-adquiere-la-compania-estadounidense-ricos-products-e-incrementa-su-expansion-global/"
+   }
+  ]
+ },
+ {
+  "cat": "oil",
+  "date": "31 oct 2026",
+  "es": {
+   "title": "NABEP prevé invertir US$100.000 millones en Venezuela para incrementar capacidad de producción",
+   "preview": "NABEP anunció inversiones de cerca de 100.000 millones de dólares para ampliar su capacidad de producción en Venezuela, con la meta de superar un millón de barriles diarios a corto plazo.",
+   "body": "Hasta el 19 de octubre su producción alcanzó 223.509 barriles diarios, frente a unos 200.000 en agosto. La flota de la compañía alcanzará 41 unidades en noviembre, acercándose a los 60 equipos anunciados."
+  },
+  "en": {
+   "title": "NABEP plans to invest US$100 billion in Venezuela to increase production capacity"
+  },
+  "sectors": [
+   "Petróleo",
+   "Inversión extranjera"
+  ],
+  "sources": [
+   {
+    "text": "Banca y Negocios",
+    "url": "https://www.bancaynegocios.com/nabep-preve-invertir-us100000-millones-en-venezuela-para-incrementar-capacidad-de-produccion/"
+   }
+  ]
+ },
+ {
+  "cat": "inv",
+  "date": "31 oct 2026",
+  "es": {
+   "title": "El Grupo Nutresa de Colombia registra una utilidad neta de 227,1 millones de dólares",
+   "preview": "Grupo Nutresa registró en el tercer trimestre una utilidad neta de 730.594 millones de pesos (unos 227,1 millones de dólares), un aumento de 8,3% frente al mismo periodo de 2025.",
+   "body": "El Ebitda, excluyendo gastos no recurrentes, fue de 2,93 billones de pesos (unos 913 millones de dólares), con un alza de 20,7%. Las ventas en el exterior fueron de 1.523,6 millones de dólares, una caída de 0,3%, mientras que en Colombia crecieron 11,6% hasta 10 billones de pesos."
+  },
+  "en": {
+   "title": "Grupo Nutresa of Colombia reports net profit of US$227.1 million"
+  },
+  "sectors": [
+   "Alimentos",
+   "Resultados corporativos"
+  ],
+  "sources": [
+   {
+    "text": "Banca y Negocios",
+    "url": "https://www.bancaynegocios.com/el-grupo-nutresa-de-colombia-registra-una-utilidad-neta-de-227punto1-millones-de-dolares/"
+   }
+  ]
+ },
+ {
+  "cat": "oil",
+  "date": "2 nov 2026",
+  "es": {
+   "title": "Chevron acelera en Venezuela mientras ExxonMobil pide cautela",
+   "preview": "Chevron invierte 7.000 millones de dólares en Venezuela para duplicar su producción petrolera en un lapso de cinco años.",
+   "body": "El CEO de ExxonMobil, Darren Woods, afirmó que aún se requiere una cantidad significativa de reformas antes de decidir cualquier ingreso importante al país, y recordó que la empresa ha visto sus activos nacionalizados en dos ocasiones, la más reciente en 2007. Continental Resources firmó un memorando de entendimiento con PDVSA para desarrollar un área de la Faja del Orinoco."
+  },
+  "en": {
+   "title": "Chevron accelerates in Venezuela while ExxonMobil calls for caution"
+  },
+  "sectors": [
+   "Petróleo",
+   "Chevron",
+   "Faja del Orinoco"
+  ],
+  "sources": [
+   {
+    "text": "Banca y Negocios",
+    "url": "https://www.bancaynegocios.com/chevron-acelera-en-venezuela-mientras-exxonmobil-pide-cautela/"
+   }
+  ]
+ },
+ {
+  "cat": "fin",
+  "date": "2 nov 2026",
+  "es": {
+   "title": "Román Maniglia (Seniat): \"El nuevo modelo tributario no es punitivo y va en favor del contribuyente\"",
+   "preview": "El superintendente del Seniat, Román Maniglia, afirmó que el sistema Moda Seniat incrementó la tributación interna entre 27% y 28% en sus primeros tres meses de aplicación.",
+   "body": "La nueva segmentación de contribuyentes especiales parte de una base de 50.000 dólares mensuales, frente a 650 dólares (personas naturales) y 2.500 dólares (jurídicas) antes. A partir del 1 de noviembre, el RIF digital incluirá el tipo de contribuyente (especial u ordinario)."
+  },
+  "en": {
+   "title": "Román Maniglia (Seniat): \"The new tax model is not punitive and works in favor of the taxpayer\""
+  },
+  "sectors": [
+   "Fiscal",
+   "Seniat"
+  ],
+  "sources": [
+   {
+    "text": "Banca y Negocios",
+    "url": "https://www.bancaynegocios.com/roman-maniglia-seniat-el-nuevo-modelo-tributario-no-es-punitivo-y-va-en-favor-del-contribuyente/"
+   }
+  ]
+ },
+ {
+  "cat": "mac",
+  "date": "2 nov 2026",
+  "es": {
+   "title": "Cavecol: Comercio entre Venezuela y Colombia ha crecido 15% entre enero y agosto de este año",
+   "preview": "Cavecol reportó un intercambio comercial binacional de US$873 millones entre enero y agosto de 2026, un aumento de 15% frente al mismo período de 2025.",
+   "body": "Las exportaciones venezolanas a Colombia sumaron US$69 millones (caída de 6%) y las importaciones desde Colombia US$803 millones (alza de 18%), según datos del DANE. La ruta Paraguachón-Guarero movilizó US$461 millones, 62% más que en 2025."
+  },
+  "en": {
+   "title": "Cavecol: Venezuela-Colombia trade has grown 15% between January and August this year"
+  },
+  "sectors": [
+   "Comercio exterior",
+   "Colombia"
+  ],
+  "sources": [
+   {
+    "text": "Banca y Negocios",
+    "url": "https://www.bancaynegocios.com/cavecol-comercio-entre-venezuela-y-colombia-ha-crecido-15-porciento-entre-enero-y-agosto-de-este-ano/"
+   }
+  ]
+ },
+ {
+  "cat": "pol",
+  "date": "2 nov 2026",
+  "es": {
+   "title": "Marco Rubio y el canciller de Venezuela se reunieron por primera vez en Washington",
+   "preview": "El secretario de Estado de EE.UU., Marco Rubio, se reunió en Washington con el nuevo canciller venezolano, Oliver Blanco, en el primer encuentro de jefes de la diplomacia de ambos países desde el restablecimiento de relaciones diplomáticas.",
+   "body": "Blanco fue nombrado por Delcy Rodríguez en sustitución de Félix Plasencia, y ninguno de los dos respondió preguntas ni emitió declaración. Rodríguez anunció que el país celebrará \"todas\" las elecciones que establece la Constitución, sin precisar fecha."
+  },
+  "en": {
+   "title": "Marco Rubio and Venezuela's foreign minister met for the first time in Washington"
+  },
+  "sectors": [
+   "Diplomacia",
+   "EE.UU."
+  ],
+  "sources": [
+   {
+    "text": "Banca y Negocios",
+    "url": "https://www.bancaynegocios.com/marco-rubio-y-el-canciller-de-venezuela-se-reunieron-por-primera-vez-en-washington/"
+   }
+  ]
+ },
+ {
+  "cat": "pol",
+  "date": "2 nov 2026",
+  "es": {
+   "title": "Venezuela y Portugal inician un \"nuevo ciclo de cooperación económica\"",
+   "preview": "Delcy Rodríguez recibió en Miraflores al ministro de Economía y Cohesión Territorial de Portugal, Manuel Castro Almeida, quien llegó acompañado de una misión empresarial de 37 entidades portuguesas.",
+   "body": "Según VTV, el encuentro busca ampliar capacidades productivas, el intercambio comercial y las alianzas estratégicas."
+  },
+  "en": {
+   "title": "Venezuela and Portugal begin a \"new cycle of economic cooperation\""
+  },
+  "sectors": [
+   "Diplomacia",
+   "Comercio exterior"
+  ],
+  "sources": [
+   {
+    "text": "Banca y Negocios",
+    "url": "https://www.bancaynegocios.com/venezuela-y-portugal-inician-un-nuevo-ciclo-de-cooperacion-economica/"
+   }
+  ]
+ },
+ {
+  "cat": "oil",
+  "date": "2 nov 2026",
+  "es": {
+   "title": "Bloomberg: Exportaciones petroleras venezolanas caen a su nivel más bajo en 2026 por altos costos de fletes",
+   "preview": "Según datos de Bloomberg, los buques cisterna cargaron 809.000 barriles diarios de crudo venezolano en octubre, 25% menos que en septiembre.",
+   "body": "La demanda estadounidense cayó 27% mensual y China lleva diez meses consecutivos sin comprar crudo venezolano. Según Argus Media, el flete Aframax a la costa del Golfo de EE.UU. llegó a 13,85 dólares por barril a principios de octubre y luego bajó a 9,41 dólares, aún en niveles históricamente altos."
+  },
+  "en": {
+   "title": "Bloomberg: Venezuelan oil exports fall to their lowest level of 2026 due to high freight costs"
+  },
+  "sectors": [
+   "Petróleo",
+   "Exportaciones",
+   "Transporte marítimo"
+  ],
+  "sources": [
+   {
+    "text": "Banca y Negocios",
+    "url": "https://www.bancaynegocios.com/bloomberg-exportaciones-petroleras-venezolanas-caen-a-su-nivel-mas-bajo-en-2026-por-altos-costos-de-fletes/"
+   }
+  ]
+ },
+ {
+  "cat": "min",
+  "date": "3 nov 2026",
+  "es": {
+   "title": "Venezuela negocia con Heeney Capital y Mercuria un segundo envío de aluminio a EE.UU. para finales de año",
+   "preview": "Según personas cercanas al asunto, Mercuria Energy Group y Heeney Capital negocian con funcionarios venezolanos un segundo despacho de aluminio a EE.UU.",
+   "body": "que podría zarpar antes de que termine el año, con términos similares al cargamento de 15.000 toneladas métricas que llegó a Nueva Orleans a finales de septiembre. Según Bloomberg Línea, Washington flexibiliza la entrada del metal venezolano al considerarlo un recurso clave dentro de su lista de minerales críticos. Las firmas también evalúan propuestas para asumir la operación de Venalum."
+  },
+  "en": {
+   "title": "Venezuela negotiates with Heeney Capital and Mercuria a second aluminum shipment to the U.S. by year-end"
+  },
+  "sectors": [
+   "Aluminio",
+   "Venalum"
+  ],
+  "sources": [
+   {
+    "text": "Banca y Negocios",
+    "url": "https://www.bancaynegocios.com/venezuela-negocia-con-heeney-capital-y-mercuria-un-segundo-envio-de-aluminio-a-ee-uu-para-finales-de-ano/"
+   }
+  ]
+ },
+ {
+  "cat": "inv",
+  "date": "3 nov 2026",
+  "es": {
+   "title": "ALAV: Desde Venezuela despegan más de 230 vuelos internacionales por semana",
+   "preview": "La Asociación de Líneas Aéreas de Venezuela (ALAV) reportó 238 operaciones aéreas internacionales semanales, de las cuales 178 despegan del Aeropuerto Simón Bolívar de Maiquetía y cerca de 60 de aeropuertos del interior.",
+   "body": "El volumen aún no alcanza los niveles previos al doblete sísmico del 24 de junio. Se esperan nuevas rutas de American Airlines a Barcelona (Anzoátegui) y de Copa Airlines a Margarita."
+  },
+  "en": {
+   "title": "ALAV: More than 230 international flights depart from Venezuela each week"
+  },
+  "sectors": [
+   "Aviación",
+   "Turismo"
+  ],
+  "sources": [
+   {
+    "text": "Banca y Negocios",
+    "url": "https://www.bancaynegocios.com/alav-desde-venezuela-despegan-mas-de-230-vuelos-internacionales-por-semana/"
+   }
+  ]
  }
 ]

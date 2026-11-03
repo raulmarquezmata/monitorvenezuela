@@ -1,6 +1,7 @@
 import Link from "next/link";
 import NewsNav from "@/components/NewsNav";
-import { CAT_LABEL, CATS, filterNotas, MONTHS, monthLabel, NOTAS, topSectors } from "@/lib/hemeroteca";
+import { hemerotecaAuto } from "@/lib/data";
+import { CAT_LABEL, CATS, filterNotas, monthLabel, NOTAS, topSectors, withAuto } from "@/lib/hemeroteca";
 import type { Lang } from "@/lib/i18n";
 
 // los filtros llegan por la URL (?cat=, ?m=…): se renderiza en cada visita
@@ -8,14 +9,17 @@ export const dynamic = "force-dynamic";
 
 const PER = 40;
 
-export default function Hemeroteca({ params, searchParams }: { params: { lang: Lang }; searchParams: { cat?: string; m?: string; q?: string; s?: string; p?: string } }) {
+export default async function Hemeroteca({ params, searchParams }: { params: { lang: Lang }; searchParams: { cat?: string; m?: string; q?: string; s?: string; p?: string } }) {
   const { lang } = params;
   const es = lang === "es";
+  const merged = withAuto(await hemerotecaAuto());
+  const MONTHS = Array.from(new Set(merged.map((n) => n.ym)));
+  const nAuto = merged.length - NOTAS.length;
   const cat = CATS.includes(searchParams.cat as never) ? searchParams.cat : undefined;
   const ym = searchParams.m && MONTHS.includes(searchParams.m) ? searchParams.m : undefined;
   const q = (searchParams.q ?? "").slice(0, 80).trim() || undefined;
   const sector = searchParams.s || undefined;
-  const all = filterNotas({ cat, ym, q, sector });
+  const all = filterNotas({ cat, ym, q, sector }, merged);
   const pages = Math.max(1, Math.ceil(all.length / PER));
   const page = Math.min(pages, Math.max(1, Number(searchParams.p) || 1));
   const list = all.slice((page - 1) * PER, page * PER);
@@ -35,8 +39,8 @@ export default function Hemeroteca({ params, searchParams }: { params: { lang: L
       <NewsNav lang={lang} />
       <h1>{es ? "Hemeroteca 2026" : "2026 news archive"}</h1>
       <p className="sub">{es
-        ? `${NOTAS.length} noticias seleccionadas y resumidas, con sus fuentes. Filtra por tema, mes o palabra.`
-        : `${NOTAS.length} curated, summarized stories with their sources (summaries in Spanish). Filter by topic, month or keyword.`}</p>
+        ? `${NOTAS.length} noticias seleccionadas y resumidas, con sus fuentes${nAuto ? `, y ${nAuto} titulares recientes de medios económicos venezolanos que entran solos` : ""}. Filtra por tema, mes o palabra.`
+        : `${NOTAS.length} curated, summarized stories with their sources (summaries in Spanish)${nAuto ? `, plus ${nAuto} recent headlines from Venezuelan business media added automatically` : ""}. Filter by topic, month or keyword.`}</p>
 
       <form className="hm-search" action={`/${lang}/noticias/hemeroteca`}>
         {cat && <input type="hidden" name="cat" value={cat} />}
@@ -72,6 +76,7 @@ export default function Hemeroteca({ params, searchParams }: { params: { lang: L
                 <div className="m">
                   <span className="tag">{CAT_LABEL[n.cat]?.[lang] ?? n.cat}</span>
                   <span>{n.dateLabel}</span>
+                  {n.auto && <span className="tag" title={es ? "Entró sola desde las noticias del día" : "Added automatically from the daily news"}>{es ? "automática" : "automatic"}</span>}
                   {n.sectors.slice(0, 3).map((s) => <Link key={s} href={href({ s, p: undefined })} className="hm-sector">{s}</Link>)}
                 </div>
                 <details className="hm-item">

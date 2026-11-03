@@ -212,7 +212,12 @@ def parse_gdp(posts: list[dict]) -> list:
     pts = {}
     for p in posts:
         text = f"{p['title']} {p['excerpt']}"
-        if not re.search(r"\bPIB\b|producto interno bruto|econom[ií]a (creció|crece)", text, re.I) or not re.search(r"\bBCV\b|banco central", text, re.I):
+        if not re.search(r"\bPIB\b|producto interno bruto|econom[ií]a[^.%]{0,30}?(creci[oó]|crece)", text, re.I):
+            continue
+        # la cifra la da el BCV o, antes que él, la Presidencia («cifras preliminares»); proyecciones no
+        if not re.search(r"\bBCV\b|banco central|presidenta|presidente|delcy|vicepresident|ejecutivo nacional", text, re.I):
+            continue
+        if re.search(r"proyect|estima|prev[eé]|podr[ií]a|espera|meta de|pron[oó]stic", text, re.I):
             continue
         q = re.search(r"(primer|segundo|tercer|cuarto) trimestre(?: de(?:l)? (20\d\d))?", text, re.I)
         g = re.search(r"(creci[oó]|crecimiento|expansi[oó]n|aument[oó]|subi[oó]|avanz[oó]|cay[oó]|contracci[oó]n)[^.%]{0,50}?(-?\d+(?:,\d+)?)\s?%", text, re.I)
@@ -298,7 +303,7 @@ def run(backfill: bool = False):
             posts = wp_posts("www.finanzasdigital.com", "BCV PIB trimestre", pages) + wp_posts("www.bancaynegocios.com", "PIB trimestre BCV", pages)
             posts += google_posts("BCV PIB trimestre creció")
             official = {x["date"] for x in select("observations", {"select": "date", "series_code": "eq.pib_real_var", "source": "eq.BCV"})}
-            r.rows += save_obs("pib_real_var", [p for p in parse_gdp(posts) if p[0] not in official], "BCV (anuncio, vía prensa)")
+            r.rows += save_obs("pib_real_var", [p for p in parse_gdp(posts) if p[0] not in official], "Anuncio oficial (BCV o Presidencia), vía prensa")
         except Exception as e:  # noqa: BLE001
             r.note(f"PIB: {e}")
         try:
