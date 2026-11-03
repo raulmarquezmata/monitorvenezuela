@@ -299,6 +299,11 @@ def build_html(info: dict, lang: str) -> str:
     syms = ", ".join(c["symbol"] for c in info.get("classes", [])) or sym
     now = dt.datetime.now(dt.timezone(dt.timedelta(hours=-4)))
     src = t["src"].format(syms=f" · {syms}", now=f"{dshort(now.date().isoformat(), lang)} {now:%H:%M} VET")
+    if info.get("splits"):
+        from .splits import label
+        evs = "; ".join(f"{label(e, lang)} {'el' if lang == 'es' else 'on'} {dshort(e['date'], lang)}" for e in info["splits"])
+        src = (f"<b>Serie ajustada por cambios en el capital ({evs}): los precios anteriores se expresan en las acciones actuales.</b> " if lang == "es"
+               else f"<b>Series adjusted for capital changes ({evs}): earlier prices are expressed in today's shares.</b> ") + src
     return f"""<!doctype html><html><head><meta charset="utf-8"><style>{CSS}</style></head><body>
 <div class="hero"><div class="brand">SOLFÍN RESEARCH</div><h1>{t['title'].format(name=info['name'], sym=sym)}</h1>
 <p>{t['sub'].format(d0=dlong(dates[0], lang), d1=dlong(dates[last], lang), cls=class_label(sym, t, multi))}</p></div>
@@ -352,7 +357,7 @@ def run(only: list[str] | None = None):
         syms = select("bvc_symbols", {"select": "symbol,name,company,shares_outstanding", "market": "eq.RV"})
         recent = {x["symbol"] for x in select("bvc_quotes", {"select": "symbol", "market": "eq.RV", "date": f"gte.{since}"})}
         fx = {c: [(x["date"], x["value"]) for x in select("observations", {"select": "date,value", "series_code": f"eq.{c}", "date": "gte.2024-12-01", "order": "date"})]
-              for c in ("usd_bcv", "usd_paralelo")}
+              for c in ("usd_bcv", "usd_paralelo", "ibc")}
         emp = company_names()
         by_company: dict[str, list[dict]] = {}
         for s in syms:
@@ -364,6 +369,11 @@ def run(only: list[str] | None = None):
                 continue
             try:
                 quotes = select("bvc_quotes", {"select": "date,close", "symbol": f"eq.{sym}", "market": "eq.RV", "date": "gte.2025-01-01", "order": "date"})
+                # splits / reverse splits: toda la serie en el capital accionario actual
+                from . import splits
+                prices = [(q["date"], q["close"]) for q in quotes if q.get("close")]
+                evs = splits.events(sym, prices, fx["ibc"])
+                quotes = [{"date": d, "close": v} for d, v in splits.adjust(prices, evs)]
                 sib = by_company.get((s.get("company") or sym).strip().upper(), [s])
                 classes = []
                 for c in sorted(sib, key=lambda x: x["symbol"]):
@@ -373,6 +383,7 @@ def run(only: list[str] | None = None):
                 info = prepare(sym, quotes, fx["usd_bcv"], fx["usd_paralelo"], s, classes, name)
                 if not info:
                     continue
+                info["splits"] = evs
                 for lang in ("es", "en"):
                     storage_upload(BUCKET, f"acciones/{sym}_{lang}.pdf", render_pdf(build_html(info, lang)))
                 n += 1

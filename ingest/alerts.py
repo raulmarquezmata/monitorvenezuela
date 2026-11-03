@@ -227,6 +227,8 @@ def evaluate(rules: list[dict], meta: dict[str, dict], data: dict[str, list[dict
                 if q.get("date") != hoy:
                     continue  # solo movimientos de la sesión de hoy
                 v = q.get("var_pct")
+                if v is not None and (v >= 300 or v <= -75):
+                    continue  # salto de varias veces el precio: casi seguro un split o reverse split, no un movimiento de mercado
                 if v is not None and abs(v) >= rule["pct"] and (q.get("amount") or 0) >= rule.get("monto_min", 0):
                     out.append((f"{rule['id']}:{q['symbol']}:{q['date']}", rule["texto"].format(
                         simbolo=q["symbol"], empresa=q.get("company") or "", cambio=("+" if v > 0 else "") + fmt(v, 2),

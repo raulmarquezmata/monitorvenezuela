@@ -7,8 +7,8 @@ type Point = [string, number];
 type Labels = { logScale: string; table: string; chart: string; date: string; noData: string };
 
 /** Gráfico de la acción: precio o capitalización, en Bs, en US$ (oficial / paralelo) o Bs y US$ juntos (dos ejes). */
-export default function StockChart({ lang, symbol, bs, usdOf, usdPar, shares, labels, rangeLabels, initial = "1A" }: {
-  lang: "es" | "en"; symbol: string; bs: Point[]; usdOf: Point[]; usdPar: Point[]; shares: number | null;
+export default function StockChart({ lang, symbol, bs, usdOf, usdPar, shares, labels, rangeLabels, initial = "1A", note }: {
+  lang: "es" | "en"; symbol: string; bs: Point[]; usdOf: Point[]; usdPar: Point[]; shares: number | null; note?: string;
   labels: Labels; rangeLabels: Record<string, string>; initial?: Range;
 }) {
   const es = lang === "es";
@@ -51,6 +51,7 @@ export default function StockChart({ lang, symbol, bs, usdOf, usdPar, shares, la
         <p className="muted" style={{ fontSize: 13, margin: "10px 0 0" }}>{es
           ? "Precio en US$ = precio en Bs del día ÷ tipo de cambio de ese día. Si la línea en Bs sube más que la de US$, la diferencia es devaluación."
           : "US$ price = Bs price of the day ÷ that day's exchange rate. When the Bs line rises faster than the US$ line, the gap is devaluation."}</p>
+        {note && <p style={{ fontSize: 13, margin: "6px 0 0", color: "var(--text-2)" }}>⚖️ {note}</p>}
       </RangeProvider>
     </div>
   );

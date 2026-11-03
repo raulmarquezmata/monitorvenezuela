@@ -1,0 +1,5 @@
+{
+  "_ayuda": "Ajustes de capital (splits y reverse splits) de las acciones de la BVC. La web y los informes PDF los detectan solos: un salto de precio de 4 veces o más que el mercado no explica. Aquí puedes fijar uno a mano o descartar uno detectado por error. 'ajustes': por símbolo, la fecha del primer precio ya ajustado y el factor (reverse split 100:1 → 100; split 1:10 → 0.1). 'ignorar': por símbolo, fechas que NO son ajustes de capital.",
+  "ajustes": {},
+  "ignorar": {}
+}

@@ -1,10 +1,12 @@
 import Link from "next/link";
+import MontoTable from "@/components/MontoTable";
 import StockChart from "@/components/StockChart";
 import { chartLabels, NotConfigured } from "@/components/ui";
 import empresas from "@/config/bvc_empresas.json";
 import { bvcEvents, bvcSymbol, companyClasses, configured, history, stockReportUrl, symbolNews } from "@/lib/data";
 import { compact, date, dateTime, num } from "@/lib/format";
 import { t, type Lang } from "@/lib/i18n";
+import { adjustPrices, splitEvents, splitLabel } from "@/lib/splits";
 import { change, PERIOD_LABEL, type Period, type Point } from "@/lib/stats";
 
 export const revalidate = 300;
@@ -19,7 +21,7 @@ export default async function SymbolPage({ params }: { params: { lang: Lang; sym
   const symbol = decodeURIComponent(params.symbol).toUpperCase();
   const d = t(lang);
   if (!configured) return <NotConfigured />;
-  const [{ meta, quotes }, fx] = await Promise.all([bvcSymbol(symbol), history(["usd_bcv", "usd_paralelo"], 15)]);
+  const [{ meta, quotes }, fx] = await Promise.all([bvcSymbol(symbol), history(["usd_bcv", "usd_paralelo", "ibc"], 15)]);
   const classes = await companyClasses(meta?.company as string | undefined, symbol);
   const syms = classes.length ? classes.map((c) => c.symbol) : [symbol];
   const [events, news] = await Promise.all([bvcEvents(syms), symbolNews(syms, lang)]);
@@ -29,7 +31,14 @@ export default async function SymbolPage({ params }: { params: { lang: Lang; sym
 
   const traded = quotes.filter((q) => q.close != null && q.close > 0);
   const last = traded.at(-1);
-  const bs: Point[] = traded.map((q) => [q.date, q.close!]);
+  // precios ajustados por splits / reverse splits: toda la serie en el capital accionario actual
+  const raw: Point[] = traded.map((q) => [q.date, q.close!]);
+  const splits = splitEvents(symbol, raw, fx.ibc ?? []);
+  const bs: Point[] = adjustPrices(raw, splits);
+  const fmtD = (x: string) => new Intl.DateTimeFormat(es ? "es-VE" : "en-US", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(`${x}T12:00:00Z`));
+  const splitNote = splits.length ? (es
+    ? `Serie ajustada por cambios en el capital: ${splits.map((e) => `${splitLabel(e, lang)} el ${fmtD(e.date)}`).join("; ")}. Los precios anteriores se expresan en las acciones de hoy.`
+    : `Series adjusted for capital changes: ${splits.map((e) => `${splitLabel(e, lang)} on ${fmtD(e.date)}`).join("; ")}. Earlier prices are expressed in today's shares.`) : undefined;
   // precio en US$ con el tipo de cambio vigente en cada fecha
   const toUsd = (fxPts: Point[]) => {
     let j = 0;
@@ -52,9 +61,9 @@ export default async function SymbolPage({ params }: { params: { lang: Lang; sym
   const monday = (() => { if (!lastD) return ""; const x = new Date(`${lastD}T12:00:00Z`); x.setUTCDate(x.getUTCDate() - ((x.getUTCDay() + 6) % 7)); return x.toISOString().slice(0, 10); })();
   const sumFrom = (from: string, label: string, sub?: string) => {
     const rows = quotes.filter((q) => q.date >= from && (q.amount ?? 0) > 0);
-    let b = 0, o = 0, p = 0;
-    for (const q of rows) { const a = q.amount!; b += a; const ro = rateAt(fx.usd_bcv ?? [], q.date), rp = rateAt(fx.usd_paralelo ?? [], q.date); if (ro) o += a / ro; if (rp) p += a / rp; }
-    return { label, sub, bs: b, of: o, par: p, n: rows.length };
+    let b = 0, o = 0, p = 0, vol = 0;
+    for (const q of rows) { const a = q.amount!; b += a; vol += q.volume ?? 0; const ro = rateAt(fx.usd_bcv ?? [], q.date), rp = rateAt(fx.usd_paralelo ?? [], q.date); if (ro) o += a / ro; if (rp) p += a / rp; }
+    return { label, sub, bs: b, of: o, par: p, n: rows.length, vol };
   };
   const flows = lastD ? [
     sumFrom(lastD, es ? "Última sesión" : "Last session", date(lastD, lang)),
@@ -94,7 +103,7 @@ export default async function SymbolPage({ params }: { params: { lang: Lang; sym
       </div>
       {desc && <p className="stock-desc">{desc}</p>}
       <div style={{ marginTop: 12 }}>
-        <StockChart lang={lang} symbol={symbol} bs={bs} usdOf={usdOf} usdPar={usdPar} shares={shares} labels={chartLabels(lang)} rangeLabels={d.range} initial="1A" />
+        <StockChart lang={lang} symbol={symbol} bs={bs} usdOf={usdOf} usdPar={usdPar} shares={shares} labels={chartLabels(lang)} rangeLabels={d.range} initial="1A" note={splitNote} />
       </div>
 
       <div className="grid kpis k4" style={{ marginTop: 16 }}>
@@ -128,24 +137,7 @@ export default async function SymbolPage({ params }: { params: { lang: Lang; sym
             ? "«En la semana» compara con el último cierre de la semana anterior; «Semana» con el cierre de hace 7 días. Los rendimientos en US$ usan el tipo de cambio de cada fecha."
             : "“Week to date” compares with last week's final close; “Week” with the close 7 days earlier. US$ returns use each date's exchange rate."}</p>
         </div>
-        <div className="card">
-          <div className="card-top"><h3>{es ? "Monto negociado" : "Traded amount"}</h3><span className="date">{es ? "suma de lo transado en cada período" : "sum traded in each period"}</span></div>
-          <div className="tbl-wrap">
-            <table className="tbl compact" style={{ marginTop: 14 }}>
-              <thead><tr><th>{es ? "Período" : "Period"}</th><th style={{ textAlign: "right" }}>Bs</th>
-                <th style={{ textAlign: "right" }}><span className="long">{es ? "US$ oficial" : "US$ official"}</span><span className="short">{es ? "US$ of." : "US$ off."}</span></th>
-                <th style={{ textAlign: "right" }}><span className="long">{es ? "US$ paralelo" : "US$ parallel"}</span><span className="short">US$ par.</span></th></tr></thead>
-              <tbody>{flows.map((f) => (
-                <tr key={f.label}><td>{f.label}<div className="muted" style={{ fontSize: 12 }}>{f.sub ? `${f.sub} · ` : ""}{f.n} {es ? (f.n === 1 ? "sesión" : "sesiones") : f.n === 1 ? "session" : "sessions"}</div></td>
-                  <td style={{ textAlign: "right" }}>{f.bs ? compact(f.bs, lang) : "—"}</td>
-                  <td style={{ textAlign: "right" }}>{f.of ? compact(f.of, lang) : "—"}</td>
-                  <td style={{ textAlign: "right" }}>{f.par ? compact(f.par, lang) : "—"}</td></tr>))}</tbody>
-            </table>
-          </div>
-          <p className="muted" style={{ fontSize: 13, marginTop: 12 }}>{es
-            ? `Lo que se transó de ${symbol} en la última sesión y en lo que va de la semana, del mes y del año. Cada día se convierte a dólares con la tasa de ese día.`
-            : `What was traded in ${symbol} in the last session and so far this week, month and year. Each day is converted to dollars at that day's rate.`}</p>
-        </div>
+        <MontoTable rows={flows} lang={lang} symbol={symbol} />
       </div>
 
       <div className="grid g2" style={{ marginTop: 16, alignItems: "start" }}>
