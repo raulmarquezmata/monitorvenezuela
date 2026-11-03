@@ -144,41 +144,101 @@ def load_fixes() -> dict:
         return {}
 
 
+def storage_list(prefix: str = "subidos/") -> list[dict] | None:
+    """PDF subidos a mano al depósito «informes» (carpeta subidos/) desde el panel de Supabase."""
+    from .common import DRY_RUN, SUPABASE_KEY, SUPABASE_URL
+    import requests
+    if DRY_RUN:
+        return []
+    h = {"apikey": SUPABASE_KEY, "Authorization": f"Bearer {SUPABASE_KEY}"}
+    out, off = [], 0
+    while True:
+        r = requests.post(f"{SUPABASE_URL}/storage/v1/object/list/{BUCKET}", headers=h, timeout=60,
+                          json={"prefix": prefix, "limit": 1000, "offset": off, "sortBy": {"column": "name", "order": "asc"}})
+        if r.status_code >= 300:
+            return None
+        page = r.json()
+        for o in page:
+            if o.get("id") and o["name"].lower().endswith(".pdf"):  # las carpetas no tienen id
+                out.append({"path": prefix + o["name"], "name": o["name"], "updated": o.get("updated_at") or "",
+                            "size": (o.get("metadata") or {}).get("size")})
+        if len(page) < 1000:
+            return out
+        off += 1000
+
+
+def storage_get(path: str) -> bytes:
+    from .common import SUPABASE_KEY, SUPABASE_URL
+    import requests
+    from urllib.parse import quote
+    r = requests.get(f"{SUPABASE_URL}/storage/v1/object/{BUCKET}/{quote(path)}", timeout=180,
+                     headers={"apikey": SUPABASE_KEY, "Authorization": f"Bearer {SUPABASE_KEY}"})
+    r.raise_for_status()
+    return r.content
+
+
 def run():
+    """Publica los PDF de dos lugares: data/informes/ del repositorio (archivos pequeños) y la carpeta
+    «subidos» del depósito «informes» en Supabase (para subir muchos o pesados desde el panel de Supabase)."""
+    import tempfile
+    from urllib.parse import quote
+    from .common import SUPABASE_URL
     with Run("informes") as r:
-        files = sorted(p for p in FOLDER.glob("**/*") if p.suffix.lower() == ".pdf") if FOLDER.exists() else []
+        ensure_bucket(BUCKET)
         have = {x["id"]: x for x in select("informes", {"select": "id,sha,file"})}
         fixes = load_fixes()
-        ensure_bucket(BUCKET)
-        rows, seen = [], set()
+        # (identificador, nombre, ruta relativa, huella sin leer el archivo, cómo leerlo, URL pública si ya está en Supabase)
+        items = []
+        files = sorted(p for p in FOLDER.glob("**/*") if p.suffix.lower() == ".pdf") if FOLDER.exists() else []
         for p in files:
             rel = p.relative_to(FOLDER).as_posix()
-            sid = slugify(rel)
-            seen.add(sid)
-            data = p.read_bytes()
-            fx = fixes.get(rel) or fixes.get(p.name) or {}
-            # la huella incluye las correcciones: si cambias config/informes.json se vuelve a publicar
-            sha = hashlib.sha1(data + json.dumps(fx, sort_keys=True).encode()).hexdigest()
-            if have.get(sid, {}).get("sha") == sha:
+            items.append((slugify(rel), p.name, rel, None, p.read_bytes, None))
+        listed = storage_list()
+        if listed is None:
+            r.note("No se pudo listar la carpeta «subidos» del depósito «informes» en Supabase")
+        for o in listed or []:
+            url = f"{SUPABASE_URL}/storage/v1/object/public/{BUCKET}/{quote(o['path'])}"
+            items.append((slugify(o["name"]), o["name"], o["name"], f"{o['updated']}:{o['size']}", (lambda path=o["path"]: storage_get(path)), url))
+        rows, seen = [], set()
+        for sid, name, rel, quick, load, public in items:
+            if sid in seen:
                 continue
+            seen.add(sid)
+            fx = fixes.get(rel) or fixes.get(name) or {}
+            fxh = json.dumps(fx, sort_keys=True)
+            if quick is not None:  # en Supabase: la huella es fecha+tamaño, sin descargar el archivo
+                sha = hashlib.sha1((quick + fxh).encode()).hexdigest()
+                if have.get(sid, {}).get("sha") == sha:
+                    continue
             try:
-                info = read_pdf(p)
-                url = storage_upload(BUCKET, f"pdf/{sid}.pdf", data, max_age=86400)
+                data = load()
+                if quick is None:  # en el repositorio: la huella incluye el contenido y las correcciones
+                    sha = hashlib.sha1(data + fxh.encode()).hexdigest()
+                    if have.get(sid, {}).get("sha") == sha:
+                        continue
+                with tempfile.NamedTemporaryFile(suffix=".pdf") as tmp:
+                    tmp.write(data)
+                    tmp.flush()
+                    info = read_pdf(pathlib.Path(tmp.name))
+                url = public or storage_upload(BUCKET, f"pdf/{sid}.pdf", data, max_age=86400)
                 thumb = storage_upload(BUCKET, f"portadas/{sid}.jpg", info["thumb"], "image/jpeg", 86400) if info["thumb"] else None
                 text = f"{info['title']} {info['text']}"
                 rows.append({
                     "id": sid, "file": rel, "sha": sha, "size": len(data), "pages": info["pages"], "url": url, "thumb_url": thumb,
-                    "title": fx.get("titulo") or info["title"] or p.stem.replace("_", " "),
-                    "date": fx.get("fecha") or guess_date(p.name, info["first"], info["meta"]),
+                    "title": fx.get("titulo") or info["title"] or pathlib.Path(name).stem.replace("_", " "),
+                    "date": fx.get("fecha") or guess_date(name, info["first"], info["meta"]),
                     "lang": fx.get("idioma") or guess_lang(info["text"]),
                     "topic": fx.get("tema") or guess_topic(text),
                     "summary": fx.get("resumen") or info["summary"] or None,
                     "updated_at": dt.datetime.now(dt.timezone.utc).isoformat(),
                 })
+                if len(rows) >= 25:  # se guarda por tandas: si la corrida se corta, lo hecho queda
+                    r.rows += upsert("informes", rows, "id")
+                    rows = []
             except Exception as e:  # noqa: BLE001
                 r.note(f"{rel}: {str(e)[:120]}")
-        r.rows = upsert("informes", rows, "id")
+        r.rows += upsert("informes", rows, "id")
         gone = [k for k in have if k not in seen]
-        if gone and files:  # nunca se borra todo por una carpeta vacía o un error de lectura
+        if gone and seen and listed is not None:  # nunca se borra todo por una carpeta vacía o un error de lectura
             delete("informes", {"id": f"in.({','.join(gone)})"})
-        r.log.info("Informes: %d archivos, %d nuevos o actualizados, %d retirados", len(files), len(rows), len(gone) if files else 0)
+        r.log.info("Informes: %d archivos, %d retirados", len(seen), len(gone) if (seen and listed is not None) else 0)

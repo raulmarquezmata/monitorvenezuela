@@ -26,8 +26,8 @@ GROUPS = {
     "frequent": ["catalog", "fx", "bvc", "news", "futuros", "alerts"],
     "telegram": ["fx", "alerts"],  # corrida corta para el buenos días y el cierre
     # publicaciones oficiales: cada 2 horas en días hábiles, para cargarlas y avisar apenas salgan
-    "oficial": ["bcv_stats", "inflation", "press", "banking", "opec", "sunaval", "embi", "oil", "emisores", "alerts"],
-    "daily": ["catalog", "fx", "bvc_full", "reportes", "emisores", "bcv_stats", "inflation", "press", "banking", "opec", "sunaval", "oil", "embi", "trade_mensual", "ipc", "agro_usda",
+    "oficial": ["bcv_stats", "inflation", "press", "banking", "opec", "sunaval", "embi", "oil", "emisores", "informes", "alerts"],
+    "daily": ["catalog", "fx", "bvc_full", "reportes", "emisores", "informes", "bcv_stats", "inflation", "press", "banking", "opec", "sunaval", "oil", "embi", "trade_mensual", "ipc", "agro_usda",
               "ofac", "events", "alerts_daily"],
     "weekly": ["catalog", "fx_hist", "trade", "agro", "agro_usda", "commodities", "sudeban"],
     "files": ["catalog", "manual", "bonds", "events", "bancos_muestra", "opec_local", "sunaval", "emisores", "informes", "alerts"],
