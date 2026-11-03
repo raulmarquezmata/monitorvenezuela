@@ -26,7 +26,7 @@ GROUPS = {
     "frequent": ["catalog", "fx", "bvc", "news", "futuros", "alerts"],
     # publicaciones oficiales: cada 2 horas en días hábiles, para cargarlas y avisar apenas salgan
     "oficial": ["bcv_stats", "inflation", "press", "banking", "opec", "sunaval", "embi", "oil", "alerts"],
-    "daily": ["catalog", "fx", "bvc_full", "bcv_stats", "inflation", "press", "banking", "opec", "sunaval", "oil", "census", "embi", "trade_mensual", "ipc", "agro_usda",
+    "daily": ["catalog", "fx", "bvc_full", "bcv_stats", "inflation", "press", "banking", "opec", "sunaval", "oil", "embi", "trade_mensual", "ipc", "agro_usda",
               "ofac", "events", "alerts_daily"],
     "weekly": ["catalog", "fx_hist", "trade", "agro", "agro_usda", "commodities", "sudeban"],
     "files": ["catalog", "manual", "bonds", "events", "bancos_muestra", "opec_local", "sunaval", "alerts"],
@@ -45,7 +45,6 @@ def backfill():
     opec.run(backfill=True)
     sunaval.run(backfill=True)
     oil.run(backfill=True)
-    census.run()
     trade.run_monthly()
     futures.run()
     embi.run(backfill=True)

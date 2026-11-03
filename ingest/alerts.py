@@ -21,12 +21,93 @@ SITE = os.environ.get("SITE_URL", "")
 VET = dt.timezone(dt.timedelta(hours=-4))
 
 
+DIAS = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]
+MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sept", "oct", "nov", "dic"]
+MERCADO = ["usd_bcv", "usd_paralelo", "eur_bcv", "brecha_cambiaria", "ibc", "bvc_monto", "bvc_monto_rf", "embi_venezuela", "brent", "merey"]
+
+
+def market_summary(title: str, hist: dict, today: dt.date) -> str:
+    """Resumen de mercado (buenos días y cierre): mismas líneas, para seguir siempre los mismos indicadores."""
+
+    def last(code):
+        pts = hist.get(code) or []
+        return pts[-1] if pts else None
+
+    def before(code, d):
+        v = None
+        for x, y in hist.get(code) or []:
+            if x < d:
+                v = (x, y)
+            else:
+                break
+        return v
+
+    def pct(a, b):
+        return None if not b else (a / b - 1) * 100
+
+    def sg(v, dec=2, suf="%"):
+        return "—" if v is None else f"{'+' if v > 0 else ''}{fmt(v, dec)}{suf}"
+
+    def wk(d):  # lunes de la semana del dato (el lunes por la mañana mide la semana anterior)
+        x = dt.date.fromisoformat(d)
+        return (x - dt.timedelta(days=x.weekday())).isoformat()
+
+    def tag(d):  # fecha del dato si no es de hoy
+        return "" if d == today.isoformat() else f" ({int(d[8:10])}-{MESES[int(d[5:7]) - 1]})"
+
+    out = [f"{title} · {DIAS[today.weekday()]} {today.day} {MESES[today.month - 1]} {today.year}"]
+    for code, label, dec, emoji in (("usd_bcv", "Dólar oficial", 2, "💵"), ("usd_paralelo", "Dólar paralelo", 2, "💵"), ("eur_bcv", "Euro oficial", 2, "💶")):
+        x = last(code)
+        if x:
+            p = hist[code][-2] if len(hist[code]) > 1 else None
+            w = before(code, wk(x[0]))
+            out.append(f"{emoji} {label}: Bs {fmt(x[1], dec)}{tag(x[0])} · día {sg(pct(x[1], p[1]) if p else None)} · semana {sg(pct(x[1], w[1]) if w else None)}")
+    x = last("brecha_cambiaria")
+    if x:
+        p = hist["brecha_cambiaria"][-2] if len(hist["brecha_cambiaria"]) > 1 else None
+        out.append(f"↔️ Brecha: {fmt(x[1], 1)}%{tag(x[0])} · día {sg(x[1] - p[1] if p else None, 1, ' pp')}")
+    x = last("ibc")
+    if x:
+        p = hist["ibc"][-2] if len(hist["ibc"]) > 1 else None
+        w = before("ibc", wk(x[0]))
+        out.append(f"📈 IBC: {fmt(x[1], 2)} pts{tag(x[0])} · día {sg(pct(x[1], p[1]) if p else None)} · semana {sg(pct(x[1], w[1]) if w else None)}")
+    for code, label in (("bvc_monto", "Monto renta variable"), ("bvc_monto_rf", "Monto renta fija")):
+        x = last(code)
+        if x and x[1]:
+            of = before("usd_bcv", (dt.date.fromisoformat(x[0]) + dt.timedelta(days=1)).isoformat())
+            pa = before("usd_paralelo", (dt.date.fromisoformat(x[0]) + dt.timedelta(days=1)).isoformat())
+            usd = []
+            if of:
+                usd.append(f"US$ {fmt(x[1] / of[1], 0)} al oficial")
+            if pa:
+                usd.append(f"US$ {fmt(x[1] / pa[1], 0)} al paralelo")
+            out.append(f"💰 {label}: Bs {fmt(x[1], 0)}{tag(x[0])}" + (f" ({' · '.join(usd)})" if usd else ""))
+    x = last("embi_venezuela")
+    if x:
+        p = hist["embi_venezuela"][-2] if len(hist["embi_venezuela"]) > 1 else None
+        w = before("embi_venezuela", (dt.date.fromisoformat(x[0]) - dt.timedelta(days=6)).isoformat())
+        out.append(f"📉 Riesgo país (EMBI): {fmt(x[1], 0)} pbs{tag(x[0])} · día {sg(x[1] - p[1] if p else None, 0, ' pbs')} · semana {sg(pct(x[1], w[1]) if w else None)}")
+    x = last("brent")
+    if x:
+        p = hist["brent"][-2] if len(hist["brent"]) > 1 else None
+        out.append(f"🛢️ Brent: US$ {fmt(x[1], 2)}{tag(x[0])} · día {sg(pct(x[1], p[1]) if p else None)}")
+    x = last("merey")
+    if x:
+        p = hist["merey"][-2] if len(hist["merey"]) > 1 else None
+        out.append(f"🛢️ Merey ({MESES[int(x[0][5:7]) - 1]}): US$ {fmt(x[1], 2)} · mes {sg(pct(x[1], p[1]) if p else None)}")
+    if SITE:
+        out.append(SITE)
+    return "\n".join(out)
+
+
 def gather_extra(rules: list[dict], daily: bool = False) -> dict:
     """Datos que necesitan las reglas que no son de una sola serie."""
     tipos = {r["tipo"] for r in rules}
     ex: dict = {"hist": {}}
-    need = {c for r in rules if r["tipo"] in ("cierre_semana", "cierre_mes") for c in r.get("series", [])}
-    if daily and need:
+    need = {c for r in rules if r["tipo"] in ("cierre_semana", "cierre_mes") for c in r.get("series", [])} if daily else set()
+    if any(r["tipo"] == "resumen_mercado" for r in rules):
+        need |= set(MERCADO)
+    if need:
         since = (today_caracas() - dt.timedelta(days=400)).isoformat()
         for c in need:
             ex["hist"][c] = [(x["date"], x["value"]) for x in select("observations", {"select": "date,value", "series_code": f"eq.{c}", "date": f"gte.{since}", "order": "date"})]
@@ -109,9 +190,19 @@ def evaluate(rules: list[dict], meta: dict[str, dict], data: dict[str, list[dict
                 if SITE:
                     lines.append(SITE)
                 out.append((f"{rule['id']}:{hoy}", "\n".join(lines)))
+        elif t == "resumen_mercado":
+            now = dt.datetime.now(VET)
+            hh, mm = map(int, rule["hora"].split(":"))
+            if rule.get("dias_habiles") and now.weekday() >= 5:
+                continue
+            if (now.hour, now.minute) >= (hh, mm) and now.hour < hh + 6:
+                out.append((f"{rule['id']}:{now.date().isoformat()}", market_summary(rule["texto"], extra.get("hist", {}), now.date())))
         elif t == "acciones":
             # acciones de la BVC con movimientos fuertes en la última sesión
+            hoy = today_caracas().isoformat()
             for q in extra.get("quotes", []):
+                if q.get("date") != hoy:
+                    continue  # solo movimientos de la sesión de hoy
                 v = q.get("var_pct")
                 if v is not None and abs(v) >= rule["pct"] and (q.get("amount") or 0) >= rule.get("monto_min", 0):
                     out.append((f"{rule['id']}:{q['symbol']}:{q['date']}", rule["texto"].format(
@@ -238,6 +329,17 @@ def run(daily: bool = False):
         since30 = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=30)).isoformat()
         recent = [x for x in log_all if (x.get("sent_at") or "") >= since30]
         TIMED = ("resumen_hora", "resumen_diario", "cierre_semana", "cierre_mes", "una_vez", "robots")
+        # varias acciones con movimientos fuertes → un solo mensaje
+        acc = [(k, t) for k, t in candidates if k.split(":")[0] in {x["id"] for x in rules if x["tipo"] == "acciones"} and k not in sent]
+        if len(acc) > 1:
+            fecha = acc[0][0].split(":")[-1]
+            body = "\n".join("• " + t.split(" ", 1)[1].rsplit(" (", 1)[0] for _, t in acc)
+            merged = (acc[0][0].split(":")[0] + ":lote:" + fecha + ":" + ",".join(k.split(":")[1] for k, _ in acc), f"📊 Movimientos fuertes en la BVC · {fecha}\n{body}")
+            others = [c for c in candidates if c not in acc]
+            candidates = others + [merged]
+            for k, t in acc:  # se registran también uno a uno para no repetirlos en la próxima corrida
+                sent_extra = {"key": k, "rule": k.split(":")[0], "message": t, "channels": "lote", "sent_at": dt.datetime.now(dt.timezone.utc).isoformat()}
+                upsert("alerts_log", [sent_extra], "key")
         log, n_sent = [], 0
         for key, text in candidates:
             if key in sent:

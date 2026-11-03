@@ -15,7 +15,7 @@ export default async function Comercio({ params, searchParams }: { params: { lan
   const { lang } = params;
   const d = t(lang);
   if (!configured) return <NotConfigured />;
-  const [rows, mh] = await Promise.all([trade(), history(["exportaciones_espejo_mensual", "exportaciones_petroleras_espejo_mensual", "importaciones_espejo_mensual", "eeuu_importa_de_ve", "eeuu_exporta_a_ve"], 3)]);
+  const [rows, mh] = await Promise.all([trade(), history(["exportaciones_espejo_mensual", "exportaciones_petroleras_espejo_mensual", "importaciones_espejo_mensual"], 3)]);
   if (!rows.length) return (<><MacroNav lang={lang} /><h1>{d.nav.trade}</h1><p className="sub">{d.mirrorNote}</p><div className="empty">{d.noData}</div></>);
 
   // Totales por año y flujo
@@ -61,7 +61,7 @@ export default async function Comercio({ params, searchParams }: { params: { lan
               { name: lang === "es" ? "de ellas, petroleras" : "of which oil", points: mh.exportaciones_petroleras_espejo_mensual ?? [] },
               { name: lang === "es" ? "Importaciones (espejo)" : "Imports (mirror)", points: mh.importaciones_espejo_mensual ?? [] }]}
             footer={<p className="muted" style={{ marginTop: 10, fontSize: 13 }}>{lang === "es"
-              ? `Lo que los socios comerciales declaran a UN Comtrade cada mes. Los meses más recientes son parciales: faltan los socios que aún no reportan. Último mes con datos: ${(mh.exportaciones_espejo_mensual ?? []).at(-1)?.[0].slice(0, 7)}. EE.UU. (Census) llega a ${(mh.eeuu_importa_de_ve ?? []).at(-1)?.[0].slice(0, 7) ?? "—"}.`
+              ? `Lo que los socios comerciales declaran a UN Comtrade cada mes. Los meses más recientes son parciales: faltan los socios que aún no reportan. Último mes con datos: ${(mh.exportaciones_espejo_mensual ?? []).at(-1)?.[0].slice(0, 7)}.`
               : `What trading partners report to UN Comtrade each month. Recent months are partial. Latest month: ${(mh.exportaciones_espejo_mensual ?? []).at(-1)?.[0].slice(0, 7)}.`}</p>} />
         </div>
       )}

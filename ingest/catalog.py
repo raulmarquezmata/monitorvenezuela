@@ -49,9 +49,6 @@ _S = [
     ("exportaciones_petroleras_espejo_mensual", "externo", "Exportaciones petroleras espejo mensuales (cap. 27)", "Monthly mirror oil exports (HS 27)", "millones US$", "US$ million", "M", "UN Comtrade (espejo)", "https://comtradeplus.un.org", 1, 202),
     ("importaciones_espejo_mensual", "externo", "Importaciones espejo mensuales (lo que declaran los socios)", "Monthly mirror imports (partner-reported)", "millones US$", "US$ million", "M", "UN Comtrade (espejo)", "https://comtradeplus.un.org", 1, 203),
     ("exportaciones_petroleras_bd", "externo", "Exportaciones petroleras (volumen)", "Oil exports (volume)", "miles b/d", "kb/d", "M", "Reuters (datos de embarque), vía prensa", "https://www.reuters.com", 0, 205),
-    ("eeuu_importa_de_ve", "externo", "Exportaciones a EE.UU. (EE.UU. importa de Venezuela)", "Exports to the US (US imports from Venezuela)", "millones US$", "US$ million", "M", "US Census Bureau", "https://www.census.gov/foreign-trade/balance/c3070.html", 1, 206),
-    ("eeuu_importa_petroleo_ve", "externo", "Exportaciones petroleras a EE.UU. (cap. 27)", "Oil exports to the US (HS 27)", "millones US$", "US$ million", "M", "US Census Bureau", "https://www.census.gov/foreign-trade/balance/c3070.html", 1, 207),
-    ("eeuu_exporta_a_ve", "externo", "Importaciones desde EE.UU. (EE.UU. exporta a Venezuela)", "Imports from the US (US exports to Venezuela)", "millones US$", "US$ million", "M", "US Census Bureau", "https://www.census.gov/foreign-trade/balance/c3070.html", 1, 208),
     ("eeuu_importa_crudo_ve_bd", "externo", "Crudo venezolano que importa EE.UU. (mensual)", "US crude imports from Venezuela (monthly)", "miles b/d", "kb/d", "M", "EIA", "https://www.eia.gov/dnav/pet/hist/LeafHandler.ashx?n=PET&s=MCRIMUSVE2&f=M", 0, 209),
     ("eeuu_importa_crudo_ve_sem", "externo", "Crudo venezolano que importa EE.UU. (semanal)", "US crude imports from Venezuela (weekly)", "miles b/d", "kb/d", "W", "EIA", "https://www.eia.gov/dnav/pet/hist/LeafHandler.ashx?n=PET&s=WCRIMUSVE2&f=W", 0, 210),
 
@@ -138,8 +135,6 @@ PLAN = {
     
     "encaje_legal": (A, 120, "Robot bcv_stats diario: descarga el archivo del BCV y guarda cuando hay publicación nueva. Mensual, desde 2004."),
     "exportaciones_petroleras_bd": (A, 45, "Robot press diario: cifras mensuales de embarques que publica Reuters (sale los primeros días de cada mes)."),
-    "eeuu_importa_de_ve": (A, 75, "Robot census diario (Census Bureau; sale ~5 semanas después de cada mes)."),
-    "eeuu_importa_petroleo_ve": (A, 75, "Robot census diario."), "eeuu_exporta_a_ve": (A, 75, "Robot census diario."),
     "embi_venezuela": (A, 10, "Robot embi diario: EMBIG de JPMorgan que publica el BCRP (Perú); si no responde, cifras de prensa."),
     "eeuu_importa_crudo_ve_bd": (A, 75, "Robot oil diario (EIA, mensual; ~2 meses de rezago)."),
     "eeuu_importa_crudo_ve_sem": (A, 12, "Robot oil diario (EIA, semanal; sale los miércoles con la semana anterior)."),
@@ -211,8 +206,17 @@ assert len({s["code"] for s in SERIES}) == len(SERIES), "códigos duplicados en 
 
 
 def run():
+    from .common import delete, select
     with Run("catalog") as r:
         r.rows = upsert("series", SERIES, "code")
+        # series retiradas del catálogo: se quitan de la base para que no aparezcan como "Sin datos"
+        gone = [x["code"] for x in select("series", {"select": "code"}) if x["code"] not in {s_["code"] for s_ in SERIES}]
+        for code in gone:
+            try:
+                delete("observations", {"series_code": f"eq.{code}"})
+                delete("series", {"code": f"eq.{code}"})
+            except Exception as e:  # noqa: BLE001
+                r.log.info("No se pudo retirar %s: %s", code, e)
 
 
 # Ajustes de plazo (días) para que "Atrasada" solo aparezca cuando de verdad falta una publicación
