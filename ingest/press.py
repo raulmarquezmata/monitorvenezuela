@@ -258,6 +258,27 @@ def parse_inflation(posts: list[dict]) -> list:
     return sorted(pts.items())
 
 
+def from_headlines(days: int = 4) -> int:
+    """Datos oficiales anunciados en los titulares que ya captó el robot de noticias (PIB e inflación).
+    Corre cada 20 minutos junto con las noticias: si llega la noticia, el dato entra a la página al mismo tiempo."""
+    since = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=days)).isoformat()
+    rows = select("news", {"select": "title,title_es,summary,published_at", "published_at": f"gte.{since}"})
+    posts = [{"title": x.get("title_es") or x["title"], "excerpt": x.get("summary") or "", "date": x["published_at"][:10]} for x in rows]
+    # solo cifras de Venezuela (fuera titulares de PIB o inflación de otros países)
+    other = re.compile(r"argentin|colombi|chile|per[uú]\b|m[eé]xic|brasil|ecuador|estados unidos|ee\.? ?uu|eurozona|zona euro|china|espa[nñ]a|alemania|jap[oó]n|reino unido", re.I)
+    posts = [p for p in posts if re.search(r"venezuel|\bbcv\b|delcy|presidenta encargada", f"{p['title']} {p['excerpt']}", re.I)
+             and not other.search(p["title"])]
+    n = 0
+    gdp_official = {x["date"] for x in select("observations", {"select": "date", "series_code": "eq.pib_real_var", "source": "eq.BCV"})}
+    n += save_obs("pib_real_var", [p for p in parse_gdp(posts) if p[0] not in gdp_official], "Anuncio oficial (BCV o Presidencia), vía prensa")
+    infl_official = {x["date"] for x in select("observations", {"select": "date", "series_code": "eq.inflacion_mensual", "source": "eq.BCV (vía Finanzas Digital)"})}
+    k = save_obs("inflacion_mensual", [p for p in parse_inflation(posts) if p[0] not in infl_official], "Anuncio oficial (BCV o Presidencia), vía prensa")
+    if k:
+        from .inflation import derive_missing
+        k += derive_missing()
+    return n + k
+
+
 MON_EN = {m: i for i, m in enumerate(["january", "february", "march", "april", "may", "june", "july", "august",
                                        "september", "october", "november", "december"], 1)}
 EXP_ES = re.compile(r"exportaci[oó]n(?:es)? (?:petroler|de (?:crudo|petr[oó]leo)|de venezuela)[^.]{0,120}?(\d+(?:[.,]\d+)?)\s*(millones? de |mill?\.? ?|mil |MM ?)?(?:bpd|b/d|barriles (?:por d[ií]a|diarios))[^.]{0,60}?\ben (" + "|".join(MONTHS) + r")", re.I)

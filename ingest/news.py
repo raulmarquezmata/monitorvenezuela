@@ -208,6 +208,13 @@ def run():
             r.log.info("Titulares traducidos: %d", n)
         except Exception as e:  # noqa: BLE001
             r.note(f"Traducción: {str(e)[:120]}")
+        try:  # cifras oficiales anunciadas en los titulares (PIB, inflación): entran a la página enseguida
+            from .press import from_headlines
+            n = from_headlines()
+            if n:
+                r.log.info("Datos tomados de titulares: %d", n)
+        except Exception as e:  # noqa: BLE001
+            r.note(f"Datos de titulares: {str(e)[:120]}")
         ok = [h for h in health if h["last_ok"]]
         upsert("news_sources", ok, "name")
         upsert("news_sources", [{k: v for k, v in h.items() if k != "last_ok"} for h in health if not h["last_ok"]], "name")
