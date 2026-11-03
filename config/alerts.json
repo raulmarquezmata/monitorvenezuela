@@ -1,5 +1,5 @@
 {
-  "_ayuda": "Reglas de alertas a Telegram. Tipos: 'umbral' (la serie CRUZA un valor), 'variacion' (cambio entre los dos últimos datos ≥ pct %), 'nuevo_dato' (sale un dato nuevo; min_dias limita series diarias), 'resumen_hora' (mensaje a una hora fija, hora de Venezuela), 'resumen_diario' (al cierre, 7:40 p. m.), 'acciones' (acción de la BVC que se mueve ≥ pct % con monto ≥ monto_min Bs), 'volumen' (monto negociado del día ≥ veces el promedio del año), 'noticia' (titular que coincide con el patrón; máximo max_dia al día), 'ofac' (nueva acción de OFAC sobre Venezuela), 'robots' (un robot falla dos veces seguidas). Para apagar una regla, bórrala o cambia su 'id'. 'cierre_semana' (viernes al cierre) y 'cierre_mes' (último día del mes): variación de la semana/mes y en el año. 'una_vez': mensaje único (para confirmar que el canal funciona). resumen_mercado: resumen de mercado (oficial, paralelo, euro, brecha, IBC día/semana, monto RV y RF en Bs y US$, riesgo país, Brent, Merey) a la 'hora' VET; dias_habiles=true omite fines de semana. Opcionales: adelanto (minutos antes de la hora en que ya se puede mandar) y ventana (minutos después de la hora en que deja de intentarlo).",
+  "_ayuda": "Reglas de alertas a Telegram. Tipos: 'umbral' (la serie CRUZA un valor), 'variacion' (cambio entre los dos últimos datos ≥ pct %), 'nuevo_dato' (sale un dato nuevo; min_dias limita series diarias), 'resumen_hora' (mensaje a una hora fija, hora de Venezuela), 'resumen_diario' (al cierre, 7:40 p. m.), 'acciones' (acción de la BVC que se mueve ≥ pct % con monto ≥ monto_min Bs), 'volumen' (monto negociado del día ≥ veces el promedio del año), 'noticia' (titular que coincide con el patrón; máximo max_dia al día), 'ofac' (nueva acción de OFAC sobre Venezuela), 'robots' (un robot falla dos veces seguidas). Para apagar una regla, bórrala o cambia su 'id'. 'cierre_semana' (viernes al cierre) y 'cierre_mes' (último día del mes): variación de la semana/mes y en el año. 'una_vez': mensaje único (para confirmar que el canal funciona). resumen_mercado: resumen de mercado (oficial, paralelo, euro, brecha, IBC día/semana, monto RV y RF en Bs y US$, riesgo país, Brent, Merey) a la 'hora' VET; dias_habiles=true omite fines de semana. Opcionales: adelanto (minutos antes de la hora en que ya se puede mandar) y ventana (minutos después de la hora en que deja de intentarlo). bvc_noticia y bvc_asamblea: noticias de cada acción y convocatorias a asambleas; salen junto con los movimientos fuertes en un solo mensaje «📊 BVC». informe: aviso cuando se publica un PDF nuevo en data/informes/.",
   "reglas": [
     {
       "id": "activacion_v3",
@@ -65,6 +65,16 @@
       "texto": "🔥 Volumen alto en la BVC: Bs {valor} millones, {veces}x el promedio del año y {veces20}x el de las últimas 20 sesiones ({fecha})"
     },
     {
+      "id": "bvc_noticia",
+      "tipo": "bvc_noticia",
+      "texto": "📰 {simbolo}: {titulo} ({fuente})\n{url}"
+    },
+    {
+      "id": "bvc_asamblea",
+      "tipo": "bvc_asamblea",
+      "texto": "🗓️ {simbolo}: {tipo} el {fecha} {url}"
+    },
+    {
       "id": "bcv_publica",
       "tipo": "nuevo_dato",
       "series": [
@@ -122,6 +132,11 @@
         "bolpriaven_monto"
       ],
       "texto": "📑 Salió el informe mensual de SUNAVAL y ya está en la página · {nombre}: {valor} {unidad} ({fecha})"
+    },
+    {
+      "id": "informe_nuevo",
+      "tipo": "informe",
+      "texto": "📄 Nuevo informe publicado: {titulo}\n{url}"
     },
     {
       "id": "momr",

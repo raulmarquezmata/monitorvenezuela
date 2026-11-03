@@ -8,6 +8,7 @@ Las reglas están en config/alerts.json. Cada alerta se envía una sola vez (tab
 from __future__ import annotations
 
 import datetime as dt
+import hashlib
 import json
 import os
 import pathlib
@@ -119,6 +120,22 @@ def gather_extra(rules: list[dict], daily: bool = False) -> dict:
                                               "date": f"gte.{today_caracas().year - 1}-10-01", "order": "date"})
     if "noticia" in tipos:
         ex["news"] = select("news", {"select": "title,url,source,published_at", "published_at": f"gte.{since}", "order": "published_at.desc", "limit": 80})
+    if "bvc_noticia" in tipos:  # noticias de emisores (las etiqueta el robot «emisores»)
+        try:
+            ex["bvc_news"] = select("news", {"select": "title,title_es,url,source,published_at,symbols", "published_at": f"gte.{since}",
+                                             "symbols": "not.is.null", "order": "published_at.desc", "limit": 40})
+        except Exception:  # noqa: BLE001
+            ex["bvc_news"] = []
+    if "bvc_asamblea" in tipos:
+        try:
+            ex["bvc_events"] = select("bvc_events", {"select": "id,symbol,date,kind,title,url", "date": f"gte.{today_caracas().isoformat()}", "order": "date"})
+        except Exception:  # noqa: BLE001
+            ex["bvc_events"] = []
+    if "informe" in tipos:
+        try:
+            ex["informes"] = select("informes", {"select": "id,title,date,topic,lang,created_at", "order": "created_at.desc", "limit": 30})
+        except Exception:  # noqa: BLE001
+            ex["informes"] = []
     if "ofac" in tipos:
         ex["ofac"] = select("ofac_actions", {"select": "url,date,title", "order": "date.desc", "limit": 10})
     if "robots" in tipos:
@@ -214,6 +231,23 @@ def evaluate(rules: list[dict], meta: dict[str, dict], data: dict[str, list[dict
                     out.append((f"{rule['id']}:{q['symbol']}:{q['date']}", rule["texto"].format(
                         simbolo=q["symbol"], empresa=q.get("company") or "", cambio=("+" if v > 0 else "") + fmt(v, 2),
                         precio=fmt(q.get("close") or 0, 2), fecha=q["date"])))
+        elif t == "bvc_noticia":
+            for n in extra.get("bvc_news", []):
+                syms = ", ".join(n.get("symbols") or [])
+                out.append((f"{rule['id']}:{n['url'][-120:]}", rule["texto"].format(
+                    simbolo=syms, titulo=n.get("title_es") or n["title"], fuente=n.get("source") or "", url=n["url"])))
+        elif t == "bvc_asamblea":
+            for e in extra.get("bvc_events", []):
+                d = dt.date.fromisoformat(e["date"])
+                out.append((f"{rule['id']}:{e['id']}", rule["texto"].format(
+                    simbolo=e["symbol"], tipo={"ordinaria": "Asamblea ordinaria", "extraordinaria": "Asamblea extraordinaria"}.get(e.get("kind"), "Asamblea de accionistas"),
+                    fecha=f"{DIAS[d.weekday()]} {d.day} {MESES[d.month - 1]} {d.year}", url=e.get("url") or "")))
+        elif t == "informe":
+            for x in extra.get("informes", []):
+                if (x.get("created_at") or "") < (dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=3)).isoformat():
+                    continue
+                link = f"{SITE.rstrip('/')}/{'en' if x.get('lang') == 'en' else 'es'}/informes" if SITE else ""
+                out.append((f"{rule['id']}:{x['id']}", rule["texto"].format(titulo=x.get("title") or x["id"], url=link).strip()))
         elif t == "volumen":
             pts = extra.get("monto", [])
             if len(pts) > 25:
@@ -335,17 +369,31 @@ def run(daily: bool = False):
         since30 = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=30)).isoformat()
         recent = [x for x in log_all if (x.get("sent_at") or "") >= since30]
         TIMED = ("resumen_hora", "resumen_diario", "cierre_semana", "cierre_mes", "una_vez", "robots")
-        # varias acciones con movimientos fuertes → un solo mensaje
-        acc = [(k, t) for k, t in candidates if k.split(":")[0] in {x["id"] for x in rules if x["tipo"] == "acciones"} and k not in sent]
+        # BVC: movimientos fuertes, noticias de emisores y asambleas → un solo mensaje por corrida
+        BVC_TYPES = ("acciones", "bvc_noticia", "bvc_asamblea")
+        bvc_ids = {x["id"]: x["tipo"] for x in rules if x["tipo"] in BVC_TYPES}
+        # las reglas nuevas (primera vez) no entran: se registran en silencio más abajo
+        acc = [(k, t) for k, t in candidates if k.split(":")[0] in bvc_ids and k not in sent
+               and not first_run and k.split(":")[0] in known_rules]
         if len(acc) > 1:
-            fecha = acc[0][0].split(":")[-1]
-            body = "\n".join("• " + t.split(" ", 1)[1].rsplit(" (", 1)[0] for _, t in acc)
-            merged = (acc[0][0].split(":")[0] + ":lote:" + fecha + ":" + ",".join(k.split(":")[1] for k, _ in acc), f"📊 Movimientos fuertes en la BVC · {fecha}\n{body}")
-            others = [c for c in candidates if c not in acc]
-            candidates = others + [merged]
-            for k, t in acc:  # se registran también uno a uno para no repetirlos en la próxima corrida
-                sent_extra = {"key": k, "rule": k.split(":")[0], "message": t, "channels": "lote", "sent_at": dt.datetime.now(dt.timezone.utc).isoformat()}
-                upsert("alerts_log", [sent_extra], "key")
+            fecha = today
+            sec = {"acciones": [], "bvc_noticia": [], "bvc_asamblea": []}
+            for k, t in acc:
+                sec[bvc_ids[k.split(":")[0]]].append(t.split(" ", 1)[1] if t[:1] in "📈📉📊📰🗓" or not t[:1].isalnum() else t)
+            parts = [f"📊 BVC · {fecha}"]
+            if sec["acciones"]:
+                parts.append("Movimientos fuertes:\n" + "\n".join("• " + x.rsplit(" (", 1)[0] for x in sec["acciones"]))
+            if sec["bvc_noticia"]:
+                parts.append("📰 Noticias de emisores:\n" + "\n".join("• " + x for x in sec["bvc_noticia"][:8]))
+            if sec["bvc_asamblea"]:
+                parts.append("🗓️ Asambleas:\n" + "\n".join("• " + x for x in sec["bvc_asamblea"]))
+            if SITE:
+                parts.append(SITE.rstrip("/") + "/es/bvc")
+            merged = (f"bvc_lote:{fecha}:{hashlib.sha1('|'.join(k for k, _ in acc).encode()).hexdigest()[:12]}", "\n\n".join(parts))
+            candidates = [c for c in candidates if c not in acc] + [merged]
+            by_lote = acc
+        else:
+            by_lote = []
         log, n_sent = [], 0
         for key, text in candidates:
             if key in sent:
@@ -355,7 +403,7 @@ def run(daily: bool = False):
             tipo = rule.get("tipo")
             prefix = ":".join(key.split(":")[:2]) + ":"
             # regla nueva o primera corrida: solo registra lo que ya existía (los mensajes con hora fija sí salen)
-            silent = (first_run or rid not in known_rules) and tipo not in TIMED
+            silent = (first_run or rid not in known_rules) and tipo not in TIMED and rid != "bvc_lote"
             if tipo == "nuevo_dato" and not any(x["key"].startswith(prefix) for x in log_all):
                 silent = True  # serie recién agregada a la regla: no avisar el dato viejo
             if rule.get("min_dias") and any(x["key"].startswith(prefix) and (x.get("sent_at") or "")[:10] > (dt.date.today() - dt.timedelta(days=rule["min_dias"])).isoformat() for x in recent):
@@ -379,5 +427,8 @@ def run(daily: bool = False):
                 except Exception as e:  # noqa: BLE001
                     r.note(f"Correo: {e}")
             log.append({"key": key, "rule": rid, "message": text, "channels": ",".join(channels) or None, "sent_at": dt.datetime.now(dt.timezone.utc).isoformat()})
+        if by_lote:  # cada aviso del lote queda registrado para no repetirlo en la próxima corrida
+            now = dt.datetime.now(dt.timezone.utc).isoformat()
+            log += [{"key": k, "rule": k.split(":")[0], "message": t, "channels": "lote", "sent_at": now} for k, t in by_lote]
         r.rows = upsert("alerts_log", log, "key")
         r.log.info("Alertas: %d candidatas, %d enviadas a Telegram", len(log), n_sent)

@@ -17,7 +17,7 @@ export default async function Noticias({ params, searchParams }: { params: { lan
   if (!configured) return <NotConfigured />;
   const cat = searchParams.cat && CATS.includes(searchParams.cat) ? searchParams.cat : undefined;
   const origin = searchParams.o === "int" ? "int" : searchParams.o === "ve" ? "ve" : undefined;
-  const [raw, ofac] = await Promise.all([news(600, cat), ofacActions(12)]);
+  const [raw, ofac] = await Promise.all([news(600, cat, lang), ofacActions(12)]);
   const grouped = groupNews(raw).filter((n) => !origin || (origin === "ve") === isVenezuelan(n.source));
   const items = balanced(grouped, origin ? 15 : 10, 150);
   const q = (o: Record<string, string | undefined>) => { const p = new URLSearchParams(); const v = { cat, o: origin, ...o }; for (const [k, x] of Object.entries(v)) if (x) p.set(k, x); const s = p.toString(); return `/${lang}/noticias${s ? `?${s}` : ""}`; };
@@ -43,7 +43,7 @@ export default async function Noticias({ params, searchParams }: { params: { lan
               <div className="m">
                 {n.category && <span className="tag">{d.cats[n.category] ?? n.category}</span>}
                 <span>{n.source} · {dateTime(n.published_at, lang)}</span>
-                {n.lang && n.lang !== "es" && <span className="tag">{n.lang.toUpperCase()}</span>}
+                {n.orig_lang && n.orig_lang !== lang && <span className="tag" title={lang === "es" ? "Titular traducido; el artículo está en el idioma original" : "Translated headline; the article is in its original language"}>{lang === "es" ? "trad." : "transl."} {n.orig_lang.toUpperCase()}</span>}
               </div>
               <a className="t" href={n.url} target="_blank" rel="noreferrer">{n.title}</a>
               {n.summary && <p>{n.summary}</p>}

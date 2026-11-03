@@ -41,7 +41,8 @@ export default async function LangLayout({ children, params }: { children: React
     { href: L, label: d.nav.home, match: [L] },
     { href: `${L}/bvc`, label: d.nav.bvc, match: [`${L}/bvc`] },
     { href: `${L}/indicadores/cambiario`, label: d.nav.macro, match: [`${L}/indicadores`, `${L}/comercio`, `${L}/agro`, `${L}/herramientas`] },
-    { href: `${L}/noticias`, label: d.nav.news, match: [`${L}/noticias`, `${L}/research`] },
+    { href: `${L}/noticias`, label: d.nav.news, match: [`${L}/noticias`] },
+    { href: `${L}/informes`, label: d.nav.research, match: [`${L}/informes`, `${L}/research`] },
     { href: `${L}/datos`, label: d.nav.data, match: [`${L}/datos`] },
   ];
   const [updated, fx] = await Promise.all([lastRun(), fxForCurrency()]);

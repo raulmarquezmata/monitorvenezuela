@@ -207,6 +207,35 @@ def redact(text: str) -> str:
             text = text.replace(v, "***")
     return text
 
+# ---------------------------------------------------------------- Supabase Storage (PDF)
+def ensure_bucket(bucket: str) -> None:
+    """Crea el depósito público si no existe (informes y reportes por acción)."""
+    if DRY_RUN:
+        return
+    h = {"apikey": SUPABASE_KEY, "Authorization": f"Bearer {SUPABASE_KEY}"}
+    r = requests.get(f"{SUPABASE_URL}/storage/v1/bucket/{bucket}", headers=h, timeout=30)
+    if r.status_code == 200:
+        return
+    r = requests.post(f"{SUPABASE_URL}/storage/v1/bucket", headers=h, timeout=30,
+                      json={"id": bucket, "name": bucket, "public": True, "file_size_limit": 50 * 1024 * 1024})
+    if r.status_code >= 300 and "already exists" not in r.text.lower():
+        raise RuntimeError(f"Storage {bucket}: {r.status_code} {r.text[:200]}")
+
+
+def storage_upload(bucket: str, path: str, data: bytes, content_type: str = "application/pdf", max_age: int = 300) -> str:
+    """Sube (o reemplaza) un archivo y devuelve su URL pública."""
+    public = f"{SUPABASE_URL}/storage/v1/object/public/{bucket}/{path}"
+    if DRY_RUN:
+        log.info("[DRY_RUN] subir %s/%s (%d bytes)", bucket, path, len(data))
+        return public
+    h = {"apikey": SUPABASE_KEY, "Authorization": f"Bearer {SUPABASE_KEY}", "Content-Type": content_type,
+         "x-upsert": "true", "cache-control": f"max-age={max_age}"}
+    r = requests.post(f"{SUPABASE_URL}/storage/v1/object/{bucket}/{path}", headers=h, data=data, timeout=180)
+    if r.status_code >= 300:
+        raise RuntimeError(f"Storage {bucket}/{path}: {r.status_code} {r.text[:200]}")
+    return public
+
+
 class Run:
     """Context manager que registra cada corrida en ingest_runs y nunca tumba al resto de robots."""
 

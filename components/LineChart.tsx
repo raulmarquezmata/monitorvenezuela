@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRange, windowed } from "./Range";
 
 type Point = [string, number];
-type S = { name: string; points: Point[]; color?: string };
+type S = { name: string; points: Point[]; color?: string; axis?: "right"; dash?: boolean };
 type Labels = { logScale: string; table: string; chart: string; date: string; noData: string };
 const COLORS = ["var(--series-1)", "var(--series-2)", "var(--series-3)", "#8a6fb0", "#3d7ea6", "#c79a2e", "#b5473a", "#5c9e6e"];
 const ts = (d: string) => Date.parse(`${d}T00:00:00Z`);
@@ -61,14 +61,18 @@ export default function LineChart({
   }), [series, range, log, ignoreRange, minPoints]);
 
   const all = data.flatMap((s) => s.pts);
+  const left = data.filter((s) => s.axis !== "right").flatMap((s) => s.pts);
+  const right = data.filter((s) => s.axis === "right").flatMap((s) => s.pts);
+  const dual = right.length > 0 && left.length > 0;
   const hasData = all.length > 0;
   const spanDays = hasData ? (Math.max(...all.map((p) => ts(p[0]))) - Math.min(...all.map((p) => ts(p[0])))) / 864e5 : 0;
-  const padL = 56, padR = 12, padT = 10, padB = 26;
+  const padL = 56, padR = dual ? 50 : 12, padT = 10, padB = 26;
   const iw = w - padL - padR, ih = height - padT - padB;
   let x0 = 0, x1 = 1, y0 = 0, y1 = 1;
   if (hasData) {
     x0 = Math.min(...all.map((p) => ts(p[0]))); x1 = Math.max(...all.map((p) => ts(p[0])));
-    y0 = Math.min(...all.map((p) => p[1])); y1 = Math.max(...all.map((p) => p[1]));
+    const yAll = dual ? left : all;
+    y0 = Math.min(...yAll.map((p) => p[1])); y1 = Math.max(...yAll.map((p) => p[1]));
     if (bars) y0 = Math.min(0, y0);
   }
   const yt = log ? logTicks(y0, y1) : niceTicks(y0, y1);
@@ -79,6 +83,13 @@ export default function LineChart({
     if (log) { const a = Math.log10(ylo), b = Math.log10(yhi); return padT + ih - (b === a ? .5 : (Math.log10(v) - a) / (b - a)) * ih; }
     return padT + ih - (yhi === ylo ? .5 : (v - ylo) / (yhi - ylo)) * ih;
   };
+  // eje derecho (segunda escala, p. ej. precio en US$ junto al precio en Bs)
+  let r0 = 0, r1 = 1;
+  if (dual) { r0 = Math.min(...right.map((p) => p[1])); r1 = Math.max(...right.map((p) => p[1])); }
+  const rt = dual ? niceTicks(r0, r1) : [];
+  const rlo = Math.min(r0, rt[0] ?? r0), rhi = Math.max(r1, rt.at(-1) ?? r1);
+  const YR = (v: number) => padT + ih - (rhi === rlo ? .5 : (v - rlo) / (rhi - rlo)) * ih;
+  const Ys = (s: { axis?: "right" }) => (dual && s.axis === "right" ? YR : Y);
   const nX = Math.max(2, Math.min(6, Math.floor(iw / 100)));
   const xt = hasData ? Array.from({ length: nX }, (_, i) => x0 + ((x1 - x0) * i) / (nX - 1)) : [];
   const base = data[0]?.pts ?? [];
@@ -130,6 +141,7 @@ export default function LineChart({
                 <g key={v}><line className="gridline" x1={padL} x2={w - padR} y1={Y(v)} y2={Y(v)} />
                   <text x={padL - 10} y={Y(v) + 4} textAnchor="end">{fmtAxis(v)}</text></g>
               ))}
+              {rt.map((v) => <text key={`r${v}`} x={w - padR + 8} y={YR(v) + 4} textAnchor="start">{fmtAxis(v)}</text>)}
               {xt.map((t, i) => <text key={t} x={X(t)} y={height - 6} textAnchor={i === 0 ? "start" : i === xt.length - 1 ? "end" : "middle"}>{xLabel(t)}</text>)}
             </g>
             {data.map((s) => bars ? (
@@ -138,17 +150,17 @@ export default function LineChart({
                 return <rect key={p[0]} x={X(ts(p[0])) - bw / 2} y={p[1] >= 0 ? y : Y(0)} width={bw} height={Math.max(1, h)} rx={2} fill={s.color} opacity={hp && hp[0] !== p[0] ? .55 : 1} />;
               })}</g>
             ) : s.pts.length === 1 ? (
-              <circle key={s.name} cx={X(ts(s.pts[0][0]))} cy={Y(s.pts[0][1])} r={4} fill={s.color} />
+              <circle key={s.name} cx={X(ts(s.pts[0][0]))} cy={Ys(s)(s.pts[0][1])} r={4} fill={s.color} />
             ) : (
               <g key={s.name}>
                 {area && <path d={`M${X(ts(s.pts[0][0]))},${Y(ylo)}` + s.pts.map((p) => `L${X(ts(p[0])).toFixed(1)},${Y(p[1]).toFixed(1)}`).join("") + `L${X(ts(s.pts.at(-1)![0]))},${Y(ylo)}Z`} fill="var(--area)" />}
-                <path d={s.pts.map((p, i) => `${i ? "L" : "M"}${X(ts(p[0])).toFixed(1)},${Y(p[1]).toFixed(1)}`).join("")} fill="none" stroke={s.color} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+                <path d={s.pts.map((p, i) => `${i ? "L" : "M"}${X(ts(p[0])).toFixed(1)},${Ys(s)(p[1]).toFixed(1)}`).join("")} fill="none" stroke={s.color} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" strokeDasharray={s.dash ? "5 4" : undefined} />
               </g>
             ))}
             {hp && !bars && (
               <g>
                 <line x1={X(ts(hp[0]))} x2={X(ts(hp[0]))} y1={padT} y2={padT + ih} stroke="var(--text-3)" strokeDasharray="3 3" />
-                {data.map((s) => { const v = valueAt(s.pts, hp[0]); return v == null ? null : <circle key={s.name} cx={X(ts(hp[0]))} cy={Y(v)} r={4.5} fill={s.color} stroke="var(--surface)" strokeWidth={2} />; })}
+                {data.map((s) => { const v = valueAt(s.pts, hp[0]); return v == null ? null : <circle key={s.name} cx={X(ts(hp[0]))} cy={Ys(s)(v)} r={4.5} fill={s.color} stroke="var(--surface)" strokeWidth={2} />; })}
               </g>
             )}
             <rect x={padL} y={padT} width={iw} height={ih} fill="transparent" onPointerMove={onMove} onPointerLeave={() => setHover(null)} />

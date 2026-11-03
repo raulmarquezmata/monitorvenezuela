@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { date } from "@/lib/format";
-import NewsNav from "@/components/NewsNav";
 import { LANGS, t, type Lang } from "@/lib/i18n";
 import { getPost, listPosts } from "@/lib/research";
 
@@ -19,8 +18,7 @@ export default function PostPage({ params }: { params: { lang: Lang; slug: strin
   if (!p) notFound();
   return (
     <article style={{ maxWidth: 760 }}>
-      <NewsNav lang={lang} />
-      <p className="muted"><Link href={`/${lang}/research`}>← {d.research}</Link></p>
+      <p className="muted"><Link href={`/${lang}/informes`}>← {d.research}</Link></p>
       <div className="muted" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
         <span>{date(p.date, lang)}</span>{p.type && <span className="tag">{p.type}</span>}<span>{p.author}</span>
         {lang === "en" && !p.translated && <span className="tag">ES</span>}

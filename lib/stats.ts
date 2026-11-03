@@ -1,6 +1,6 @@
 /** Variaciones de una serie respecto a fechas de referencia (sirve en servidor y en cliente). */
 export type Point = [string, number];
-export type Period = "1D" | "1W" | "1M" | "PREV" | "YTD" | "YOY";
+export type Period = "1D" | "1W" | "WTD" | "1M" | "3M" | "PREV" | "YTD" | "YOY";
 
 const iso = (t: number) => new Date(t).toISOString().slice(0, 10);
 const shift = (d: string, days = 0, months = 0, years = 0) => {
@@ -23,6 +23,11 @@ export function refPoint(pts: Point[], p: Period): Point | undefined {
   switch (p) {
     case "1D": case "PREV": return pts.at(-2);
     case "1W": return valueAt(pts, shift(d, -7));
+    case "WTD": { // lo que va de semana: contra el último cierre antes del lunes
+      const wd = (new Date(`${d}T12:00:00Z`).getUTCDay() + 6) % 7;
+      return valueAt(pts, shift(d, -wd - 1));
+    }
+    case "3M": return valueAt(pts, shift(d, 0, -3));
     case "1M": return valueAt(pts, shift(d, 0, -1));
     case "YTD": return valueAt(pts, `${Number(d.slice(0, 4)) - 1}-12-31`);
     case "YOY": return valueAt(pts, shift(d, 0, 0, -1));
@@ -38,7 +43,8 @@ export function change(pts: Point[], p: Period, points = false): number | null {
 }
 
 export const PERIOD_LABEL: Record<Period, { es: string; en: string }> = {
-  "1D": { es: "Día", en: "Day" }, "1W": { es: "Semana", en: "Week" }, "1M": { es: "Mes", en: "Month" },
+  "1D": { es: "Día", en: "Day" }, "1W": { es: "Semana", en: "Week" }, WTD: { es: "En la semana", en: "Week to date" },
+  "1M": { es: "Mes", en: "Month" }, "3M": { es: "3 meses", en: "3 months" },
   PREV: { es: "Período ant.", en: "Prev. period" }, YTD: { es: "En el año", en: "YTD" }, YOY: { es: "Interanual", en: "YoY" },
 };
 

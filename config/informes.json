@@ -1,0 +1,6 @@
+{
+  "_ayuda": "Correcciones de la sección Informes. La clave es el nombre del PDF dentro de data/informes/. Campos opcionales: titulo, fecha (AAAA-MM-DD), idioma (es o en), tema (petroleo, electricidad, mineria, politica, economia, finanzas, agro) y resumen. Solo pon lo que quieras cambiar.",
+  "informes": {
+    "_ejemplo.pdf": {"titulo": "Título correcto del informe", "fecha": "2026-10-30", "idioma": "es", "tema": "petroleo"}
+  }
+}

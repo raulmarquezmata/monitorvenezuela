@@ -16,7 +16,7 @@ export default async function Home({ params }: { params: { lang: Lang } }) {
   const d = t(lang);
   if (!configured) return <NotConfigured />;
   const [all, hist, quotes, items, evs] = await Promise.all([
-    latest(), history([...KPIS, "ibc", "inflacion_acumulada", "inflacion_interanual"], 12), bvcLatest(), news(150), events(4),
+    latest(), history([...KPIS, "ibc", "inflacion_acumulada", "inflacion_interanual"], 12), bvcLatest(), news(150, undefined, lang), events(4),
   ]);
   const by = Object.fromEntries(all.map((s) => [s.code, s]));
   const headlines = balanced(groupNews(items), 2, 6);

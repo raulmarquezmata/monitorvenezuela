@@ -1,0 +1,213 @@
+{
+  "_ayuda": "Ficha de cada acción de la BVC. 'nombre': nombre corto; 'es'/'en': descripción breve; 'alias': palabras para encontrar sus noticias y convocatorias (sin acentos no hace falta: se ignoran mayúsculas). Las acciones que no estén aquí muestran el nombre y sector que publica la BVC. Revisa y corrige las descripciones cuando quieras: la web y los informes se actualizan solos.",
+  "empresas": {
+    "ABC.A": {
+      "nombre": "Bancaribe",
+      "alias": [
+        "Bancaribe",
+        "Banco del Caribe"
+      ],
+      "es": "Banco del Caribe (Bancaribe), banco universal privado fundado en 1954, con red nacional de agencias y foco en banca comercial, empresas y comercio exterior.",
+      "en": "Banco del Caribe (Bancaribe), a private universal bank founded in 1954, with a national branch network and a focus on commercial, corporate and trade banking."
+    },
+    "BNC": {
+      "nombre": "Banco Nacional de Crédito",
+      "alias": [
+        "Banco Nacional de Crédito"
+      ],
+      "es": "Banco Nacional de Crédito (BNC), banco universal privado, entre los mayores del país por depósitos y cartera.",
+      "en": "Banco Nacional de Crédito (BNC), a private universal bank, among the largest in the country by deposits and loans."
+    },
+    "BPV": {
+      "nombre": "BBVA Provincial",
+      "alias": [
+        "Banco Provincial",
+        "BBVA Provincial"
+      ],
+      "es": "BBVA Provincial, banco universal controlado por el grupo español BBVA; uno de los bancos privados más grandes de Venezuela.",
+      "en": "BBVA Provincial, a universal bank controlled by Spain's BBVA group; one of Venezuela's largest private banks."
+    },
+    "BVL": {
+      "nombre": "Banco de Venezuela",
+      "alias": [
+        "Banco de Venezuela"
+      ],
+      "es": "Banco de Venezuela, banco universal de mayoría estatal y el mayor del sistema por número de clientes y depósitos.",
+      "en": "Banco de Venezuela, a state-controlled universal bank and the largest in the system by customers and deposits."
+    },
+    "BVCC": {
+      "nombre": "Bolsa de Valores de Caracas",
+      "alias": [
+        "Bolsa de Valores de Caracas"
+      ],
+      "es": "Bolsa de Valores de Caracas, operadora del mercado de valores venezolano (acciones, renta fija y papeles comerciales).",
+      "en": "Caracas Stock Exchange, operator of the Venezuelan securities market (equities, fixed income and commercial paper)."
+    },
+    "MVZ.A": {
+      "nombre": "Mercantil Servicios Financieros",
+      "alias": [
+        "Mercantil Servicios Financieros",
+        "Mercantil Banco",
+        "Banco Mercantil"
+      ],
+      "es": "Mercantil Servicios Financieros (MSF), holding financiero dueño de Mercantil Banco Universal, seguros y gestión de patrimonios.",
+      "en": "Mercantil Servicios Financieros (MSF), a financial holding that owns Mercantil Banco Universal plus insurance and wealth management."
+    },
+    "MVZ.B": {
+      "nombre": "Mercantil Servicios Financieros",
+      "alias": [
+        "Mercantil Servicios Financieros",
+        "Mercantil Banco",
+        "Banco Mercantil"
+      ],
+      "es": "Mercantil Servicios Financieros (MSF), holding financiero dueño de Mercantil Banco Universal, seguros y gestión de patrimonios.",
+      "en": "Mercantil Servicios Financieros (MSF), a financial holding that owns Mercantil Banco Universal plus insurance and wealth management."
+    },
+    "RST": {
+      "nombre": "Ron Santa Teresa",
+      "alias": [
+        "Ron Santa Teresa",
+        "Santa Teresa 1796",
+        "Licorera Santa Teresa"
+      ],
+      "es": "Ron Santa Teresa, productora de rones de Aragua con más de dos siglos de historia; exporta a varios mercados y tiene marcas como Santa Teresa 1796.",
+      "en": "Ron Santa Teresa, an Aragua-based rum maker with over two centuries of history; it exports to several markets with brands such as Santa Teresa 1796."
+    },
+    "RST.B": {
+      "nombre": "Ron Santa Teresa",
+      "alias": [
+        "Ron Santa Teresa",
+        "Santa Teresa 1796",
+        "Licorera Santa Teresa"
+      ],
+      "es": "Ron Santa Teresa, productora de rones de Aragua con más de dos siglos de historia; exporta a varios mercados y tiene marcas como Santa Teresa 1796.",
+      "en": "Ron Santa Teresa, an Aragua-based rum maker with over two centuries of history; it exports to several markets with brands such as Santa Teresa 1796."
+    },
+    "GZL": {
+      "nombre": "Grupo Zuliano",
+      "alias": [
+        "Grupo Zuliano"
+      ],
+      "es": "Grupo Zuliano, empresa de inversiones con participaciones en el sector petroquímico y de plásticos, con sede en el Zulia.",
+      "en": "Grupo Zuliano, a Zulia-based investment company with holdings in the petrochemical and plastics sector."
+    },
+    "CGQ": {
+      "nombre": "Corporación Grupo Químico",
+      "alias": [
+        "Grupo Químico",
+        "Corporación Grupo Químico"
+      ],
+      "es": "Corporación Grupo Químico, holding industrial con empresas de química y petroquímica.",
+      "en": "Corporación Grupo Químico, an industrial holding with chemical and petrochemical companies."
+    },
+    "CRM.A": {
+      "nombre": "Corimon",
+      "alias": [
+        "Corimon"
+      ],
+      "es": "Corimon, grupo industrial de pinturas y recubrimientos (Pinturas Montana) y otros productos de consumo e industriales.",
+      "en": "Corimon, an industrial group in paints and coatings (Pinturas Montana) and other consumer and industrial products."
+    },
+    "DOM": {
+      "nombre": "Domínguez & Cía",
+      "alias": [
+        "Domínguez & Cía",
+        "Dominguez y Cia",
+        "Domínguez y Cía"
+      ],
+      "es": "Domínguez & Cía, fabricante de envases metálicos (latas y tapas) para alimentos, bebidas y uso industrial.",
+      "en": "Domínguez & Cía, a maker of metal packaging (cans and lids) for food, beverages and industrial use."
+    },
+    "EFE": {
+      "nombre": "Productos EFE",
+      "alias": [
+        "Productos EFE",
+        "Helados EFE"
+      ],
+      "es": "Productos EFE, fabricante de helados y postres de larga tradición en el país.",
+      "en": "Productos EFE, a long-established maker of ice cream and desserts."
+    },
+    "ENV": {
+      "nombre": "Envases Venezolanos",
+      "alias": [
+        "Envases Venezolanos"
+      ],
+      "es": "Envases Venezolanos, fabricante de envases metálicos para la industria de alimentos, química y de pinturas.",
+      "en": "Envases Venezolanos, a maker of metal containers for the food, chemical and paint industries."
+    },
+    "FNC": {
+      "nombre": "Fábrica Nacional de Cementos",
+      "alias": [
+        "Fábrica Nacional de Cementos"
+      ],
+      "es": "Fábrica Nacional de Cementos, productora de cemento; tras la nacionalización del sector en 2008 el Estado tiene el control.",
+      "en": "Fábrica Nacional de Cementos, a cement producer; the state has controlled it since the 2008 nationalization of the sector."
+    },
+    "MPA": {
+      "nombre": "Manufacturas de Papel (Manpa)",
+      "alias": [
+        "Manpa",
+        "Manufacturas de Papel"
+      ],
+      "es": "Manufacturas de Papel (Manpa), fabricante de papel tisú, cuadernos y productos de papel para consumo.",
+      "en": "Manufacturas de Papel (Manpa), a maker of tissue paper, notebooks and consumer paper products."
+    },
+    "PGR": {
+      "nombre": "Proagro",
+      "alias": [
+        "Proagro"
+      ],
+      "es": "Proagro, empresa agroindustrial avícola (pollo y huevos) y de alimentos balanceados para animales.",
+      "en": "Proagro, an agribusiness company in poultry (chicken and eggs) and animal feed."
+    },
+    "PTN": {
+      "nombre": "Protinal",
+      "alias": [
+        "Protinal"
+      ],
+      "es": "Protinal, productora de alimentos balanceados para animales y de proteína avícola.",
+      "en": "Protinal, a producer of animal feed and poultry protein."
+    },
+    "SVS": {
+      "nombre": "Sivensa",
+      "alias": [
+        "Sivensa"
+      ],
+      "es": "Siderúrgica Venezolana (Sivensa), holding del sector metalúrgico y siderúrgico.",
+      "en": "Siderúrgica Venezolana (Sivensa), a holding company in the metals and steel sector."
+    },
+    "TDV.D": {
+      "nombre": "CANTV",
+      "alias": [
+        "Cantv",
+        "Movilnet"
+      ],
+      "es": "CANTV, la principal empresa de telecomunicaciones del país (telefonía fija, internet y móvil a través de Movilnet), de mayoría estatal desde 2007.",
+      "en": "CANTV, the country's main telecom company (fixed line, internet and mobile through Movilnet), state-controlled since 2007."
+    },
+    "TPG": {
+      "nombre": "Telares de Palo Grande",
+      "alias": [
+        "Telares de Palo Grande"
+      ],
+      "es": "Telares de Palo Grande, fabricante textil.",
+      "en": "Telares de Palo Grande, a textile manufacturer."
+    },
+    "FVI.A": {
+      "nombre": "Fondo de Valores Inmobiliarios",
+      "alias": [
+        "Fondo de Valores Inmobiliarios"
+      ],
+      "es": "Fondo de Valores Inmobiliarios, empresa de inversión en bienes raíces comerciales.",
+      "en": "Fondo de Valores Inmobiliarios, a commercial real-estate investment company."
+    },
+    "FVI.B": {
+      "nombre": "Fondo de Valores Inmobiliarios",
+      "alias": [
+        "Fondo de Valores Inmobiliarios"
+      ],
+      "es": "Fondo de Valores Inmobiliarios, empresa de inversión en bienes raíces comerciales.",
+      "en": "Fondo de Valores Inmobiliarios, a commercial real-estate investment company."
+    }
+  }
+}

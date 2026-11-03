@@ -17,7 +17,15 @@ export type Quote = {
   close: number | null; var_abs: number | null; var_pct: number | null; volume: number | null; amount: number | null;
   trades: number | null; market: string; company: string | null; shares_outstanding: number | null; sector: string | null; market_cap_bs: number | null;
 };
-export type News = { id: number; url: string; title: string; source: string | null; published_at: string; summary: string | null; category: string | null; lang: string };
+export type News = { id: number; url: string; title: string; source: string | null; published_at: string; summary: string | null; category: string | null; lang: string;
+  title_es?: string | null; title_en?: string | null; orig_lang?: string };
+
+/** Titular en el idioma de la página (traducido por el robot); el resumen solo si ya está en ese idioma. */
+export function localizeNews<T extends News>(n: T, lang: "es" | "en"): T {
+  const t = lang === "en" ? n.title_en : n.title_es;
+  const src = (n.lang || "es").slice(0, 2);
+  return { ...n, orig_lang: src, title: t || n.title, summary: src === lang ? n.summary : null };
+}
 
 /** Lee todas las filas paginando (PostgREST devuelve máx. 1000 por consulta). */
 async function all<T>(build: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: unknown }>): Promise<T[]> {
@@ -67,14 +75,60 @@ export async function bvcSymbol(symbol: string) {
   return { meta, quotes };
 }
 
-export async function news(limit = 60, category?: string): Promise<News[]> {
+export type BvcEvent = { id: string; symbol: string; date: string; kind: string | null; title: string | null; url: string | null; source: string | null };
+/** Asambleas y eventos de un emisor (todas sus clases de acciones). */
+export async function bvcEvents(symbols: string[]): Promise<BvcEvent[]> {
+  if (!sb || !symbols.length) return [];
+  const { data, error } = await sb.from("bvc_events").select("*").in("symbol", symbols).order("date", { ascending: false }).limit(20);
+  return error ? [] : ((data as BvcEvent[]) ?? []);
+}
+
+/** Noticias etiquetadas con el símbolo (o con otra clase de la misma empresa). */
+export async function symbolNews(symbols: string[], lang: "es" | "en", limit = 12): Promise<News[]> {
+  if (!sb || !symbols.length) return [];
+  const { data, error } = await sb.from("news").select("*").overlaps("symbols", symbols).order("published_at", { ascending: false }).limit(limit);
+  return error ? [] : ((data as News[]) ?? []).map((n) => localizeNews(n, lang));
+}
+
+/** Clases de acciones de la misma empresa (p. ej. RST y RST.B) con su último cierre. */
+export async function companyClasses(company: string | null | undefined, symbol: string): Promise<Quote[]> {
+  if (!sb) return [];
+  if (!company) {
+    const { data } = await sb.from("bvc_latest").select("*").eq("symbol", symbol);
+    return (data as Quote[]) ?? [];
+  }
+  const { data: syms } = await sb.from("bvc_symbols").select("symbol,shares_outstanding,company").eq("company", company).eq("market", "RV");
+  const out: Quote[] = [];
+  for (const s of (syms ?? []) as { symbol: string; shares_outstanding: number | null; company: string }[]) {
+    const { data } = await sb.from("bvc_quotes").select("*").eq("symbol", s.symbol).gt("close", 0).order("date", { ascending: false }).limit(1);
+    const q = (data?.[0] as Quote | undefined);
+    if (q) out.push({ ...q, company: s.company, shares_outstanding: s.shares_outstanding, sector: null, market_cap_bs: s.shares_outstanding && q.close ? s.shares_outstanding * q.close : null });
+  }
+  return out.sort((a, b) => a.symbol.localeCompare(b.symbol));
+}
+
+export type Informe = { id: string; file: string; url: string; thumb_url: string | null; title: string; date: string | null; lang: string; topic: string; summary: string | null; pages: number | null; size: number | null; created_at: string };
+export async function informes(): Promise<Informe[]> {
+  if (!sb) return [];
+  const { data, error } = await sb.from("informes").select("id,file,url,thumb_url,title,date,lang,topic,summary,pages,size,created_at").order("date", { ascending: false, nullsFirst: false }).limit(1000);
+  return error ? [] : ((data as Informe[]) ?? []);
+}
+
+/** URL pública del informe PDF de una acción (lo genera el robot «reportes» cada día). */
+export function stockReportUrl(symbol: string, lang: "es" | "en", version?: string | null): string | null {
+  if (!url) return null;
+  return `${url.replace(/\/$/, "")}/storage/v1/object/public/reportes/acciones/${encodeURIComponent(symbol)}_${lang}.pdf${version ? `?v=${version}` : ""}`;
+}
+
+export async function news(limit = 60, category?: string, lang?: "es" | "en"): Promise<News[]> {
   if (!sb) return [];
   let q = sb.from("news").select("*").order("published_at", { ascending: false }).limit(limit);
   // categorías unificadas: cambiario y precios → economía; sanciones → política
   const ALIAS: Record<string, string[]> = { economia: ["economia", "cambiario", "precios"], politica: ["politica", "sanciones"] };
   if (category) q = q.in("category", ALIAS[category] ?? [category]);
   const { data } = await q;
-  return (data as News[]) ?? [];
+  const rows = (data as News[]) ?? [];
+  return lang ? rows.map((n) => localizeNews(n, lang)) : rows;
 }
 
 export type Trade = { year: number; flow: string; partner_code: number; partner: string; hs2: string; hs2_desc: string | null; value_usd: number };

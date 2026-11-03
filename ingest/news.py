@@ -132,8 +132,8 @@ def cleanup() -> int:
     from .common import delete, select
     since = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=45)).isoformat()
     ve = {f["name"] for f in load_feeds() if f.get("kind") == "medio" and not f.get("filter", True)}
-    bad = [x["url"] for x in select("news", {"select": "url,title,summary,source", "published_at": f"gte.{since}"})
-           if not is_relevant(x["title"], clean_summary(x.get("summary"), x["title"]), x.get("source") not in ve)]
+    bad = [x["url"] for x in select("news", {"select": "url,title,summary,source,symbols", "published_at": f"gte.{since}"})
+           if not x.get("symbols") and not is_relevant(x["title"], clean_summary(x.get("summary"), x["title"]), x.get("source") not in ve)]
     for u in bad:
         try:
             delete("news", {"url": f"eq.{u}"})
@@ -195,6 +195,12 @@ def run():
             r.rows += recategorize()
         except Exception as e:  # noqa: BLE001
             r.log.info("recategorizar: %s", e)
+        try:  # titulares en español e inglés para la web
+            from .translate import run as translate
+            n = translate()
+            r.log.info("Titulares traducidos: %d", n)
+        except Exception as e:  # noqa: BLE001
+            r.note(f"Traducción: {str(e)[:120]}")
         ok = [h for h in health if h["last_ok"]]
         upsert("news_sources", ok, "name")
         upsert("news_sources", [{k: v for k, v in h.items() if k != "last_ok"} for h in health if not h["last_ok"]], "name")
