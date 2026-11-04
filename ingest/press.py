@@ -208,7 +208,7 @@ def parse_seniat(posts: list[dict]) -> tuple[list, list]:
 QUARTERS = {"primer": 1, "segundo": 2, "tercer": 3, "cuarto": 4}
 
 
-def parse_gdp(posts: list[dict]) -> list:
+def parse_gdp(posts: list[dict], with_url: bool = False) -> list:
     pts = {}
     for p in posts:
         text = f"{p['title']} {p['excerpt']}"
@@ -230,11 +230,11 @@ def parse_gdp(posts: list[dict]) -> list:
         v = es_num(g.group(2))
         if re.search(r"cay|contracci", g.group(1), re.I):
             v = -abs(v)
-        pts.setdefault(eom(y, qn * 3), v)
-    return sorted(pts.items())
+        pts.setdefault(eom(y, qn * 3), (v, p.get("url") or p.get("link")))
+    return sorted((d, v, u) if with_url else (d, v) for d, (v, u) in pts.items())
 
 
-def parse_inflation(posts: list[dict]) -> list:
+def parse_inflation(posts: list[dict], with_url: bool = False) -> list:
     """Inflación mensual anunciada por el BCV o la Presidencia antes de que salga la cifra en las fuentes habituales."""
     pts = {}
     mon = "|".join(MONTHS)
@@ -254,25 +254,32 @@ def parse_inflation(posts: list[dict]) -> list:
         y = int(p["date"][:4]) - (1 if mn > int(p["date"][5:7]) else 0)
         v = es_num(val)
         if v is not None and 0 < v < 100:
-            pts.setdefault(eom(y, mn), v)
-    return sorted(pts.items())
+            pts.setdefault(eom(y, mn), (v, p.get("url") or p.get("link")))
+    return sorted((d, v, u) if with_url else (d, v) for d, (v, u) in pts.items())
 
 
 def from_headlines(days: int = 4) -> int:
     """Datos oficiales anunciados en los titulares que ya captó el robot de noticias (PIB e inflación).
     Corre cada 20 minutos junto con las noticias: si llega la noticia, el dato entra a la página al mismo tiempo."""
     since = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=days)).isoformat()
-    rows = select("news", {"select": "title,title_es,summary,published_at", "published_at": f"gte.{since}"})
-    posts = [{"title": x.get("title_es") or x["title"], "excerpt": x.get("summary") or "", "date": x["published_at"][:10]} for x in rows]
+    rows = select("news", {"select": "url,source,title,title_es,summary,published_at", "published_at": f"gte.{since}", "order": "published_at"})
+    posts = [{"title": x.get("title_es") or x["title"], "excerpt": x.get("summary") or "", "date": x["published_at"][:10],
+              "url": x.get("url"), "source": x.get("source")} for x in rows]
     # solo cifras de Venezuela (fuera titulares de PIB o inflación de otros países)
     other = re.compile(r"argentin|colombi|chile|per[uú]\b|m[eé]xic|brasil|ecuador|estados unidos|ee\.? ?uu|eurozona|zona euro|china|espa[nñ]a|alemania|jap[oó]n|reino unido", re.I)
     posts = [p for p in posts if re.search(r"venezuel|\bbcv\b|delcy|presidenta encargada", f"{p['title']} {p['excerpt']}", re.I)
              and not other.search(p["title"])]
     n = 0
+    # cada dato guarda en su fuente el enlace a la noticia (los avisos de Telegram lo usan)
     gdp_official = {x["date"] for x in select("observations", {"select": "date", "series_code": "eq.pib_real_var", "source": "eq.BCV"})}
-    n += save_obs("pib_real_var", [p for p in parse_gdp(posts) if p[0] not in gdp_official], "Anuncio oficial (BCV o Presidencia), vía prensa")
+    for d, v, u in parse_gdp(posts, with_url=True):
+        if d not in gdp_official:
+            n += save_obs("pib_real_var", [(d, v)], f"Anuncio oficial (BCV o Presidencia), vía prensa · {u}" if u else "Anuncio oficial (BCV o Presidencia), vía prensa")
     infl_official = {x["date"] for x in select("observations", {"select": "date", "series_code": "eq.inflacion_mensual", "source": "eq.BCV (vía Finanzas Digital)"})}
-    k = save_obs("inflacion_mensual", [p for p in parse_inflation(posts) if p[0] not in infl_official], "Anuncio oficial (BCV o Presidencia), vía prensa")
+    k = 0
+    for d, v, u in parse_inflation(posts, with_url=True):
+        if d not in infl_official:
+            k += save_obs("inflacion_mensual", [(d, v)], f"Anuncio oficial (BCV o Presidencia), vía prensa · {u}" if u else "Anuncio oficial (BCV o Presidencia), vía prensa")
     if k:
         from .inflation import derive_missing
         k += derive_missing()
@@ -348,14 +355,19 @@ def run(backfill: bool = False):
             posts = wp_posts("www.finanzasdigital.com", "BCV PIB trimestre", pages) + wp_posts("www.bancaynegocios.com", "PIB trimestre BCV", pages)
             posts += google_posts("BCV PIB trimestre creció")
             official = {x["date"] for x in select("observations", {"select": "date", "series_code": "eq.pib_real_var", "source": "eq.BCV"})}
-            r.rows += save_obs("pib_real_var", [p for p in parse_gdp(posts) if p[0] not in official], "Anuncio oficial (BCV o Presidencia), vía prensa")
+            for d, v, u in parse_gdp(posts, with_url=True):
+                if d not in official:
+                    r.rows += save_obs("pib_real_var", [(d, v)], f"Anuncio oficial (BCV o Presidencia), vía prensa · {u}" if u else "Anuncio oficial (BCV o Presidencia), vía prensa")
         except Exception as e:  # noqa: BLE001
             r.note(f"PIB: {e}")
         # inflación mensual anunciada (BCV o Presidencia) antes de que la publique la fuente habitual
         try:
             posts = google_posts("inflación mensual Venezuela BCV") + google_posts("presidenta inflación mensual Venezuela")
             have = {x["date"] for x in select("observations", {"select": "date", "series_code": "eq.inflacion_mensual", "source": "eq.BCV (vía Finanzas Digital)"})}
-            n = save_obs("inflacion_mensual", [p for p in parse_inflation(posts) if p[0] not in have], "Anuncio oficial (BCV o Presidencia), vía prensa")
+            n = 0
+            for d, v, u in parse_inflation(posts, with_url=True):
+                if d not in have:
+                    n += save_obs("inflacion_mensual", [(d, v)], f"Anuncio oficial (BCV o Presidencia), vía prensa · {u}" if u else "Anuncio oficial (BCV o Presidencia), vía prensa")
             if n:
                 from .inflation import derive_missing
                 n += derive_missing()

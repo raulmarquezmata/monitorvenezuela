@@ -1,5 +1,5 @@
 {
-  "_ayuda": "Reglas de alertas a Telegram. Tipos: 'umbral' (la serie CRUZA un valor), 'variacion' (cambio entre los dos últimos datos ≥ pct %), 'nuevo_dato' (sale un dato nuevo; min_dias limita series diarias), 'resumen_hora' (mensaje a una hora fija, hora de Venezuela), 'resumen_diario' (al cierre, 7:40 p. m.), 'acciones' (acción de la BVC que se mueve ≥ pct % con monto ≥ monto_min Bs), 'volumen' (monto negociado del día ≥ veces el promedio del año), 'noticia' (titular que coincide con el patrón; máximo max_dia al día), 'ofac' (nueva acción de OFAC sobre Venezuela), 'robots' (un robot falla dos veces seguidas). Para apagar una regla, bórrala o cambia su 'id'. 'cierre_semana' (viernes al cierre) y 'cierre_mes' (último día del mes): variación de la semana/mes y en el año. 'una_vez': mensaje único (para confirmar que el canal funciona). resumen_mercado: resumen de mercado (oficial, paralelo, euro, brecha, IBC día/semana, monto RV y RF en Bs y US$, riesgo país, Brent, Merey) a la 'hora' VET; dias_habiles=true omite fines de semana. Opcionales: adelanto (minutos antes de la hora en que ya se puede mandar) y ventana (minutos después de la hora en que deja de intentarlo). bvc_noticia y bvc_asamblea: noticias de cada acción y convocatorias a asambleas; salen junto con los movimientos fuertes en un solo mensaje «📊 BVC». informe: aviso cuando se publica un PDF nuevo en data/informes/.",
+  "_ayuda": "Reglas de alertas a Telegram. Tipos: 'umbral' (la serie CRUZA un valor), 'variacion' (cambio entre los dos últimos datos ≥ pct %), 'nuevo_dato' (sale un dato nuevo; min_dias limita series diarias), 'resumen_hora' (mensaje a una hora fija, hora de Venezuela), 'resumen_diario' (al cierre, 7:40 p. m.), 'acciones' (acción de la BVC que se mueve ≥ pct % con monto ≥ monto_min Bs), 'volumen' (monto negociado del día ≥ veces el promedio del año), 'noticia' (titular que coincide con el patrón; máximo max_dia al día), 'ofac' (nueva acción de OFAC sobre Venezuela), 'robots' (un robot falla dos veces seguidas). Para apagar una regla, bórrala o cambia su 'id'. 'cierre_semana' (viernes al cierre) y 'cierre_mes' (último día del mes): variación de la semana/mes y en el año. 'una_vez': mensaje único (para confirmar que el canal funciona). resumen_mercado: resumen de mercado (oficial, paralelo, euro, brecha, IBC día/semana, monto RV y RF en Bs y US$, riesgo país, Brent, Merey) a la 'hora' VET; dias_habiles=true omite fines de semana. Opcionales: adelanto (minutos antes de la hora en que ya se puede mandar) y ventana (minutos después de la hora en que deja de intentarlo). bvc_noticia y bvc_asamblea: noticias de cada acción y convocatorias a asambleas; salen junto con los movimientos fuertes en un solo mensaje «📊 BVC». informe: aviso cuando se publica un PDF nuevo en data/informes/. Formato: **negrita** y [texto](enlace); cada aviso lleva al final los enlaces a la fuente y a la página del Monitor.",
   "reglas": [
     {
       "id": "activacion_v3",
@@ -10,7 +10,7 @@
       "id": "buenos_dias",
       "tipo": "resumen_mercado",
       "hora": "09:00",
-      "texto": "☀️ Buenos días",
+      "texto": "☀️ **Buenos días**",
       "adelanto": 15,
       "ventana": 120
     },
@@ -19,14 +19,14 @@
       "tipo": "variacion",
       "serie": "usd_paralelo",
       "pct": 2,
-      "texto": "💵 Dólar paralelo se movió {cambio}% → Bs {valor} ({fecha})"
+      "texto": "💵 **Dólar paralelo** {flecha} {cambio}%\nBs **{valor}** · {fecha}"
     },
     {
       "id": "oficial_salto",
       "tipo": "variacion",
       "serie": "usd_bcv",
       "pct": 1.5,
-      "texto": "🏦 Dólar oficial BCV se movió {cambio}% → Bs {valor} ({fecha})"
+      "texto": "🏦 **Dólar oficial BCV** {flecha} {cambio}%\nBs **{valor}** · {fecha}"
     },
     {
       "id": "brecha_sube_20",
@@ -34,7 +34,7 @@
       "serie": "brecha_cambiaria",
       "op": ">",
       "valor": 20,
-      "texto": "⚠️ La brecha cambiaria superó 20%: {valor}% ({fecha})"
+      "texto": "⚠️ **La brecha cambiaria superó 20%**\nAhora: **{valor}%** · {fecha}"
     },
     {
       "id": "brecha_baja_10",
@@ -42,37 +42,37 @@
       "serie": "brecha_cambiaria",
       "op": "<",
       "valor": 10,
-      "texto": "✅ La brecha cambiaria bajó de 10%: {valor}% ({fecha})"
+      "texto": "✅ **La brecha cambiaria bajó de 10%**\nAhora: **{valor}%** · {fecha}"
     },
     {
       "id": "ibc_salto",
       "tipo": "variacion",
       "serie": "ibc",
       "pct": 3,
-      "texto": "📈 El IBC se movió {cambio}% → {valor} puntos ({fecha})"
+      "texto": "📈 **IBC** {flecha} {cambio}%\n**{valor} puntos** · {fecha}"
     },
     {
       "id": "accion_salto",
       "tipo": "acciones",
       "pct": 8,
       "monto_min": 50000,
-      "texto": "📊 {simbolo} {empresa}: {cambio}% → Bs {precio} ({fecha})"
+      "texto": "📊 **{simbolo}** {empresa} {flecha} {cambio}%\nBs **{precio}** · {fecha}"
     },
     {
       "id": "volumen_alto",
       "tipo": "volumen",
       "veces": 2,
-      "texto": "🔥 Volumen alto en la BVC: Bs {valor} millones, {veces}x el promedio del año y {veces20}x el de las últimas 20 sesiones ({fecha})"
+      "texto": "🔥 **Volumen alto en la BVC**\nBs **{valor} millones** · {fecha}\n{veces}x el promedio del año · {veces20}x el de las últimas 20 sesiones"
     },
     {
       "id": "bvc_noticia",
       "tipo": "bvc_noticia",
-      "texto": "📰 {simbolo}: {titulo} ({fuente})\n{url}"
+      "texto": "📰 **{simbolo}** · {titulo}\n{fuente}"
     },
     {
       "id": "bvc_asamblea",
       "tipo": "bvc_asamblea",
-      "texto": "🗓️ {simbolo}: {tipo} el {fecha} {url}"
+      "texto": "🗓️ **{simbolo}** convoca {tipo}\n{fecha}"
     },
     {
       "id": "bcv_publica",
@@ -95,7 +95,7 @@
         "pib_real_var",
         "pib_anual_var"
       ],
-      "texto": "🏛️ El BCV publicó y ya está en la página · {nombre}: {valor} {unidad} ({fecha})"
+      "texto": "🏛️ **El BCV publicó: {nombre}**\n**{valor} {unidad}** · {fecha}\nYa está en la página."
     },
     {
       "id": "reservas",
@@ -104,7 +104,7 @@
       "series": [
         "reservas_internacionales"
       ],
-      "texto": "🏛️ Reservas internacionales: {valor} {unidad} ({fecha})"
+      "texto": "🏛️ **Reservas internacionales**\n**{valor} {unidad}** · {fecha}"
     },
     {
       "id": "intervencion",
@@ -112,7 +112,7 @@
       "series": [
         "intervencion_bcv_mensual"
       ],
-      "texto": "💱 Intervención cambiaria · {nombre}: {valor} {unidad} ({fecha})"
+      "texto": "💱 **Intervención cambiaria** · {nombre}\n**{valor} {unidad}** · {fecha}"
     },
     {
       "id": "bancos",
@@ -121,7 +121,7 @@
         "cartera_credito",
         "depositos_totales"
       ],
-      "texto": "🏦 Salieron los balances bancarios y ya están en la página · {nombre}: {valor} {unidad} ({fecha})"
+      "texto": "🏦 **Salieron los balances bancarios**\n{nombre}: **{valor} {unidad}** · {fecha}"
     },
     {
       "id": "sunaval",
@@ -131,12 +131,12 @@
         "bvc_volumen_usd",
         "bolpriaven_monto"
       ],
-      "texto": "📑 Salió el informe mensual de SUNAVAL y ya está en la página · {nombre}: {valor} {unidad} ({fecha})"
+      "texto": "📑 **Salió el informe mensual de SUNAVAL**\n{nombre}: **{valor} {unidad}** · {fecha}"
     },
     {
       "id": "informe_nuevo",
       "tipo": "informe",
-      "texto": "📄 Nuevo informe publicado: {titulo}\n{url}"
+      "texto": "📄 **Nuevo informe publicado**\n{titulo}"
     },
     {
       "id": "momr",
@@ -145,7 +145,7 @@
         "petroleo_prod_opep_cd",
         "merey"
       ],
-      "texto": "🛢️ Salió el informe OPEP (MOMR) y ya está en la página · {nombre}: {valor} {unidad} ({fecha})"
+      "texto": "🛢️ **Salió el informe de la OPEP (MOMR)**\n{nombre}: **{valor} {unidad}** · {fecha}"
     },
     {
       "id": "exportaciones",
@@ -157,19 +157,19 @@
         "exportaciones_espejo",
         "importaciones_espejo"
       ],
-      "texto": "🚢 Comercio exterior actualizado · {nombre}: {valor} {unidad} ({fecha})"
+      "texto": "🚢 **Comercio exterior actualizado**\n{nombre}: **{valor} {unidad}** · {fecha}"
     },
     {
       "id": "ofac",
       "tipo": "ofac",
-      "texto": "🇺🇸 OFAC · {titulo} ({fecha})\n{url}"
+      "texto": "🇺🇸 **OFAC** · {titulo}\n{fecha}"
     },
     {
       "id": "noticia",
       "tipo": "noticia",
       "max_dia": 5,
       "patron": "OFAC|licencia general|sanci[oó]n|devalu|unificaci[oó]n cambiaria|FMI|\\bIMF\\b|reestructuraci[oó]n|bonos|eurobonos|Chevron|PDVSA (firma|acuerdo)|BCV (anuncia|aumenta|reduce|eleva|baja)|encaje|inflaci[oó]n de|salario m[ií]nimo|Citgo|default|Asamblea Nacional aprueba|ley de hidrocarburos",
-      "texto": "📰 {titulo}\n{fuente} · {url}"
+      "texto": "📰 **{titulo}**\n{fuente}"
     },
     {
       "id": "actividad",
@@ -178,117 +178,117 @@
         "recaudacion_seniat",
         "ipc_eeuu"
       ],
-      "texto": "🧾 Dato nuevo · {nombre}: {valor} {unidad} ({fecha})"
+      "texto": "🧾 **Dato nuevo: {nombre}**\n**{valor} {unidad}** · {fecha}"
     },
     {
       "id": "brent_salto",
       "tipo": "variacion",
       "serie": "brent",
       "pct": 5,
-      "texto": "🛢️ Brent se movió {cambio}% → US$ {valor} ({fecha})"
+      "texto": "🛢️ **Brent** {flecha} {cambio}%\nUS$ **{valor}** · {fecha}"
     },
     {
       "id": "wti_salto",
       "tipo": "variacion",
       "serie": "wti",
       "pct": 5,
-      "texto": "🛢️ WTI se movió {cambio}% → US$ {valor} ({fecha})"
+      "texto": "🛢️ **WTI** {flecha} {cambio}%\nUS$ **{valor}** · {fecha}"
     },
     {
       "id": "gas_salto",
       "tipo": "variacion",
       "serie": "henry_hub",
       "pct": 5,
-      "texto": "🔥 Gas Henry Hub se movió {cambio}% → US$ {valor}/MMBtu ({fecha})"
+      "texto": "🔥 **Gas Henry Hub** {flecha} {cambio}%\nUS$ **{valor}**/MMBtu · {fecha}"
     },
     {
       "id": "embi_salto",
       "tipo": "variacion",
       "serie": "embi_venezuela",
       "pct": 10,
-      "texto": "📉 El riesgo país (EMBI) se movió {cambio}% → {valor} pbs ({fecha})"
+      "texto": "📉 **El riesgo país (EMBI)** {flecha} {cambio}%\n**{valor}** pbs · {fecha}"
     },
     {
       "id": "mp_oro",
       "tipo": "variacion",
       "serie": "oro",
       "pct": 5,
-      "texto": "🌾 Oro se movió {cambio}% → US$ {valor} ({fecha})"
+      "texto": "🌐 **Oro** {flecha} {cambio}%\nUS$ **{valor}** · {fecha}"
     },
     {
       "id": "mp_plata",
       "tipo": "variacion",
       "serie": "plata",
       "pct": 5,
-      "texto": "🌾 Plata se movió {cambio}% → US$ {valor} ({fecha})"
+      "texto": "🌐 **Plata** {flecha} {cambio}%\nUS$ **{valor}** · {fecha}"
     },
     {
       "id": "mp_cobre",
       "tipo": "variacion",
       "serie": "cobre",
       "pct": 5,
-      "texto": "🌾 Cobre se movió {cambio}% → US$ {valor} ({fecha})"
+      "texto": "🌐 **Cobre** {flecha} {cambio}%\nUS$ **{valor}** · {fecha}"
     },
     {
       "id": "mp_aluminio",
       "tipo": "variacion",
       "serie": "aluminio",
       "pct": 5,
-      "texto": "🌾 Aluminio se movió {cambio}% → US$ {valor} ({fecha})"
+      "texto": "🌐 **Aluminio** {flecha} {cambio}%\nUS$ **{valor}** · {fecha}"
     },
     {
       "id": "mp_mineral_hierro",
       "tipo": "variacion",
       "serie": "mineral_hierro",
       "pct": 5,
-      "texto": "🌾 Mineral de hierro se movió {cambio}% → US$ {valor} ({fecha})"
+      "texto": "🌐 **Mineral de hierro** {flecha} {cambio}%\nUS$ **{valor}** · {fecha}"
     },
     {
       "id": "mp_cafe",
       "tipo": "variacion",
       "serie": "cafe",
       "pct": 5,
-      "texto": "🌾 Café se movió {cambio}% → US$ {valor} ({fecha})"
+      "texto": "🌾 **Café** {flecha} {cambio}%\nUS$ **{valor}** · {fecha}"
     },
     {
       "id": "mp_cacao",
       "tipo": "variacion",
       "serie": "cacao",
       "pct": 5,
-      "texto": "🌾 Cacao se movió {cambio}% → US$ {valor} ({fecha})"
+      "texto": "🌾 **Cacao** {flecha} {cambio}%\nUS$ **{valor}** · {fecha}"
     },
     {
       "id": "mp_azucar",
       "tipo": "variacion",
       "serie": "azucar",
       "pct": 5,
-      "texto": "🌾 Azúcar se movió {cambio}% → US$ {valor} ({fecha})"
+      "texto": "🌾 **Azúcar** {flecha} {cambio}%\nUS$ **{valor}** · {fecha}"
     },
     {
       "id": "mp_maiz_cbot",
       "tipo": "variacion",
       "serie": "maiz_cbot",
       "pct": 5,
-      "texto": "🌾 Maíz se movió {cambio}% → US$ {valor} ({fecha})"
+      "texto": "🌾 **Maíz** {flecha} {cambio}%\nUS$ **{valor}** · {fecha}"
     },
     {
       "id": "mp_trigo_kc",
       "tipo": "variacion",
       "serie": "trigo_kc",
       "pct": 5,
-      "texto": "🌾 Trigo se movió {cambio}% → US$ {valor} ({fecha})"
+      "texto": "🌾 **Trigo** {flecha} {cambio}%\nUS$ **{valor}** · {fecha}"
     },
     {
       "id": "mp_soya_cbot",
       "tipo": "variacion",
       "serie": "soya_cbot",
       "pct": 5,
-      "texto": "🌾 Soya se movió {cambio}% → US$ {valor} ({fecha})"
+      "texto": "🌾 **Soya** {flecha} {cambio}%\nUS$ **{valor}** · {fecha}"
     },
     {
       "id": "robots",
       "tipo": "robots",
-      "texto": "🤖 El robot «{robot}» falló dos veces seguidas. Revisa Metodología → Robots."
+      "texto": "🤖 **El robot «{robot}» falló dos veces seguidas**\nRevisa su estado en Metodología → Robots."
     },
     {
       "id": "cierre_semana",
@@ -306,7 +306,7 @@
         "merey",
         "oro"
       ],
-      "texto": "🗓️ Cierre de la semana · {fecha}"
+      "texto": "🗓️ **Cierre de la semana** · {fecha}"
     },
     {
       "id": "cierre_mes",
@@ -326,14 +326,14 @@
         "inflacion_mensual",
         "liquidez_m2"
       ],
-      "texto": "📅 Cierre del mes · {fecha}"
+      "texto": "📅 **Cierre del mes** · {fecha}"
     },
     {
       "id": "cierre_dia",
       "tipo": "resumen_mercado",
       "hora": "16:30",
       "dias_habiles": true,
-      "texto": "📊 Cierre del día",
+      "texto": "📊 **Cierre del día**",
       "adelanto": 10,
       "ventana": 180
     }

@@ -178,7 +178,10 @@ def run(backfill: bool = False):
         todo = list(reversed(reports[:48])) if backfill else reports[:2]
         for url, period in todo:
             try:
-                data = parse_report(fetch(url, timeout=120).content, period)
+                content = fetch(url, timeout=120).content
+                from .common import archive
+                archive("sunaval", url.rsplit("/", 1)[-1], content)
+                data = parse_report(content, period)
             except Exception as e:  # noqa: BLE001
                 r.note(f"{period}: {e}")
                 continue

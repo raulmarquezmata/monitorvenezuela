@@ -207,6 +207,36 @@ def redact(text: str) -> str:
             text = text.replace(v, "***")
     return text
 
+# ---------------------------------------------------------------- archivo de documentos en el repositorio
+ARCHIVE = __import__("pathlib").Path(__file__).resolve().parent.parent / "data" / "archivo"
+
+
+def archive_name(filename: str) -> str:
+    import re as _re
+    return _re.sub(r"[^\w.\-() ]+", "_", filename).strip() or "documento"
+
+
+def archive(folder: str, filename: str, content: bytes, max_mb: float = 20) -> bool:
+    """Guarda en data/archivo/<carpeta>/ el documento que descargó un robot (informe de SUNAVAL, MOMR de la OPEP,
+    archivos del BCV…). Al final de la corrida, GitHub Actions lo sube al repositorio. Si el archivo ya existe igual,
+    no hace nada; si cambió (el BCV actualiza sus Excel con el mismo nombre), lo reemplaza y el historial de git
+    conserva la versión anterior."""
+    if not content or len(content) > max_mb * 1024 * 1024:
+        return False
+    name = archive_name(filename)
+    path = ARCHIVE / folder / name
+    try:
+        if path.exists() and path.read_bytes() == content:
+            return False
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(content)
+        log.info("Archivado: %s/%s", folder, name)
+        return True
+    except OSError as e:
+        log.warning("No se pudo archivar %s: %s", name, e)
+        return False
+
+
 # ---------------------------------------------------------------- Supabase Storage (PDF)
 def ensure_bucket(bucket: str) -> None:
     """Crea el depósito público si no existe (informes y reportes por acción)."""

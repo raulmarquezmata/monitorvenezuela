@@ -157,6 +157,8 @@ def run(backfill: bool = False):
                 continue
             done.add(fn.__name__)
             upsert("source_files", [{"url": u, "page": "BCV", "filename": u.rsplit("/", 1)[-1], "last_seen": now}], "url")
+            from .common import archive
+            archive("bcv", u.rsplit("/", 1)[-1], content)
             for code, pts in series.items():
                 r.rows += save_obs(code, pts, "BCV")
         for name, f in changed.items():  # solo avisa si ningún otro archivo sirvió para esa serie

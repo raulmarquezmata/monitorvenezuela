@@ -22,6 +22,59 @@ SITE = os.environ.get("SITE_URL", "")
 VET = dt.timezone(dt.timedelta(hours=-4))
 
 
+# ---------------------------------------------------------------- formato de los mensajes
+# Los mensajes se arman en texto simple con dos marcas: **negrita** y [texto](enlace).
+# pretty() los convierte al HTML de Telegram; plain() los deja legibles para el correo.
+SEP = "━━━━━━━━━━━━━━"
+CAT_PAGE = {"mercados": "/es/bvc", "noticias": "/es/noticias"}
+BCV_STATS = "https://www.bcv.org.ve/estadisticas"
+
+
+def site(path: str = "") -> str:
+    return (SITE.rstrip("/") + path) if SITE else ""
+
+
+def lk(label: str, url: str | None) -> str:
+    return f"[{label}]({url})" if url else ""
+
+
+def foot(*links: str) -> str:
+    items = [x for x in links if x]
+    return ("\n\n🔗 " + "  ·  ".join(items)) if items else ""
+
+
+def arrow(v: float | None) -> str:
+    return "" if v is None else ("🟢▲" if v > 0 else "🔴▼" if v < 0 else "⚪")
+
+
+def series_page(m: dict) -> str:
+    cat = m.get("category")
+    return site(CAT_PAGE.get(cat, f"/es/indicadores/{cat}")) if cat else site()
+
+
+def pretty(text: str) -> str:
+    """Texto con **negrita** y [enlaces](url) → HTML de Telegram (escapa todo lo demás)."""
+    import html
+    import re
+    t = html.escape(text, quote=False)
+    t = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", t)
+    t = re.sub(r"\[([^\]]+)\]\((https?://[^\s)]+)\)", lambda m: f'<a href="{m.group(2).replace(chr(34), "%22")}">{m.group(1)}</a>', t)
+    # enlaces sueltos (p. ej. en textos viejos): se muestran como «Abrir ↗»
+    t = re.sub(r"(?m)^(https?://\S+)$", r'<a href="\1">Abrir ↗</a>', t)
+    lines = t.split("\n")
+    if "<b>" not in lines[0]:
+        lines[0] = f"<b>{lines[0]}</b>"
+    if len(lines) > 1 and lines[1].strip() != SEP:
+        lines.insert(1, SEP)
+    return "\n".join(lines)
+
+
+def plain(text: str) -> str:
+    import re
+    t = re.sub(r"\*\*(.+?)\*\*", r"\1", text)
+    return re.sub(r"\[([^\]]+)\]\((https?://[^\s)]+)\)", r"\1: \2", t)
+
+
 DIAS = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]
 MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sept", "oct", "nov", "dic"]
 MERCADO = ["usd_bcv", "usd_paralelo", "eur_bcv", "brecha_cambiaria", "ibc", "bvc_monto", "bvc_monto_rf", "embi_venezuela", "brent", "merey"]
@@ -47,7 +100,9 @@ def market_summary(title: str, hist: dict, today: dt.date) -> str:
         return None if not b else (a / b - 1) * 100
 
     def sg(v, dec=2, suf="%"):
-        return "—" if v is None else f"{'+' if v > 0 else ''}{fmt(v, dec)}{suf}"
+        if v is None:
+            return "—"
+        return f"{arrow(v)} {'+' if v > 0 else ''}{fmt(v, dec)}{suf}"
 
     def wk(d):  # lunes de la semana del dato (el lunes por la mañana mide la semana anterior)
         x = dt.date.fromisoformat(d)
@@ -56,49 +111,50 @@ def market_summary(title: str, hist: dict, today: dt.date) -> str:
     def tag(d):  # fecha del dato si no es de hoy
         return "" if d == today.isoformat() else f" ({int(d[8:10])}-{MESES[int(d[5:7]) - 1]})"
 
-    out = [f"{title} · {DIAS[today.weekday()]} {today.day} {MESES[today.month - 1]} {today.year}"]
+    out = [f"{title} · {DIAS[today.weekday()]} {today.day} {MESES[today.month - 1]} {today.year}", SEP, "💱 **TIPO DE CAMBIO**"]
     for code, label, dec, emoji in (("usd_bcv", "Dólar oficial", 2, "💵"), ("usd_paralelo", "Dólar paralelo", 2, "💵"), ("eur_bcv", "Euro oficial", 2, "💶")):
         x = last(code)
         if x:
             p = hist[code][-2] if len(hist[code]) > 1 else None
             w = before(code, wk(x[0]))
-            out.append(f"{emoji} {label}: Bs {fmt(x[1], dec)}{tag(x[0])} · día {sg(pct(x[1], p[1]) if p else None)} · semana {sg(pct(x[1], w[1]) if w else None)}")
+            out.append(f"{emoji} {label}: **Bs {fmt(x[1], dec)}**{tag(x[0])}")
+            out.append(f"      día {sg(pct(x[1], p[1]) if p else None)}   semana {sg(pct(x[1], w[1]) if w else None)}")
     x = last("brecha_cambiaria")
     if x:
         p = hist["brecha_cambiaria"][-2] if len(hist["brecha_cambiaria"]) > 1 else None
-        out.append(f"↔️ Brecha: {fmt(x[1], 1)}%{tag(x[0])} · día {sg(x[1] - p[1] if p else None, 1, ' pp')}")
+        out.append(f"↔️ Brecha: **{fmt(x[1], 1)}%**{tag(x[0])}   día {sg(x[1] - p[1] if p else None, 1, ' pp')}")
+    out += ["", "📈 **BOLSA DE CARACAS**"]
     x = last("ibc")
     if x:
         p = hist["ibc"][-2] if len(hist["ibc"]) > 1 else None
         w = before("ibc", wk(x[0]))
-        out.append(f"📈 IBC: {fmt(x[1], 2)} pts{tag(x[0])} · día {sg(pct(x[1], p[1]) if p else None)} · semana {sg(pct(x[1], w[1]) if w else None)}")
-    for code, label in (("bvc_monto", "Monto renta variable"), ("bvc_monto_rf", "Monto renta fija")):
+        out.append(f"IBC: **{fmt(x[1], 2)} pts**{tag(x[0])}")
+        out.append(f"      día {sg(pct(x[1], p[1]) if p else None)}   semana {sg(pct(x[1], w[1]) if w else None)}")
+    for code, label in (("bvc_monto", "Renta variable"), ("bvc_monto_rf", "Renta fija")):
         x = last(code)
         if x and x[1]:
             of = before("usd_bcv", (dt.date.fromisoformat(x[0]) + dt.timedelta(days=1)).isoformat())
             pa = before("usd_paralelo", (dt.date.fromisoformat(x[0]) + dt.timedelta(days=1)).isoformat())
-            usd = []
-            if of:
-                usd.append(f"US$ {fmt(x[1] / of[1], 0)} al oficial")
-            if pa:
-                usd.append(f"US$ {fmt(x[1] / pa[1], 0)} al paralelo")
-            out.append(f"💰 {label}: Bs {fmt(x[1], 0)}{tag(x[0])}" + (f" ({' · '.join(usd)})" if usd else ""))
+            out.append(f"💰 {label}: **Bs {fmt(x[1], 0)}**{tag(x[0])}")
+            usd = [f"US$ {fmt(x[1] / r[1], 0)} {n}" for r, n in ((of, "oficial"), (pa, "paralelo")) if r]
+            if usd:
+                out.append("      " + " · ".join(usd))
+    out += ["", "🌎 **RIESGO Y PETRÓLEO**"]
     x = last("embi_venezuela")
     if x:
         p = hist["embi_venezuela"][-2] if len(hist["embi_venezuela"]) > 1 else None
         w = before("embi_venezuela", (dt.date.fromisoformat(x[0]) - dt.timedelta(days=6)).isoformat())
-        out.append(f"📉 Riesgo país (EMBI): {fmt(x[1], 0)} pbs{tag(x[0])} · día {sg(x[1] - p[1] if p else None, 0, ' pbs')} · semana {sg(pct(x[1], w[1]) if w else None)}")
+        out.append(f"📉 Riesgo país (EMBI): **{fmt(x[1], 0)} pbs**{tag(x[0])}")
+        out.append(f"      día {sg(x[1] - p[1] if p else None, 0, ' pbs')}   semana {sg(pct(x[1], w[1]) if w else None)}")
     x = last("brent")
     if x:
         p = hist["brent"][-2] if len(hist["brent"]) > 1 else None
-        out.append(f"🛢️ Brent: US$ {fmt(x[1], 2)}{tag(x[0])} · día {sg(pct(x[1], p[1]) if p else None)}")
+        out.append(f"🛢️ Brent: **US$ {fmt(x[1], 2)}**{tag(x[0])}   día {sg(pct(x[1], p[1]) if p else None)}")
     x = last("merey")
     if x:
         p = hist["merey"][-2] if len(hist["merey"]) > 1 else None
-        out.append(f"🛢️ Merey ({MESES[int(x[0][5:7]) - 1]}): US$ {fmt(x[1], 2)} · mes {sg(pct(x[1], p[1]) if p else None)}")
-    if SITE:
-        out.append(SITE)
-    return "\n".join(out)
+        out.append(f"🛢️ Merey ({MESES[int(x[0][5:7]) - 1]}): **US$ {fmt(x[1], 2)}**   mes {sg(pct(x[1], p[1]) if p else None)}")
+    return "\n".join(out) + foot(lk("Abrir el Monitor", site("/es")), lk("Tipo de cambio", site("/es/indicadores/cambiario")), lk("BVC", site("/es/bvc")))
 
 
 def gather_extra(rules: list[dict], daily: bool = False) -> dict:
@@ -133,9 +189,14 @@ def gather_extra(rules: list[dict], daily: bool = False) -> dict:
             ex["bvc_events"] = []
     if "informe" in tipos:
         try:
-            ex["informes"] = select("informes", {"select": "id,title,date,topic,lang,created_at", "order": "created_at.desc", "limit": 30})
+            ex["informes"] = select("informes", {"select": "id,title,date,topic,lang,created_at,url", "order": "created_at.desc", "limit": 30})
         except Exception:  # noqa: BLE001
             ex["informes"] = []
+    if "nuevo_dato" in tipos:  # documentos publicados (BCV, SUNAVAL, OPEP) para enlazarlos en los avisos
+        try:
+            ex["files"] = select("source_files", {"select": "url,page,filename,first_seen,last_seen", "order": "last_seen.desc", "limit": 200})
+        except Exception:  # noqa: BLE001
+            ex["files"] = []
     if "ofac" in tipos:
         ex["ofac"] = select("ofac_actions", {"select": "url,date,title", "order": "date.desc", "limit": 10})
     if "robots" in tipos:
@@ -153,7 +214,57 @@ def fmt(v: float, dec: int = 2) -> str:
 
 
 def last_two(code: str) -> list[dict]:
-    return select("observations", {"select": "date,value", "series_code": f"eq.{code}", "order": "date.desc", "limit": 2})[:2]
+    return select("observations", {"select": "date,value,source", "series_code": f"eq.{code}", "order": "date.desc", "limit": 2})[:2]
+
+
+def fecha_txt(d: str, freq: str | None = None) -> str:
+    """2026-11-03 → 3 nov 2026; datos mensuales → oct 2026; trimestrales → III trim. 2026; anuales → 2026."""
+    try:
+        x = dt.date.fromisoformat(d[:10])
+    except ValueError:
+        return d
+    if freq == "M":
+        return f"{MESES[x.month - 1]} {x.year}"
+    if freq == "Q":
+        return f"{['I', 'II', 'III', 'IV'][(x.month - 1) // 3]} trim. {x.year}"
+    if freq == "A":
+        return str(x.year)
+    return f"{x.day} {MESES[x.month - 1]} {x.year}"
+
+
+# palabras del nombre del archivo del BCV que corresponden a cada serie (para enlazar el archivo exacto)
+BCV_FILE_HINTS = {"pib": "pib", "reservas": "reserva", "liquidez": "liquidez", "base_monetaria": "base", "cuenta_corriente": "balanza",
+                  "exportaciones": "balanza", "importaciones": "balanza", "intervencion": "intervenc", "encaje": "encaje", "tasa_": "tasa"}
+ARCHIVE_PAGE = {"sunaval": ("SUNAVAL mensual", "sunaval"), "momr": ("OPEP MOMR", "opep-momr")}
+
+
+def source_links(rule: dict, code: str, ob: dict, m: dict, extra: dict) -> str:
+    """Enlaces de un dato nuevo: el documento o la noticia de donde salió, una copia archivada si la hay y la página del Monitor."""
+    import re
+    src = ob.get("source") or ""
+    links = []
+    url = re.search(r"https?://\S+", src)
+    if url:  # anuncio tomado de la prensa: enlaza la noticia
+        links.append(lk("Ver la noticia", url.group(0)))
+    elif rule["id"] in ARCHIVE_PAGE:  # SUNAVAL, OPEP: el informe original y la copia guardada en el repositorio
+        page, folder = ARCHIVE_PAGE[rule["id"]]
+        f = next((x for x in extra.get("files", []) if x.get("page") == page), None)
+        if f:
+            links.append(lk("Informe original", f["url"]))
+            repo = os.environ.get("GITHUB_REPOSITORY")
+            from urllib.parse import quote
+            from .common import ARCHIVE, archive_name
+            name = archive_name(f["filename"])
+            if repo and (ARCHIVE / folder / name).exists():
+                links.append(lk("Copia archivada", f"https://github.com/{repo}/blob/main/data/archivo/{folder}/{quote(name)}"))
+    elif src.startswith("BCV"):  # el archivo exacto que publicó el BCV, si se reconoce
+        hint = next((v for k, v in BCV_FILE_HINTS.items() if code.startswith(k)), None)
+        f = next((x for x in extra.get("files", []) if x.get("page") == "BCV" and hint and hint in x["filename"].lower()), None)
+        links.append(lk("Archivo del BCV", f["url"]) if f else lk("Estadísticas del BCV", m.get("source_url") or BCV_STATS))
+    if not links and m.get("source_url"):
+        links.append(lk(f"Fuente: {m.get('source') or 'ver'}", m["source_url"]))
+    links.append(lk("Ver en el Monitor", series_page(m)))
+    return foot(*links)
 
 
 def evaluate(rules: list[dict], meta: dict[str, dict], data: dict[str, list[dict]], daily: bool, extra: dict | None = None) -> list[tuple[str, str]]:
@@ -174,13 +285,16 @@ def evaluate(rules: list[dict], meta: dict[str, dict], data: dict[str, list[dict
                 now_ok = cur["value"] > lim if op == ">" else cur["value"] < lim
                 was_ok = prev["value"] > lim if op == ">" else prev["value"] < lim
                 if now_ok and not was_ok:
-                    out.append((f"{rule['id']}:{cur['date']}", rule["texto"].format(valor=fmt(cur["value"], dec), fecha=cur["date"], cambio="")))
+                    out.append((f"{rule['id']}:{cur['date']}", rule["texto"].format(valor=fmt(cur["value"], dec), fecha=fecha_txt(cur["date"]), cambio="", flecha="")
+                                + foot(lk(f"Fuente: {m.get('source') or 'ver'}", m.get("source_url")), lk("Ver en el Monitor", series_page(m)))))
             else:
                 if prev["value"]:
                     ch = (cur["value"] / prev["value"] - 1) * 100
                     if abs(ch) >= rule["pct"]:
                         out.append((f"{rule['id']}:{cur['date']}", rule["texto"].format(
-                            valor=fmt(cur["value"], dec), fecha=cur["date"], cambio=("+" if ch > 0 else "") + fmt(ch, 1))))
+                            valor=fmt(cur["value"], dec), fecha=fecha_txt(cur["date"]), cambio=("+" if ch > 0 else "") + fmt(ch, 1), flecha=arrow(ch),
+                            anterior=fmt(prev["value"], dec))
+                            + foot(lk(f"Fuente: {m.get('source') or 'ver'}", m.get("source_url")), lk("Ver en el Monitor", series_page(m)))))
         elif t == "nuevo_dato":
             for code in rule["series"]:
                 obs = data.get(code, [])
@@ -188,7 +302,8 @@ def evaluate(rules: list[dict], meta: dict[str, dict], data: dict[str, list[dict
                     m = meta.get(code, {})
                     out.append((f"{rule['id']}:{code}:{obs[0]['date']}", rule["texto"].format(
                         nombre=m.get("name_es", code), valor=fmt(obs[0]["value"], min(m.get("decimals", 2), 2)),
-                        unidad=m.get("unit_es", ""), fecha=obs[0]["date"])))
+                        unidad=m.get("unit_es", ""), fecha=fecha_txt(obs[0]["date"], m.get("frequency")))
+                        + source_links(rule, code, obs[0], m, extra)))
         elif t == "resumen_hora":
             # mensaje a una hora fija (p. ej. 08:00 VET): sale en la primera corrida después de esa hora
             now = dt.datetime.now(VET)
@@ -231,25 +346,30 @@ def evaluate(rules: list[dict], meta: dict[str, dict], data: dict[str, list[dict
                     continue  # salto de varias veces el precio: casi seguro un split o reverse split, no un movimiento de mercado
                 if v is not None and abs(v) >= rule["pct"] and (q.get("amount") or 0) >= rule.get("monto_min", 0):
                     out.append((f"{rule['id']}:{q['symbol']}:{q['date']}", rule["texto"].format(
-                        simbolo=q["symbol"], empresa=q.get("company") or "", cambio=("+" if v > 0 else "") + fmt(v, 2),
-                        precio=fmt(q.get("close") or 0, 2), fecha=q["date"])))
+                        simbolo=q["symbol"], empresa=q.get("company") or "", cambio=("+" if v > 0 else "") + fmt(v, 2), flecha=arrow(v),
+                        precio=fmt(q.get("close") or 0, 2), fecha=fecha_txt(q["date"]))
+                        + foot(lk("Ver la acción", site(f"/es/bvc/{q['symbol']}")))))
         elif t == "bvc_noticia":
             for n in extra.get("bvc_news", []):
                 syms = ", ".join(n.get("symbols") or [])
+                first = (n.get("symbols") or [""])[0]
                 out.append((f"{rule['id']}:{n['url'][-120:]}", rule["texto"].format(
-                    simbolo=syms, titulo=n.get("title_es") or n["title"], fuente=n.get("source") or "", url=n["url"])))
+                    simbolo=syms, titulo=n.get("title_es") or n["title"], fuente=n.get("source") or "", url="")
+                    + foot(lk("Leer la noticia", n["url"]), lk("Ficha de la acción", site(f"/es/bvc/{first}") if first else ""))))
         elif t == "bvc_asamblea":
             for e in extra.get("bvc_events", []):
                 d = dt.date.fromisoformat(e["date"])
                 out.append((f"{rule['id']}:{e['id']}", rule["texto"].format(
                     simbolo=e["symbol"], tipo={"ordinaria": "Asamblea ordinaria", "extraordinaria": "Asamblea extraordinaria"}.get(e.get("kind"), "Asamblea de accionistas"),
-                    fecha=f"{DIAS[d.weekday()]} {d.day} {MESES[d.month - 1]} {d.year}", url=e.get("url") or "")))
+                    fecha=f"{DIAS[d.weekday()]} {d.day} {MESES[d.month - 1]} {d.year}", url="")
+                    + foot(lk("Ver la convocatoria", e.get("url")), lk("Ficha de la acción", site(f"/es/bvc/{e['symbol']}")))))
         elif t == "informe":
             for x in extra.get("informes", []):
                 if (x.get("created_at") or "") < (dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=3)).isoformat():
                     continue
-                link = f"{SITE.rstrip('/')}/{'en' if x.get('lang') == 'en' else 'es'}/informes" if SITE else ""
-                out.append((f"{rule['id']}:{x['id']}", rule["texto"].format(titulo=x.get("title") or x["id"], url=link).strip()))
+                link = site(f"/{'en' if x.get('lang') == 'en' else 'es'}/informes")
+                out.append((f"{rule['id']}:{x['id']}", rule["texto"].format(titulo=x.get("title") or x["id"], url="").strip()
+                            + foot(lk("Abrir el informe (PDF)", x.get("url")), lk("Todos los informes", link))))
         elif t == "volumen":
             pts = extra.get("monto", [])
             if len(pts) > 25:
@@ -260,21 +380,25 @@ def evaluate(rules: list[dict], meta: dict[str, dict], data: dict[str, list[dict
                 if avg_y and last["value"] >= rule["veces"] * avg_y:
                     out.append((f"{rule['id']}:{last['date']}", rule["texto"].format(
                         valor=fmt(last["value"] / 1e6, 1), veces=fmt(last["value"] / avg_y, 1),
-                        veces20=fmt(last["value"] / avg_20 if avg_20 else 0, 1), fecha=last["date"])))
+                        veces20=fmt(last["value"] / avg_20 if avg_20 else 0, 1), fecha=fecha_txt(last["date"]))
+                        + foot(lk("Ver la BVC", site("/es/bvc")))))
         elif t == "noticia":
             import re as _re
             rx = _re.compile(rule["patron"], _re.I)
             for n in extra.get("news", []):
                 if rx.search(n["title"]):
-                    out.append((f"{rule['id']}:{n['url'][-120:]}", rule["texto"].format(titulo=n["title"], fuente=n.get("source") or "", url=n["url"])))
+                    out.append((f"{rule['id']}:{n['url'][-120:]}", rule["texto"].format(titulo=n.get("title_es") or n["title"], fuente=n.get("source") or "", url="")
+                                + foot(lk("Leer la noticia", n["url"]), lk("Más noticias", site("/es/noticias")))))
         elif t == "ofac":
             for a in extra.get("ofac", []):
-                out.append((f"{rule['id']}:{a['url'][-120:]}", rule["texto"].format(titulo=a["title"], fecha=a["date"], url=a["url"])))
+                out.append((f"{rule['id']}:{a['url'][-120:]}", rule["texto"].format(titulo=a["title"], fecha=fecha_txt(a["date"]), url="")
+                            + foot(lk("Ver en OFAC", a["url"]))))
         elif t == "robots":
             for j in extra.get("failing", []):
-                out.append((f"{rule['id']}:{j}:{today_caracas().isoformat()}", rule["texto"].format(robot=j)))
+                out.append((f"{rule['id']}:{j}:{today_caracas().isoformat()}", rule["texto"].format(robot=j)
+                            + foot(lk("Estado de los robots", site("/es/datos")))))
         elif t == "una_vez":
-            out.append((f"{rule['id']}:1", rule["texto"] + (f"\n{SITE}" if SITE else "")))
+            out.append((f"{rule['id']}:1", rule["texto"] + foot(lk("Abrir el Monitor", site("/es")))))
         elif t in ("cierre_semana", "cierre_mes") and daily:
             hoy = today_caracas()
             if t == "cierre_semana" and hoy.weekday() != 4:
@@ -302,12 +426,10 @@ def evaluate(rules: list[dict], meta: dict[str, dict], data: dict[str, list[dict
                     if b is None or (not pct and not b):
                         return "—"
                     v = last - b if pct else (last / b - 1) * 100
-                    return f"{'+' if v > 0 else ''}{fmt(v, 1)}{' pp' if pct else '%'}"
-                lines.append(f"• {m.get('name_es', code)}: {fmt(last, min(m.get('decimals', 2), 2))} {m.get('unit_es', '')} · "
-                             f"{'semana' if t == 'cierre_semana' else 'mes'} {ch(base)} · año {ch(y0)}")
-            if SITE:
-                lines.append(SITE)
-            out.append((f"{rule['id']}:{hoy.isoformat()}", "\n".join(lines)))
+                    return f"{arrow(v)} {'+' if v > 0 else ''}{fmt(v, 1)}{' pp' if pct else '%'}"
+                lines.append(f"• {m.get('name_es', code)}: **{fmt(last, min(m.get('decimals', 2), 2))} {m.get('unit_es', '')}**")
+                lines.append(f"      {'semana' if t == 'cierre_semana' else 'mes'} {ch(base)}   año {ch(y0)}")
+            out.append((f"{rule['id']}:{hoy.isoformat()}", "\n".join(lines) + foot(lk("Abrir el Monitor", site("/es")))))
         elif t == "resumen_diario" and daily:
             hoy = today_caracas().isoformat()
             lines = [rule["texto"].format(fecha=hoy)]
@@ -355,7 +477,7 @@ def send_telegram(text: str) -> bool:
     if not (tok and chat):
         return False
     r = http.post(f"https://api.telegram.org/bot{tok.strip()}/sendMessage",
-                  json={"chat_id": chat.strip(), "text": text, "disable_web_page_preview": True}, timeout=30)
+                  json={"chat_id": chat.strip(), "text": pretty(text), "parse_mode": "HTML", "disable_web_page_preview": True}, timeout=30)
     if r.status_code >= 300:  # se muestra la respuesta de Telegram (p. ej. «chat not found», «Unauthorized»)
         raise RuntimeError(f"{r.status_code} {r.text[:200]}")
     return True
@@ -365,8 +487,8 @@ def send_email(text: str) -> bool:
     user, pw, to = os.environ.get("GMAIL_USER"), os.environ.get("GMAIL_APP_PASSWORD"), os.environ.get("ALERT_EMAILS")
     if not (user and pw and to):
         return False
-    msg = MIMEText(text, "plain", "utf-8")
-    msg["Subject"] = "Monitor Venezuela · " + text.splitlines()[0][:80]
+    msg = MIMEText(plain(text), "plain", "utf-8")
+    msg["Subject"] = "Monitor Venezuela · " + plain(text).splitlines()[0][:80]
     msg["From"], msg["To"] = user, to
     with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=30) as s:
         s.login(user, pw)
@@ -382,7 +504,7 @@ def run(daily: bool = False):
         if not (os.environ.get("TELEGRAM_BOT_TOKEN") and os.environ.get("TELEGRAM_CHAT_ID")):
             r.note("Faltan los secretos TELEGRAM_BOT_TOKEN o TELEGRAM_CHAT_ID en GitHub: no se puede enviar nada")
         codes = sorted({c for x in rules for c in ([x["serie"]] if "serie" in x else x.get("series", []))})
-        meta = {s["code"]: s for s in select("series", {"select": "code,name_es,unit_es,decimals"})}
+        meta = {s["code"]: s for s in select("series", {"select": "code,name_es,unit_es,decimals,category,source,source_url,frequency"})}
         data = {c: last_two(c) for c in codes}
         candidates = evaluate(rules, meta, data, daily, gather_extra(rules, daily))
         if not candidates:
@@ -415,19 +537,26 @@ def run(daily: bool = False):
         acc = [(k, t) for k, t in candidates if k.split(":")[0] in bvc_ids and k not in sent
                and not first_run and k.split(":")[0] in known_rules]
         if len(acc) > 1:
+            import re as _re
             fecha = today
+
+            def item(t: str) -> str:
+                """Primera línea del aviso (sin el emoji) y su primer enlace, en una sola línea de lista."""
+                first = t.split("\n")[0]
+                first = first.split(" ", 1)[1] if first and not first[:1].isalnum() else first
+                link = _re.search(r"\[([^\]]+)\]\((https?://[^\s)]+)\)", t)
+                return f"• {first}" + (f"  [{'leer' if 'noticia' in link.group(1).lower() else 'ver'} ↗]({link.group(2)})" if link else "")
             sec = {"acciones": [], "bvc_noticia": [], "bvc_asamblea": []}
             for k, t in acc:
-                sec[bvc_ids[k.split(":")[0]]].append(t.split(" ", 1)[1] if t[:1] in "📈📉📊📰🗓" or not t[:1].isalnum() else t)
-            parts = [f"📊 BVC · {fecha}"]
+                sec[bvc_ids[k.split(":")[0]]].append(item(t))
+            parts = [f"📊 BVC · {fecha_txt(fecha)}"]
             if sec["acciones"]:
-                parts.append("Movimientos fuertes:\n" + "\n".join("• " + x.rsplit(" (", 1)[0] for x in sec["acciones"]))
+                parts.append("**Movimientos fuertes**\n" + "\n".join(sec["acciones"]))
             if sec["bvc_noticia"]:
-                parts.append("📰 Noticias de emisores:\n" + "\n".join("• " + x for x in sec["bvc_noticia"][:8]))
+                parts.append("📰 **Noticias de emisores**\n" + "\n".join(sec["bvc_noticia"][:8]))
             if sec["bvc_asamblea"]:
-                parts.append("🗓️ Asambleas:\n" + "\n".join("• " + x for x in sec["bvc_asamblea"]))
-            if SITE:
-                parts.append(SITE.rstrip("/") + "/es/bvc")
+                parts.append("🗓️ **Asambleas**\n" + "\n".join(sec["bvc_asamblea"]))
+            parts[-1] += foot(lk("Ver la BVC en el Monitor", site("/es/bvc")))
             merged = (f"bvc_lote:{fecha}:{hashlib.sha1('|'.join(k for k, _ in acc).encode()).hexdigest()[:12]}", "\n\n".join(parts))
             candidates = [c for c in candidates if c not in acc] + [merged]
             by_lote = acc

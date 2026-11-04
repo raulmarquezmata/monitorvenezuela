@@ -153,6 +153,8 @@ def run(backfill: bool = False, local_only: bool = False):
             for code, pts in data.items():
                 r.rows += save_obs(code, pts, f"OPEP MOMR ({name})")
             upsert("source_files", [{"url": url, "page": "OPEP MOMR", "filename": name}], "url")
+            from .common import archive
+            archive("opep-momr", name, content)
             got = True
             if not backfill:
                 break  # el más reciente basta: trae los últimos 3 meses (con revisiones)
