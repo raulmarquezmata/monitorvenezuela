@@ -18,7 +18,7 @@ MYMEMORY = "https://api.mymemory.translated.net/get?q={q}&langpair={sl}|{tl}"
 def google(text: str, tl: str, sl: str = "auto") -> tuple[str, str] | None:
     """Devuelve (traducción, idioma de origen detectado)."""
     try:
-        data = fetch(GOOGLE.format(sl=sl, tl=tl, q=quote(text)), timeout=20, retries=1).json()
+        data = fetch(GOOGLE.format(sl=sl, tl=tl, q=quote(text)), timeout=8, retries=1).json()
         out = "".join(part[0] for part in data[0] if part and part[0])
         src = data[2] if len(data) > 2 and isinstance(data[2], str) else sl
         return (out.strip(), src) if out.strip() else None
@@ -30,7 +30,7 @@ def mymemory(text: str, tl: str, sl: str) -> str | None:
     if sl in ("auto", tl):
         return None
     try:
-        data = fetch(MYMEMORY.format(q=quote(text), sl=sl, tl=tl), timeout=20, retries=1).json()
+        data = fetch(MYMEMORY.format(q=quote(text), sl=sl, tl=tl), timeout=8, retries=1).json()
         out = (data.get("responseData") or {}).get("translatedText")
         return out.strip() if out and "MYMEMORY WARNING" not in out else None
     except Exception:  # noqa: BLE001
@@ -58,14 +58,17 @@ def translate_title(title: str, hint: str = "auto") -> dict:
     return out
 
 
-def run(limit: int = 160) -> int:
+def run(limit: int = 120, budget: float = 120.0) -> int:
     """Traduce los titulares de los últimos 30 días que todavía no tienen las dos versiones."""
     since = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=30)).isoformat()
     rows = select("news", {"select": "url,title,lang,title_es,title_en", "published_at": f"gte.{since}",
                            "or": "(title_es.is.null,title_en.is.null)", "order": "published_at.desc", "limit": limit})
-    done = []
+    done, t0, fails = [], time.time(), 0
     for x in rows:
+        if time.time() - t0 > budget or fails >= 5:
+            break  # el resto se traduce en la próxima corrida (o el traductor nos está bloqueando)
         tr = translate_title(x["title"], x.get("lang") or "auto")
+        fails = fails + 1 if not (tr.get("title_es") and tr.get("title_en")) else 0
         upd = {"url": x["url"], "title": x["title"],
                "title_es": x.get("title_es") or tr.get("title_es"), "title_en": x.get("title_en") or tr.get("title_en"),
                "lang": (tr.get("lang") or x.get("lang") or "es")[:5]}

@@ -325,6 +325,31 @@ def evaluate(rules: list[dict], meta: dict[str, dict], data: dict[str, list[dict
     return out
 
 
+NEWS_TYPES = ("noticia", "bvc_noticia")
+_STOP = set("para como esta este sobre entre desde hasta tras pero porque cuando donde segun durante contra hacia cada otro otra "
+            "sera fueron tiene tienen hace venezuela venezolano venezolana banca negocios finanzas digital".split())
+
+
+def _norm(t: str) -> str:
+    import unicodedata
+    return "".join(c for c in unicodedata.normalize("NFD", t or "") if unicodedata.category(c) != "Mn").lower()
+
+
+def same_story(a: str, b: str) -> bool:
+    """¿Dos avisos cuentan la misma noticia? (mismas cifras y palabras clave, aunque el titular cambie de medio a medio)."""
+    import re
+    first = lambda t: _norm(t.split("\n")[0])  # noqa: E731  (solo el titular, sin fuente ni enlace)
+    ta, tb = first(a), first(b)
+    wa = {w for w in re.findall(r"[a-z]{4,}", ta) if w not in _STOP}
+    wb = {w for w in re.findall(r"[a-z]{4,}", tb) if w not in _STOP}
+    na, nb = set(re.findall(r"\d+(?:[.,]\d+)?", ta)), set(re.findall(r"\d+(?:[.,]\d+)?", tb))
+    if not wa or not wb:
+        return False
+    shared = len(wa & wb)
+    jac = shared / len(wa | wb)
+    return jac >= 0.4 or (bool(na & nb - {"2026", "2025"}) and shared >= 2)
+
+
 def send_telegram(text: str) -> bool:
     tok, chat = os.environ.get("TELEGRAM_BOT_TOKEN"), os.environ.get("TELEGRAM_CHAT_ID")
     if not (tok and chat):
@@ -353,6 +378,7 @@ def run(daily: bool = False):
     import time
     with Run("alerts") as r:
         rules = json.loads(CONFIG.read_text(encoding="utf-8"))["reglas"]
+        by_tipo = {x["id"]: x["tipo"] for x in rules}
         if not (os.environ.get("TELEGRAM_BOT_TOKEN") and os.environ.get("TELEGRAM_CHAT_ID")):
             r.note("Faltan los secretos TELEGRAM_BOT_TOKEN o TELEGRAM_CHAT_ID en GitHub: no se puede enviar nada")
         codes = sorted({c for x in rules for c in ([x["serie"]] if "serie" in x else x.get("series", []))})
@@ -363,10 +389,21 @@ def run(daily: bool = False):
             return
         # bitácora completa (sin filtros con caracteres especiales en la URL de la consulta)
         log_all = select("alerts_log", {"select": "key,rule,sent_at"})
+        # la misma noticia en varios medios: solo se avisa una vez (se compara con lo enviado en 48 horas)
+        since48 = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(hours=48)).isoformat()
+        recent_news = [x["message"] for x in select("alerts_log", {"select": "message,rule,sent_at,channels", "sent_at": f"gte.{since48}"})
+                       if (x.get("message") or "") and (x.get("channels") or "") and (by_tipo.get(x["rule"]) in NEWS_TYPES or x["rule"] == "bvc_lote")]
         sent = {x["key"] for x in log_all}
         first_run = not log_all
         known_rules = {x["rule"] for x in log_all}
         by_id = {x["id"]: x for x in rules}
+        dup_news: set[str] = set()
+        for key, text in candidates:
+            if by_tipo.get(key.split(":")[0]) in NEWS_TYPES and key not in sent:
+                if any(same_story(text, m) for m in recent_news):
+                    dup_news.add(key)  # ya avisada desde otro medio: se registra sin enviar
+                else:
+                    recent_news.append(text)
         today = today_caracas().isoformat()
         since30 = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=30)).isoformat()
         recent = [x for x in log_all if (x.get("sent_at") or "") >= since30]
@@ -406,6 +443,8 @@ def run(daily: bool = False):
             prefix = ":".join(key.split(":")[:2]) + ":"
             # regla nueva o primera corrida: solo registra lo que ya existía (los mensajes con hora fija sí salen)
             silent = (first_run or rid not in known_rules) and tipo not in TIMED and rid != "bvc_lote"
+            if key in dup_news:
+                silent = True
             if tipo == "nuevo_dato" and not any(x["key"].startswith(prefix) for x in log_all):
                 silent = True  # serie recién agregada a la regla: no avisar el dato viejo
             if rule.get("min_dias") and any(x["key"].startswith(prefix) and (x.get("sent_at") or "")[:10] > (dt.date.today() - dt.timedelta(days=rule["min_dias"])).isoformat() for x in recent):

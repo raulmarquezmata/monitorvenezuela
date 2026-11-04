@@ -9,6 +9,7 @@
 """
 from __future__ import annotations
 
+import signal
 import sys
 
 from . import (agro, alerts, bancos_muestra, banking, census, embi, emisores, futures, bcv_stats, bonds, bvc, catalog, commodities, events, fx, inflation,
@@ -67,6 +68,18 @@ def backfill():
     alerts.run()  # primera corrida: registra sin enviar
 
 
+# minutos máximos por robot según el grupo (las corridas cada 20 minutos no pueden pasar de ~20 en total)
+LIMITS = {"frequent": 5, "telegram": 4, "oficial": 15, "files": 30, "acciones": 40, "daily": 45, "weekly": 60}
+
+
+class JobTimeout(Exception):
+    pass
+
+
+def _timeout(signum, frame):  # noqa: ARG001
+    raise JobTimeout()
+
+
 def main(argv: list[str]):
     if DRY_RUN:
         log.warning("DRY_RUN activo (sin SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY): no se escribe nada.")
@@ -78,7 +91,19 @@ def main(argv: list[str]):
             if job not in JOBS:
                 log.error("Robot desconocido: %s", job)
                 continue
-            JOBS[job]()
+            limit = max(1, int(LIMITS.get(a, 45) * 60))
+            # cada robot tiene un tiempo máximo: si una fuente se cuelga, se corta ese robot y el resto
+            # (sobre todo las alertas de Telegram, que van al final) sigue corriendo
+            signal.signal(signal.SIGALRM, _timeout)
+            signal.alarm(limit)
+            try:
+                JOBS[job]()
+            except JobTimeout:
+                log.error("%s: superó %d minutos y se cortó", job, limit // 60)
+            except Exception as e:  # noqa: BLE001
+                log.error("%s: %s", job, e)
+            finally:
+                signal.alarm(0)
 
 
 if __name__ == "__main__":
