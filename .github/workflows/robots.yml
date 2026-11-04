@@ -3,6 +3,8 @@ on:
   schedule:
     - cron: "*/20 10-23 * * *"
     - cron: "*/20 0-3 * * *"
+    # madrugada (12 a 6 am VET): una vez por hora, para que la página no se quede quieta
+    - cron: "15 4-9 * * *"
     - cron: "5 13-23/2 * * 1-5"
     - cron: "40 23 * * *"
     - cron: "15 10 * * 0"
@@ -22,13 +24,13 @@ on:
         default: backfill
 concurrency:
   group: robots-${{ github.event.schedule || github.event_name }}
-  # las corridas de cada 20 minutos: si una se quedó pegada, la nueva la reemplaza
-  cancel-in-progress: ${{ github.event.schedule == '*/20 10-23 * * *' || github.event.schedule == '*/20 0-3 * * *' }}
+  # una corrida nunca corta a la anterior: la nueva espera a que termine (cada robot tiene su propio tiempo máximo)
+  cancel-in-progress: false
 jobs:
   robots:
     runs-on: ubuntu-latest
-    # corridas frecuentes: máximo 25 min; diaria, semanal y manuales: hasta 5 h
-    timeout-minutes: ${{ (github.event_name == 'schedule' && github.event.schedule != '40 23 * * *' && github.event.schedule != '15 10 * * 0') && 25 || 300 }}
+    # corridas frecuentes: máximo 35 min; diaria, semanal y manuales: hasta 5 h
+    timeout-minutes: ${{ (github.event_name == 'schedule' && github.event.schedule != '40 23 * * *' && github.event.schedule != '15 10 * * 0') && 35 || 300 }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
