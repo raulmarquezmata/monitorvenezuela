@@ -232,9 +232,11 @@ def fecha_txt(d: str, freq: str | None = None) -> str:
     return f"{x.day} {MESES[x.month - 1]} {x.year}"
 
 
-# palabras del nombre del archivo del BCV que corresponden a cada serie (para enlazar el archivo exacto)
-BCV_FILE_HINTS = {"pib": "pib", "reservas": "reserva", "liquidez": "liquidez", "base_monetaria": "base", "cuenta_corriente": "balanza",
-                  "exportaciones": "balanza", "importaciones": "balanza", "intervencion": "intervenc", "encaje": "encaje", "tasa_": "tasa"}
+# archivo del BCV de donde sale cada serie (código de la serie → nombre del archivo), para enlazar el archivo exacto
+BCV_FILE_HINTS = [(r"^pib_.*anual", r"5_2_4_ae_anual"), (r"^pib_", r"5_2_4_ae_trim"), (r"liquidez|dinero_m1|multiplicador", r"liquidez_monetaria"),
+                  (r"^base_monetaria", r"base_monetaria"), (r"^reservas", r"^2_1_1|^2_3_1"), (r"^tasa_activa", r"^1_1_7"),
+                  (r"^tasa_(ahorro|plazo)", r"^1_1_6"), (r"^encaje", r"^1_3_36"),
+                  (r"cuenta_corriente|exportaciones_(bienes|petroleras|no_petroleras)$|importaciones_bienes|inversion_directa|transferencias", r"^2_4_1_t")]
 ARCHIVE_PAGE = {"sunaval": ("SUNAVAL mensual", "sunaval"), "momr": ("OPEP MOMR", "opep-momr")}
 
 
@@ -257,10 +259,18 @@ def source_links(rule: dict, code: str, ob: dict, m: dict, extra: dict) -> str:
             name = archive_name(f["filename"])
             if repo and (ARCHIVE / folder / name).exists():
                 links.append(lk("Copia archivada", f"https://github.com/{repo}/blob/main/data/archivo/{folder}/{quote(name)}"))
-    elif src.startswith("BCV"):  # el archivo exacto que publicó el BCV, si se reconoce
-        hint = next((v for k, v in BCV_FILE_HINTS.items() if code.startswith(k)), None)
-        f = next((x for x in extra.get("files", []) if x.get("page") == "BCV" and hint and hint in x["filename"].lower()), None)
+    elif src.startswith("BCV"):  # el archivo exacto que publicó el BCV, si se reconoce, y su copia archivada
+        hint = next((fx for cx, fx in BCV_FILE_HINTS if re.search(cx, code)), None)
+        f = next((x for x in extra.get("files", []) if x.get("page") == "BCV" and hint
+                  and re.search(hint, re.sub(r"^[0-9a-f]{8}-", "", x["filename"].lower()))), None)
         links.append(lk("Archivo del BCV", f["url"]) if f else lk("Estadísticas del BCV", m.get("source_url") or BCV_STATS))
+        repo = os.environ.get("GITHUB_REPOSITORY")
+        if f and repo:
+            from urllib.parse import quote
+            from .common import ARCHIVE, archive_name
+            name = archive_name(f["filename"])
+            if (ARCHIVE / "bcv" / name).exists():
+                links.append(lk("Copia archivada", f"https://github.com/{repo}/blob/main/data/archivo/bcv/{quote(name)}"))
     if not links and m.get("source_url"):
         links.append(lk(f"Fuente: {m.get('source') or 'ver'}", m["source_url"]))
     links.append(lk("Ver en el Monitor", series_page(m)))
