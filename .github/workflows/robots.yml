@@ -1,10 +1,10 @@
 name: Robots Monitor Venezuela
 on:
+  # El reloj principal ahora es Supabase (supabase/programador_robots.sql): llama a esta misma acción cada
+  # 20 minutos con workflow_dispatch, porque GitHub pierde o atrasa por horas sus corridas programadas.
+  # Estas programaciones de GitHub quedan solo como respaldo.
   schedule:
-    - cron: "*/20 10-23 * * *"
-    - cron: "*/20 0-3 * * *"
-    # madrugada (12 a 6 am VET): una vez por hora, para que la página no se quede quieta
-    - cron: "15 4-9 * * *"
+    - cron: "17 * * * *"
     - cron: "5 13-23/2 * * 1-5"
     - cron: "40 23 * * *"
     - cron: "15 10 * * 0"
@@ -25,14 +25,15 @@ on:
 permissions:
   contents: write   # para guardar en el repositorio los documentos que descargan los robots
 concurrency:
-  group: robots-${{ github.event.schedule || github.event_name }}
+  # misma tarea = misma fila: si llegan dos órdenes iguales (Supabase y el respaldo de GitHub), la segunda espera
+  group: robots-${{ inputs.tarea || (github.event.schedule == '40 23 * * *' && 'daily') || (github.event.schedule == '5 13-23/2 * * 1-5' && 'oficial') || (github.event.schedule == '15 10 * * 0' && 'weekly') || ((github.event.schedule == '47,53 12 * * *' || github.event.schedule == '22,28 20 * * 1-5') && 'telegram') || (github.event_name == 'push' && 'files') || 'frequent' }}
   # una corrida nunca corta a la anterior: la nueva espera a que termine (cada robot tiene su propio tiempo máximo)
   cancel-in-progress: false
 jobs:
   robots:
     runs-on: ubuntu-latest
-    # corridas frecuentes: máximo 35 min; diaria, semanal y manuales: hasta 5 h
-    timeout-minutes: ${{ (github.event_name == 'schedule' && github.event.schedule != '40 23 * * *' && github.event.schedule != '15 10 * * 0') && 35 || 300 }}
+    # corridas frecuentes, oficiales y de Telegram: máximo 35 min; diaria, semanal, archivos y manuales largas: hasta 5 h
+    timeout-minutes: ${{ (github.event_name == 'push' || github.event.schedule == '40 23 * * *' || github.event.schedule == '15 10 * * 0' || contains(fromJSON('["daily","weekly","backfill","files","acciones"]'), inputs.tarea)) && 300 || 35 }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -41,7 +42,7 @@ jobs:
           cache: pip
           cache-dependency-path: ingest/requirements.txt
       - name: OCR y fuentes (informes de SUNAVAL y PDF por acción)
-        if: ${{ !contains(github.event.schedule, ' 12 * * *') && !contains(github.event.schedule, ' 20 * * 1-5') }}
+        if: ${{ !contains(github.event.schedule, ' 12 * * *') && !contains(github.event.schedule, ' 20 * * 1-5') && inputs.tarea != 'telegram' && inputs.tarea != 'frequent' }}
         continue-on-error: true
         run: sudo apt-get update -qq && sudo apt-get install -y -qq tesseract-ocr fonts-lato libpango-1.0-0 libpangoft2-1.0-0
       - run: pip install -r ingest/requirements.txt
