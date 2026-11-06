@@ -466,7 +466,7 @@ TM = {
                sub="Renta variable, sesión del {d}. Ordenado de mayor a menor capitalización en US$ al mercado alternativo.",
                k1="TOTAL · US$ ALTERNATIVO", k2="TOTAL · US$ OFICIAL BCV", k3="TOTAL · BOLÍVARES", k4="EMPRESAS",
                mm="MM", rate="Bs. {r}/US$", top="Peso de cada empresa en la capitalización total", multi="Clases sumadas", nodata="s/d = sin acciones en circulación publicadas", rank="Ranking completo",
-               h=["#", "Símbolo", "Emisor", "Precio Bs.", "Precio US$ alt.", "Acciones", "Cap. US$ MM alt.", "Cap. US$ MM of.", "Peso"],
+               h=["#", "Símbolo", "Emisor", "Precio<br>Bs.", "Precio<br>US$ alt.", "Acciones en<br>circulación", "Cap. alternativo<br>US$ MM", "Cap. oficial<br>US$ MM", "Peso"],
                total="Total", src="Fuente: Bolsa de Valores de Caracas (acciones en circulación y último cierre SIBE) y tipo de cambio del Radar Grupo Solfin: "
                "mercado alternativo Bs. {par}/US$ y oficial BCV Bs. {of}/US$ al {fd}. Capitalización = acciones en circulación × último cierre ÷ tipo de cambio. "
                "Informe generado automáticamente el {now} — no constituye recomendación de inversión."),
@@ -474,7 +474,7 @@ TM = {
                sub="Equities, session of {d}. Sorted by market cap in US$ at the alternative-market rate.",
                k1="TOTAL · US$ ALTERNATIVE", k2="TOTAL · US$ BCV OFFICIAL", k3="TOTAL · BOLIVARS", k4="COMPANIES",
                mm="MM", rate="Bs. {r}/US$", top="Weight of each company in total market cap", multi="Classes combined", nodata="n/a = shares outstanding not published", rank="Full ranking",
-               h=["#", "Symbol", "Issuer", "Price Bs.", "Price US$ alt.", "Shares", "Cap US$ MM alt.", "Cap US$ MM off.", "Weight"],
+               h=["#", "Symbol", "Issuer", "Price<br>Bs.", "Price<br>US$ alt.", "Shares<br>outstanding", "Cap. alternative<br>US$ MM", "Cap. official<br>US$ MM", "Weight"],
                total="Total", src="Source: Caracas Stock Exchange (shares outstanding and last SIBE close) and Radar Grupo Solfin exchange rates: "
                "alternative market Bs. {par}/US$ and BCV official Bs. {of}/US$ as of {fd}. Market cap = shares outstanding × last close ÷ exchange rate. "
                "Report generated automatically on {now} — not investment advice."),
@@ -577,11 +577,12 @@ table.kq .m { font-size: 7.5pt; color: #777; }
 .card h2 { font-size: 12pt; }
 .src { font-size: 7pt; }
 table.rk { width: 100%; border-collapse: collapse; font-size: 9pt; margin-top: 6px; }
-table.rk th { background: #121a30; color: #fff; font-weight: 700; text-align: right; padding: 6px 6px; font-size: 8pt; }
+table.rk th { background: #121a30; color: #fff; font-weight: 700; text-align: center; vertical-align: middle; padding: 6px 6px; font-size: 8pt; line-height: 1.25; white-space: nowrap; }
 table.rk td { text-align: right; padding: 5px 6px; border-bottom: 0.5px solid #e4e5ea; }
 table.rk tr:nth-child(even) td { background: #f6f7f9; }
 table.rk .l { text-align: left; }
-table.rk td:first-child, table.rk th:first-child { text-align: left; color: #6e7486; }
+table.rk td:first-child { text-align: left; color: #6e7486; }
+table.rk th:first-child { color: #b5b6ba; }
 table.rk .cl { font-size: 7pt; color: #004aa1; }\ntable.rk td { vertical-align: top; }\ntable.rk tr { page-break-inside: avoid; }\ntable.rk tr.tot td { background: #eaebed; font-weight: 700; border-top: 1px solid #004aa1; }
 """
     return f"""<!doctype html><html><head><meta charset="utf-8"><style>{CSS}{extra}</style></head><body>
