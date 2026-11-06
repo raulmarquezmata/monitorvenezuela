@@ -23,16 +23,26 @@ export async function GET(req: NextRequest) {
     const [rows, fx] = await Promise.all([bvcLatest("RV"), latest("cambiario")]);
     const par = fx.find((s) => s.code === "usd_paralelo")?.last_value ?? null, of = fx.find((s) => s.code === "usd_bcv")?.last_value ?? null;
     const es = lang === "es";
-    const list = rows.filter((r) => r.market_cap_bs).sort((a, b) => (b.market_cap_bs ?? 0) - (a.market_cap_bs ?? 0));
-    const head = es ? ["#", "simbolo", "emisor", "precio_bs", "precio_usd_alternativo", "acciones_circulacion", "capitalizacion_bs", "capitalizacion_usd_alternativo", "capitalizacion_usd_oficial", "peso_pct"]
-      : ["#", "symbol", "issuer", "price_bs", "price_usd_alternative", "shares_outstanding", "market_cap_bs", "market_cap_usd_alternative", "market_cap_usd_official", "weight_pct"];
-    const tot = list.reduce((a, r) => a + (r.market_cap_bs ?? 0), 0);
-    const body = list.map((r, i) => [i + 1, r.symbol, r.company ?? r.name, r.close, r.close != null && par ? r.close / par : null, r.shares_outstanding, r.market_cap_bs,
-      par ? r.market_cap_bs! / par : null, of ? r.market_cap_bs! / of : null, tot ? (r.market_cap_bs! / tot) * 100 : null]);
-    body.push(["", "TOTAL", "", null, null, null, tot, par ? tot / par : null, of ? tot / of : null, 100]);
+    // una fila por empresa: las clases (A/B) de una misma compañía se suman
+    const groups = new Map<string, { name: string; syms: string[]; prices: string[]; shares: number; cap: number }>();
+    for (const r of rows) {
+      const k = (r.company ?? r.symbol).trim().toUpperCase();
+      const g = groups.get(k) ?? { name: r.company ?? r.name ?? r.symbol, syms: [], prices: [], shares: 0, cap: 0 };
+      g.syms.push(r.symbol); g.prices.push(r.close != null ? String(r.close) : "—");
+      g.shares += r.shares_outstanding ?? 0; g.cap += r.market_cap_bs ?? 0;
+      groups.set(k, g);
+    }
+    const list = [...groups.values()].sort((a, b) => b.cap - a.cap);
+    const head = es ? ["#", "simbolos", "empresa", "precios_bs", "acciones_circulacion", "capitalizacion_bs", "capitalizacion_usd_alternativo", "capitalizacion_usd_oficial", "peso_pct"]
+      : ["#", "symbols", "company", "prices_bs", "shares_outstanding", "market_cap_bs", "market_cap_usd_alternative", "market_cap_usd_official", "weight_pct"];
+    const tot = list.reduce((a, g) => a + g.cap, 0);
+    const body: (string | number | null)[][] = list.map((g, i) => [i + 1, g.syms.join(" / "), g.name, g.prices.join(" / "), g.shares || null, g.cap || null,
+      par && g.cap ? g.cap / par : null, of && g.cap ? g.cap / of : null, tot && g.cap ? (g.cap / tot) * 100 : null]);
+    body.push(["", "TOTAL", "", "", null, tot, par ? tot / par : null, of ? tot / of : null, 100]);
+    const session = rows[0]?.date ?? "";
     return respond(format, lang, `bvc_capitalizacion_${stamp}`, head, body, [[es ? "Fuente" : "Source",
-      es ? `Bolsa de Valores de Caracas (sesión ${list[0]?.date ?? ""}); tasas del ${BRAND_NAME.es}: mercado alternativo Bs ${par ?? "—"}, oficial BCV Bs ${of ?? "—"}`
-         : `Caracas Stock Exchange (session ${list[0]?.date ?? ""}); ${BRAND_NAME.en} rates: alternative market Bs ${par ?? "—"}, BCV official Bs ${of ?? "—"}`]]);
+      es ? `Bolsa de Valores de Caracas (sesión ${session}); tasas del ${BRAND_NAME.es}: mercado alternativo Bs ${par ?? "—"}, oficial BCV Bs ${of ?? "—"}`
+         : `Caracas Stock Exchange (session ${session}); ${BRAND_NAME.en} rates: alternative market Bs ${par ?? "—"}, BCV official Bs ${of ?? "—"}`]]);
   }
 
   // ---------------- BVC

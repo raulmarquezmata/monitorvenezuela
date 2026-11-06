@@ -432,16 +432,16 @@ def run(only: list[str] | None = None):
 TM = {
     "es": dict(kicker="RADAR · CAPITALIZACIÓN BVC", title="Capitalización bursátil de la Bolsa de Valores de Caracas",
                sub="Renta variable, sesión del {d}. Ordenado de mayor a menor capitalización en US$ al mercado alternativo.",
-               k1="CAPITALIZACIÓN TOTAL (US$ ALTERNATIVO)", k2="A TASA OFICIAL BCV", k3="EN BOLÍVARES", k4="EMISORES",
-               mm="MM", rate="Bs. {r}/US$", top="Los diez mayores · % de la capitalización total", rank="Ranking completo",
+               k1="TOTAL · US$ ALTERNATIVO", k2="TOTAL · US$ OFICIAL BCV", k3="TOTAL · BOLÍVARES", k4="EMPRESAS",
+               mm="MM", rate="Bs. {r}/US$", top="Peso de cada empresa en la capitalización total", multi="Clases sumadas", nodata="s/d = sin acciones en circulación publicadas", rank="Ranking completo",
                h=["#", "Símbolo", "Emisor", "Precio Bs.", "Precio US$ alt.", "Acciones", "Cap. US$ MM alt.", "Cap. US$ MM of.", "Peso"],
                total="Total", src="Fuente: Bolsa de Valores de Caracas (acciones en circulación y último cierre SIBE) y tipo de cambio del Radar Grupo Solfin: "
                "mercado alternativo Bs. {par}/US$ y oficial BCV Bs. {of}/US$ al {fd}. Capitalización = acciones en circulación × último cierre ÷ tipo de cambio. "
                "Informe generado automáticamente el {now} — no constituye recomendación de inversión."),
     "en": dict(kicker="RADAR · BVC MARKET CAP", title="Market capitalization of the Caracas Stock Exchange",
                sub="Equities, session of {d}. Sorted by market cap in US$ at the alternative-market rate.",
-               k1="TOTAL MARKET CAP (US$ ALTERNATIVE)", k2="AT THE BCV OFFICIAL RATE", k3="IN BOLIVARS", k4="ISSUERS",
-               mm="MM", rate="Bs. {r}/US$", top="Ten largest · % of total market cap", rank="Full ranking",
+               k1="TOTAL · US$ ALTERNATIVE", k2="TOTAL · US$ BCV OFFICIAL", k3="TOTAL · BOLIVARS", k4="COMPANIES",
+               mm="MM", rate="Bs. {r}/US$", top="Weight of each company in total market cap", multi="Classes combined", nodata="n/a = shares outstanding not published", rank="Full ranking",
                h=["#", "Symbol", "Issuer", "Price Bs.", "Price US$ alt.", "Shares", "Cap US$ MM alt.", "Cap US$ MM off.", "Weight"],
                total="Total", src="Source: Caracas Stock Exchange (shares outstanding and last SIBE close) and Radar Grupo Solfin exchange rates: "
                "alternative market Bs. {par}/US$ and BCV official Bs. {of}/US$ as of {fd}. Market cap = shares outstanding × last close ÷ exchange rate. "
@@ -450,32 +450,58 @@ TM = {
 
 
 def mktcap_data(fx: dict) -> dict | None:
-    rows = select("bvc_latest", {"select": "date,symbol,name,company,close,shares_outstanding,market_cap_bs", "market": "eq.RV"})
-    rows = [x for x in rows if x.get("market_cap_bs")]
-    if not rows or not fx.get("usd_paralelo") or not fx.get("usd_bcv"):
+    """Todas las empresas de renta variable; las clases de una misma compañía (A/B) se suman en una sola fila."""
+    if not fx.get("usd_paralelo") or not fx.get("usd_bcv"):
         return None
     par, of = fx["usd_paralelo"][-1], fx["usd_bcv"][-1]
-    rows.sort(key=lambda x: -x["market_cap_bs"])
-    tot = sum(x["market_cap_bs"] for x in rows)
+    syms = select("bvc_symbols", {"select": "symbol,name,company,shares_outstanding", "market": "eq.RV"})
+    latest = {x["symbol"]: x for x in select("bvc_latest", {"select": "date,symbol,close,shares_outstanding,market_cap_bs", "market": "eq.RV"})}
     emp = company_names()
-    for x in rows:
-        x["nombre"] = (emp.get(x["symbol"]) or {}).get("nombre") or x.get("company") or x.get("name") or x["symbol"]
-        x["w"] = x["market_cap_bs"] / tot * 100
-    return {"rows": rows, "tot": tot, "par": par, "of": of, "date": max(x["date"] for x in rows)}
+    groups: dict[str, dict] = {}
+    for s_ in syms:
+        sym = s_["symbol"]
+        lt = latest.get(sym) or {}
+        close, date = lt.get("close"), lt.get("date")
+        if not close:  # sin cotización en la última sesión: último cierre disponible
+            q = select("bvc_quotes", {"select": "date,close", "symbol": f"eq.{sym}", "close": "gt.0", "order": "date.desc", "limit": 1})
+            close, date = (q[0]["close"], q[0]["date"]) if q else (None, None)
+        sh = lt.get("shares_outstanding") or s_.get("shares_outstanding")
+        cap = close * sh if close and sh else None
+        key = (s_.get("company") or sym).strip().upper()
+        g = groups.setdefault(key, {"classes": [], "cap": 0.0, "shares": 0.0, "date": None, "nombre": None})
+        g["classes"].append({"symbol": sym, "close": close, "shares": sh, "cap": cap, "date": date})
+        g["cap"] += cap or 0
+        g["shares"] += sh or 0
+        g["date"] = max(filter(None, [g["date"], date]), default=None)
+        g["nombre"] = g["nombre"] or (emp.get(sym) or {}).get("nombre") or s_.get("company") or s_.get("name") or sym
+    rows = [g for g in groups.values() if any(c["close"] for c in g["classes"])]
+    if not rows:
+        return None
+    for g in rows:
+        g["classes"].sort(key=lambda c: c["symbol"])
+        g["symbol"] = " / ".join(c["symbol"] for c in g["classes"])
+    tot = sum(g["cap"] for g in rows)
+    for g in rows:
+        g["w"] = g["cap"] / tot * 100 if tot and g["cap"] else None
+    rows.sort(key=lambda g: -(g["cap"] or 0))
+    dates = [g["date"] for g in rows if g["date"]]
+    return {"rows": rows, "tot": tot, "par": par, "of": of, "date": max(dates)}
 
 
 def chart_top(rows: list[dict], lang: str) -> str:
+    """Barras horizontales con el peso de cada empresa en la capitalización total (todas)."""
     plt = _setup()
-    top = rows[:10][::-1]
-    fig, ax = plt.subplots(figsize=(7.4, 2.3))
-    ax.barh([f"{x['symbol']}" for x in top], [x["w"] for x in top], color=BLUE, height=0.62)
-    for i, x in enumerate(top):
-        ax.text(x["w"] + 0.4, i, f"{num(x['w'], 1, lang)}%", va="center", fontsize=6, color=NAVY)
-    ax.tick_params(length=0, labelsize=6.4)
+    data = [g for g in rows if g["w"]][::-1]
+    fig, ax = plt.subplots(figsize=(7.4, max(2.0, 0.16 * len(data) + 0.3)))
+    ax.barh([g["nombre"][:34] for g in data], [g["w"] for g in data], color=BLUE, height=0.64)
+    for i, g in enumerate(data):
+        ax.text(g["w"] + 0.3, i, f"{num(g['w'], 1, lang)}%", va="center", fontsize=5.6, color=NAVY)
+    ax.tick_params(length=0, labelsize=5.8)
     ax.set_xticks([])
     for sp in ax.spines.values():
         sp.set_visible(False)
-    ax.set_xlim(0, max(x["w"] for x in top) * 1.15)
+    ax.set_ylim(-0.6, len(data) - 0.4)
+    ax.set_xlim(0, max(g["w"] for g in data) * 1.12)
     return _svg(fig)
 
 
@@ -487,31 +513,49 @@ def build_mktcap_html(mk: dict, lang: str) -> str:
             (t["k2"], f"US$ {num(tot / of / 1e6, 1, lang)} {t['mm']}", t["rate"].format(r=rd(of))),
             (t["k3"], f"Bs. {num(tot / 1e6, 0, lang)} {t['mm']}", dshort(mk["date"], lang)),
             (t["k4"], str(len(mk["rows"])), "")]
-    kp = "".join(f"<div class='kpi q'><div class='k'>{k}</div><div class='v'>{v}</div><div class='m'>{m}</div></div>" for k, v, m in kpis)
-    body = "".join(
-        f"<tr><td>{i}</td><td><b>{x['symbol']}</b></td><td class='l'>{x['nombre']}</td><td>{num(x['close'], 2, lang)}</td><td>{num(x['close'] / par, 4, lang)}</td>"
-        f"<td>{num(x['shares_outstanding'], 0, lang)}</td><td><b>{num(x['market_cap_bs'] / par / 1e6, 1, lang)}</b></td><td>{num(x['market_cap_bs'] / of / 1e6, 1, lang)}</td>"
-        f"<td>{num(x['w'], 1, lang)}%</td></tr>" for i, x in enumerate(mk["rows"], 1))
-    body += (f"<tr class='tot'><td></td><td>{t['total']}</td><td></td><td></td><td></td><td></td><td>{num(tot / par / 1e6, 1, lang)}</td>"
-             f"<td>{num(tot / of / 1e6, 1, lang)}</td><td>100%</td></tr>")
+    kp = "".join(f"<td><div class='k'>{k}</div><div class='v'>{v}</div><div class='m'>{m or '&nbsp;'}</div></td>" for k, v, m in kpis)
+    def cls_lines(g, fn):
+        return "<br>".join(fn(c) for c in g["classes"])
+
+    def price_bs(c):
+        return num(c["close"], 2, lang) if c["close"] else "—"
+
+    def price_us(c):
+        return num(c["close"] / par, 4, lang) if c["close"] else "—"
+
+    def cap_mm(v, r):
+        return num(v / r / 1e6, 1, lang) if v else "—"
+
+    body = ""
+    for i, g in enumerate(mk["rows"], 1):
+        multi = len(g["classes"]) > 1
+        sym = "<br>".join(f"<b>{c['symbol']}</b>" for c in g["classes"])
+        body += (f"<tr><td>{i}</td><td>{sym}</td><td class='l'>{g['nombre']}{'<div class=cl>' + t['multi'] + '</div>' if multi else ''}</td>"
+                 f"<td>{cls_lines(g, price_bs)}</td><td>{cls_lines(g, price_us)}</td><td>{num(g['shares'], 0, lang) if g['shares'] else '—'}</td>"
+                 f"<td><b>{cap_mm(g['cap'], par)}</b></td><td>{cap_mm(g['cap'], of)}</td><td>{num(g['w'], 1, lang) + '%' if g['w'] else '—'}</td></tr>")
     head = "".join(f"<th{' class=l' if j == 2 else ''}>{h}</th>" for j, h in enumerate(t["h"]))
     now = dt.datetime.now(dt.timezone(dt.timedelta(hours=-4)))
     src = t["src"].format(par=rd(par), of=rd(of), fd=dshort(mk["par"][0], lang), now=f"{dshort(now.date().isoformat(), lang)} {now:%H:%M} VET")
     extra = """
-.kpi.q { width: 24.2%; }
-table.rk { width: 100%; border-collapse: collapse; font-size: 6.9pt; margin-top: 4px; }
-table.rk th { background: #121a30; color: #fff; font-weight: 700; text-align: right; padding: 4px 5px; font-size: 6.4pt; }
-table.rk td { text-align: right; padding: 3px 5px; border-bottom: 0.5px solid #e4e5ea; }
+table.kq { width: 100%; border-collapse: separate; border-spacing: 6px 0; margin: 8px -6px 0; width: calc(100% + 12px); table-layout: fixed; }
+table.kq td { border: 0.6px solid #dfe2ea; border-top: 2.2px solid #004aa1; border-radius: 5px; padding: 9px 8px; text-align: center; vertical-align: middle; }
+table.kq .k { font-size: 7pt; letter-spacing: .5px; color: #555; font-weight: 700; }
+table.kq .v { font-size: 15pt; font-weight: 700; color: #121a30; margin: 4px 0 2px; white-space: nowrap; }
+table.kq .m { font-size: 7.5pt; color: #777; }
+.card h2 { font-size: 12pt; }
+.src { font-size: 7pt; }
+table.rk { width: 100%; border-collapse: collapse; font-size: 9pt; margin-top: 6px; }
+table.rk th { background: #121a30; color: #fff; font-weight: 700; text-align: right; padding: 6px 6px; font-size: 8pt; }
+table.rk td { text-align: right; padding: 5px 6px; border-bottom: 0.5px solid #e4e5ea; }
 table.rk tr:nth-child(even) td { background: #f6f7f9; }
 table.rk .l { text-align: left; }
 table.rk td:first-child, table.rk th:first-child { text-align: left; color: #6e7486; }
-table.rk tr.tot td { background: #eaebed; font-weight: 700; border-top: 1px solid #004aa1; }
+table.rk .cl { font-size: 7pt; color: #004aa1; }\ntable.rk td { vertical-align: top; }\ntable.rk tr { page-break-inside: avoid; }\ntable.rk tr.tot td { background: #eaebed; font-weight: 700; border-top: 1px solid #004aa1; }
 """
     return f"""<!doctype html><html><head><meta charset="utf-8"><style>{CSS}{extra}</style></head><body>
 <div class="hero"><div class="top"><img src="{logo()}"><div class="brand">{t['kicker']}</div></div><h1>{t['title']}</h1>
 <p>{t['sub'].format(d=dlong(mk['date'], lang))}</p></div>
-<div class="grid" style="margin-top:8px">{kp}</div>
-<div class="card"><h2>{t['top']}</h2><img src="{chart_top(mk['rows'], lang)}"></div>
-<div class="card"><h2>{t['rank']}</h2><table class="rk"><tr>{head}</tr>{body}</table></div>
+<table class="kq"><tr>{kp}</tr></table>
+<div class="card" style="margin-top:10px"><h2>{t['rank']}</h2><table class="rk"><tr>{head}</tr>{body}</table></div>
 <div class="src">{src}</div>
 </body></html>"""
