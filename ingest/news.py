@@ -57,7 +57,11 @@ NOISE = re.compile(r"\beln\b|guerrill|disidencias?\b|\bfarc\b|tren de aragua|hom
                    r"carabobo fc|deportivo t[aá]chira|caracas fc|magallanes|leones del caracas|navegantes|tiburones de la guaira|cardenales de lara|"
                    r"\bnba\b|\bmlb\b|grandes ligas|ol[ií]mpic|miss (venezuela|universo)|concierto|far[aá]ndula|telenovela|hor[oó]scopo|loter[ií]a|"
                    r"\bdron(es)?\b|\bdrones?\b|misiles?\b|soccer|baseball|football|murder|homicide|kidnap|deport|migrants? (stranded|deported)|"
-                   r"\bgang\b|shooting|earthquake|flood", re.I)
+                   r"\bgang\b|shooting|earthquake|flood|"
+                   # protestas, reclamos vecinales y vida universitaria/escolar: no son noticias para inversionistas
+                   r"protest|manifestaci[oó]n|marcha (de|por|hacia)|plant[oó]n|cacerolazo|vecinos|comunidad (universitaria|educativa)|universitari|"
+                   r"estudiant|semestre|\bucla\b|\bucv\b|\bluz\b|\bula\b|liceo|escuela|docentes? (protest|exig)|exige[n]? (a|al|que)|reclaman|denuncian? (fallas|falta)|"
+                   r"^video\b|#\d{1,2}(ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic)\b", re.I)
 # tema económico, empresarial o de política pública (lo que interesa a un inversionista)
 ECON = re.compile(r"econom|crec|\bpib\b|inflaci|precio|d[oó]lar|bol[ií]var|divisa|cambiari|petr[oó]le|crudo|barril|\bgas\b|oleoduct|gasoduct|refiner|pdvsa|"
                   r"chevron|repsol|\beni\b|maurel|ongc|reliance|citgo|opep|opec|miner|\boro\b|hierro|alumini|banc[oa]|cr[eé]dito|bolsa|acciones|bonos?\b|deuda|"

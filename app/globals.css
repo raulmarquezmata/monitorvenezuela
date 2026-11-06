@@ -370,3 +370,5 @@ details.fold[open] > summary { margin-bottom: 12px; }
 .grid.eq > .card:last-child .src { margin-top: auto; }
 .cap-grid.acc { margin-top: 14px; }
 .cap-grid.acc b { font-size: 17px; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn.primary:hover { filter: brightness(1.08); }

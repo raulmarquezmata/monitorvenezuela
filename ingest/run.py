@@ -21,11 +21,11 @@ JOBS = {
     "bcv_stats": bcv_stats.run, "inflation": inflation.run, "press": press.run, "banking": banking.run,
     "opec": opec.run, "sunaval": sunaval.run, "oil": oil.run, "ofac": ofac.run, "events": events.run,
     "manual": manual.run, "bonds": bonds.run, "trade": trade.run, "agro": agro.run, "commodities": commodities.run,
-    "sudeban": sudeban.run, "bancos_muestra": bancos_muestra.run, "census": census.run, "trade_mensual": trade.run_monthly, "agro_usda": agro.run_usda, "futuros": futures.run, "ipc": fx.run_cpi, "embi": embi.run, "opec_local": lambda: opec.run(local_only=True), "alerts": alerts.run, "emisores": emisores.run, "reportes": reportes.run, "informes": informes.run, "alerts_daily": lambda: alerts.run(daily=True),
+    "sudeban": sudeban.run, "bancos_muestra": bancos_muestra.run, "census": census.run, "trade_mensual": trade.run_monthly, "agro_usda": agro.run_usda, "futuros": futures.run, "ipc": fx.run_cpi, "embi": embi.run, "opec_local": lambda: opec.run(local_only=True), "alerts": alerts.run, "emisores": emisores.run, "reportes": reportes.run, "cierre_pdf": reportes.run_daily, "informes": informes.run, "alerts_daily": lambda: alerts.run(daily=True),
 }
 GROUPS = {
-    "frequent": ["catalog", "fx", "bvc", "news", "futuros", "alerts"],
-    "telegram": ["fx", "alerts"],  # corrida corta para el buenos días y el cierre
+    "frequent": ["catalog", "fx", "bvc", "news", "futuros", "alerts", "cierre_pdf"],
+    "telegram": ["fx", "bvc", "alerts", "cierre_pdf"],  # corrida corta para el buenos días y el cierre
     # publicaciones oficiales: cada 2 horas en días hábiles, para cargarlas y avisar apenas salgan
     "oficial": ["bcv_stats", "inflation", "press", "banking", "opec", "sunaval", "embi", "oil", "emisores", "informes", "alerts"],
     "daily": ["catalog", "fx", "bvc_full", "reportes", "emisores", "informes", "bcv_stats", "inflation", "press", "banking", "opec", "sunaval", "oil", "embi", "trade_mensual", "ipc", "agro_usda",

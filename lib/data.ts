@@ -133,6 +133,12 @@ export function mktcapReportUrl(lang: "es" | "en", version?: string | null): str
   return `${url.replace(/\/$/, "")}/storage/v1/object/public/reportes/mercado/mktcap_${lang}.pdf${version ? `?v=${version}` : ""}`;
 }
 
+/** URL pública del informe PDF de cierre diario de la BVC (renta variable). */
+export function dailyReportUrl(lang: "es" | "en", version?: string | null): string | null {
+  if (!url) return null;
+  return `${url.replace(/\/$/, "")}/storage/v1/object/public/reportes/mercado/diario_${lang}.pdf${version ? `?v=${version}` : ""}`;
+}
+
 /** Todas las noticias recientes que capta el robot (todos los medios y temas) para la hemeroteca automática. */
 async function hemerotecaAuto_(since = "2026-10-01"): Promise<News[]> {
   if (!sb) return [];

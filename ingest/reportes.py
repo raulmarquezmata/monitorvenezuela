@@ -137,6 +137,12 @@ def _setup():
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
+    from matplotlib import font_manager
+    for f in FONTS.glob("*.ttf"):
+        try:
+            font_manager.fontManager.addfont(str(f))
+        except Exception:  # noqa: BLE001
+            pass
     plt.rcParams.update({"font.family": ["Lato", "Carlito", "DejaVu Sans"], "font.size": 7, "axes.edgecolor": GRID,
                          "axes.linewidth": 0.6, "xtick.color": "#666", "ytick.color": "#666", "svg.fonttype": "path"})
     return plt
@@ -222,7 +228,10 @@ def chart_fx(dates, of, par, lang) -> str:
 
 
 # ---------------------------------------------------------------- HTML
-CSS = """
+FONTS = ASSETS / "fonts"  # Lato va dentro del repositorio: el PDF se ve igual aunque el robot no tenga la fuente instalada
+FONT_FACE = "".join(f"@font-face {{ font-family: Lato; src: url('file://{FONTS / f}'); font-weight: {w}; font-style: {st}; }}\n"
+                    for f, w, st in (("Lato-Regular.ttf", 400, "normal"), ("Lato-Bold.ttf", 700, "normal"), ("Lato-Italic.ttf", 400, "italic")))
+CSS = FONT_FACE + """
 @page { size: A4; margin: 11mm 11mm 10mm 11mm; }
 * { box-sizing: border-box; }
 body { font-family: Lato, Carlito, 'DejaVu Sans', sans-serif; color: #1f2333; font-size: 8pt; margin: 0; }
@@ -592,3 +601,180 @@ table.rk .cl { font-size: 7pt; color: #004aa1; }\ntable.rk td { vertical-align: 
 <div class="card" style="margin-top:10px"><h2>{t['rank']}</h2><table class="rk"><tr>{head}</tr>{body}</table></div>
 <div class="src">{src}</div>
 </body></html>"""
+
+
+# ---------------------------------------------------------------- informe de cierre diario (renta variable) + aviso por Telegram
+TD = {
+    "es": dict(kicker="RADAR · CIERRE BVC", title="Cierre de la Bolsa de Valores de Caracas · {d}",
+               sub="Renta variable: las {n} acciones que operaron en la sesión, con apertura, cierre en bolívares y en dólares, variación del día y rendimiento {wk}.",
+               wk_run="en lo que va de semana", wk_full="de la semana (lunes a viernes)",
+               k_ibc="IBC", k_of="US$ OFICIAL BCV", k_par="US$ MERCADO ALTERNATIVO", k_monto="MONTO NEGOCIADO",
+               ibc_m="día {d} · semana {w}", h=["Símbolo", "Emisor", "Apertura<br>Bs.", "Cierre<br>Bs.", "Cierre<br>US$ oficial", "Cierre<br>US$ alt.",
+               "Var.<br>día", "Semana<br>Bs.", "Semana<br>US$ alt.", "Volumen", "Monto<br>Bs."], rank="Acciones que operaron · de mayor a menor variación del día",
+               src="Fuente: Bolsa de Valores de Caracas (SIBE) y tipo de cambio del Radar Grupo Solfin: oficial BCV Bs. {of}/US$ y mercado alternativo Bs. {par}/US$. "
+               "Rendimiento semanal: cierre de hoy frente al último cierre de la semana anterior ({base}); en US$, cada precio se convierte con la tasa de su fecha. "
+               "Informe generado automáticamente el {now} — no constituye recomendación de inversión.", nobase="—"),
+    "en": dict(kicker="RADAR · BVC CLOSE", title="Caracas Stock Exchange close · {d}",
+               sub="Equities: the {n} stocks traded in the session, with open, close in bolivars and dollars, daily change and {wk} return.",
+               wk_run="week-to-date", wk_full="full-week (Monday to Friday)",
+               k_ibc="IBC", k_of="US$ BCV OFFICIAL", k_par="US$ ALTERNATIVE MARKET", k_monto="TRADED AMOUNT",
+               ibc_m="day {d} · week {w}", h=["Symbol", "Issuer", "Open<br>Bs.", "Close<br>Bs.", "Close<br>US$ official", "Close<br>US$ alt.",
+               "Day<br>chg.", "Week<br>Bs.", "Week<br>US$ alt.", "Volume", "Amount<br>Bs."], rank="Stocks traded · sorted by daily change",
+               src="Source: Caracas Stock Exchange (SIBE) and Radar Grupo Solfin exchange rates: BCV official Bs. {of}/US$ and alternative market Bs. {par}/US$. "
+               "Weekly return: today's close vs. the last close of the previous week ({base}); in US$, each price is converted at its own date's rate. "
+               "Report generated automatically on {now} — not investment advice.", nobase="—"),
+}
+
+
+def _at(series: list[tuple[str, float]], d: str) -> float | None:
+    v = None
+    for x, y in series:
+        if x <= d:
+            v = y
+        else:
+            break
+    return v
+
+
+def daily_data(fx: dict) -> dict | None:
+    rows = select("bvc_latest", {"select": "date,symbol,name,company,open,close,var_pct,volume,amount", "market": "eq.RV"})
+    if not rows:
+        return None
+    session = max(x["date"] for x in rows)
+    rows = [x for x in rows if x["date"] == session and x.get("close")]
+    if not rows:
+        return None
+    d = dt.date.fromisoformat(session)
+    monday = (d - dt.timedelta(days=d.weekday())).isoformat()
+    prev = select("bvc_quotes", {"select": "symbol,date,close", "market": "eq.RV", "close": "gt.0",
+                                 "date": f"gte.{(d - dt.timedelta(days=d.weekday() + 21)).isoformat()}", "order": "date"})
+    base = {}
+    for q in prev:
+        if q["date"] < monday:
+            base[q["symbol"]] = (q["date"], q["close"])  # el último antes del lunes
+    emp = company_names()
+    of, par = _at(fx["usd_bcv"], session), _at(fx["usd_paralelo"], session)
+    for x in rows:
+        x["nombre"] = (emp.get(x["symbol"]) or {}).get("nombre") or pretty_name(x.get("company") or x.get("name") or x["symbol"])
+        b = base.get(x["symbol"])
+        x["wk_bs"] = (x["close"] / b[1] - 1) * 100 if b else None
+        pb = _at(fx["usd_paralelo"], b[0]) if b else None
+        x["wk_us"] = ((x["close"] / par) / (b[1] / pb) - 1) * 100 if b and par and pb else None
+    rows.sort(key=lambda x: -(x.get("var_pct") or 0))
+    ibc = fx.get("ibc") or []
+    ibc_now = _at(ibc, session)
+    ibc_prev = next((v for x, v in reversed(ibc) if x < session), None)
+    ibc_base = next((v for x, v in reversed(ibc) if x < monday), None)
+    bases = sorted({b[0] for b in base.values()})
+    return {"rows": rows, "session": session, "friday": d.weekday() == 4, "of": of, "par": par, "monday": monday,
+            "ibc": ibc_now, "ibc_d": (ibc_now / ibc_prev - 1) * 100 if ibc_now and ibc_prev else None,
+            "ibc_w": (ibc_now / ibc_base - 1) * 100 if ibc_now and ibc_base else None,
+            "monto": sum(x.get("amount") or 0 for x in rows), "base": bases[-1] if bases else None}
+
+
+def build_daily_html(dd: dict, lang: str) -> str:
+    t = TD[lang]
+    par, of = dd["par"], dd["of"]
+    rd = lambda r: num(r, 0 if r and r > 100 else 2, lang)  # noqa: E731
+    pc = lambda v: "—" if v is None else f"<span class='{'up' if v > 0 else 'dn' if v < 0 else ''}'>{'+' if v > 0 else ''}{num(v, 2, lang)}%</span>"  # noqa: E731
+    kpis = [(t["k_ibc"], num(dd["ibc"], 2, lang) if dd["ibc"] else "—", t["ibc_m"].format(d=pc(dd["ibc_d"]), w=pc(dd["ibc_w"]))),
+            (t["k_of"], f"Bs. {rd(of)}", ""), (t["k_par"], f"Bs. {rd(par)}", ""),
+            (t["k_monto"], f"Bs. {num(dd['monto'] / 1e6, 2, lang)} MM" if dd["monto"] >= 1e6 else f"Bs. {num(dd['monto'], 0, lang)}",
+             f"US$ {num(dd['monto'] / par / 1e3, 1, lang)} mil alt." if par else "")]
+    kp = "".join(f"<td><div class='k'>{k}</div><div class='v'>{v}</div><div class='m'>{m or '&nbsp;'}</div></td>" for k, v, m in kpis)
+    body = "".join(
+        f"<tr><td><b>{x['symbol']}</b></td><td class='l'>{x['nombre']}</td><td>{num(x.get('open'), 2, lang) if x.get('open') else '—'}</td>"
+        f"<td><b>{num(x['close'], 2, lang)}</b></td><td>{num(x['close'] / of, 4, lang) if of else '—'}</td><td>{num(x['close'] / par, 4, lang) if par else '—'}</td>"
+        f"<td>{pc(x.get('var_pct'))}</td><td>{pc(x['wk_bs'])}</td><td>{pc(x['wk_us'])}</td>"
+        f"<td>{num(x.get('volume'), 0, lang) if x.get('volume') else '—'}</td><td>{num(x.get('amount'), 0, lang) if x.get('amount') else '—'}</td></tr>"
+        for x in dd["rows"])
+    head = "".join(f"<th{' class=l' if j == 1 else ''}>{h}</th>" for j, h in enumerate(t["h"]))
+    now = dt.datetime.now(dt.timezone(dt.timedelta(hours=-4)))
+    src = t["src"].format(of=rd(of), par=rd(par), base=dshort(dd["base"], lang) if dd["base"] else t["nobase"],
+                          now=f"{dshort(now.date().isoformat(), lang)} {now:%H:%M} VET")
+    extra = """
+@page { size: A4 landscape; margin: 10mm 11mm 9mm 11mm; }
+table.kq { width: calc(100% + 12px); border-collapse: separate; border-spacing: 6px 0; margin: 8px -6px 0; table-layout: fixed; }
+table.kq td { border: 0.6px solid #dfe2ea; border-top: 2.2px solid #004aa1; border-radius: 5px; padding: 8px; text-align: center; vertical-align: middle; }
+table.kq .k { font-size: 7pt; letter-spacing: .5px; color: #555; font-weight: 700; }
+table.kq .v { font-size: 15pt; font-weight: 700; color: #121a30; margin: 3px 0 2px; white-space: nowrap; }
+table.kq .m { font-size: 7.5pt; color: #777; }
+table.rk { width: 100%; border-collapse: collapse; font-size: 8.6pt; margin-top: 6px; }
+table.rk th { background: #121a30; color: #fff; font-weight: 700; text-align: center; vertical-align: middle; padding: 6px 5px; font-size: 7.8pt; line-height: 1.25; white-space: nowrap; }
+table.rk td { text-align: right; padding: 4.5px 6px; border-bottom: 0.5px solid #e4e5ea; vertical-align: top; }
+table.rk tr:nth-child(even) td { background: #f6f7f9; }
+table.rk .l { text-align: left; }
+table.rk td:first-child { text-align: left; }
+table.rk tr { page-break-inside: avoid; }
+.up { color: #1e7b45; font-weight: 700; } .dn { color: #b8322a; font-weight: 700; }
+.card h2 { font-size: 12pt; } .src { font-size: 7pt; }
+"""
+    return f"""<!doctype html><html><head><meta charset="utf-8"><style>{CSS}{extra}</style></head><body>
+<div class="hero"><div class="top"><img src="{logo()}"><div class="brand">{t['kicker']}</div></div><h1>{t['title'].format(d=dlong(dd['session'], lang))}</h1>
+<p>{t['sub'].format(n=len(dd['rows']), wk=t['wk_full'] if dd['friday'] else t['wk_run'])}</p></div>
+<table class="kq"><tr>{kp}</tr></table>
+<div class="card" style="margin-top:10px"><h2>{t['rank']}</h2><table class="rk"><tr>{head}</tr>{body}</table></div>
+<div class="src">{src}</div>
+</body></html>"""
+
+
+def run_daily(force: bool = False):
+    """Tras el cierre de la BVC (desde la 1:30 pm de un día con sesión): genera el informe de cierre y el de capitalización,
+    los sube a Storage y avisa por Telegram una sola vez por sesión."""
+    from .alerts import send_telegram, site
+    from .common import upsert
+    with Run("cierre_pdf") as r:
+        now = dt.datetime.now(dt.timezone(dt.timedelta(hours=-4)))
+        if not force and (now.weekday() > 4 or (now.hour, now.minute) < (13, 30)):
+            r.log.info("Antes del cierre o fin de semana: nada que hacer")
+            return
+        fx = {c: [(x["date"], x["value"]) for x in select("observations", {"select": "date,value", "series_code": f"eq.{c}", "date": "gte.2025-06-01", "order": "date"})]
+              for c in ("usd_bcv", "usd_paralelo", "ibc")}
+        dd = daily_data(fx)
+        if not dd or (not force and dd["session"] != now.date().isoformat()):
+            r.log.info("Sin sesión de hoy todavía")
+            return
+        key = f"pdf_cierre:{dd['session']}"
+        if not force and select("alerts_log", {"select": "key", "key": f"eq.{key}"}):
+            r.log.info("El informe de cierre de hoy ya se envió")
+            return
+        ensure_bucket(BUCKET)
+        urls = {}
+        for lang in ("es", "en"):
+            pdf = render_pdf(build_daily_html(dd, lang))
+            urls[lang] = storage_upload(BUCKET, f"mercado/diario_{lang}.pdf", pdf, max_age=60)
+            storage_upload(BUCKET, f"mercado/diario/{dd['session']}_{lang}.pdf", pdf)
+        mk_url = None
+        try:
+            mk = mktcap_data(fx)
+            if mk:
+                for lang in ("es", "en"):
+                    u = storage_upload(BUCKET, f"mercado/mktcap_{lang}.pdf", render_pdf(build_mktcap_html(mk, lang)), max_age=60)
+                    mk_url = mk_url or u
+        except Exception as e:  # noqa: BLE001
+            r.note(f"mktcap: {str(e)[:120]}")
+        rows = dd["rows"]
+        sg = lambda v: "—" if v is None else f"{'+' if v > 0 else ''}{num(v, 2)}%"  # noqa: E731
+        up, dn = rows[0], rows[-1]
+        d = dt.date.fromisoformat(dd["session"])
+        fecha = f"{['lunes', 'martes', 'miércoles', 'jueves', 'viernes'][d.weekday()]} {d.day}"
+        lines = [f"📄 **Informe de cierre BVC · {fecha}**",
+                 f"{len(rows)} acciones operaron · IBC {num(dd['ibc'], 2) if dd['ibc'] else '—'} ({sg(dd['ibc_d'])} día · {sg(dd['ibc_w'])} {'semana' if dd['friday'] else 'en la semana'})"]
+        if (up.get("var_pct") or 0) > 0:
+            lines.append(f"🟢 Mayor alza: **{up['symbol']}** {sg(up.get('var_pct'))}")
+        if (dn.get("var_pct") or 0) < 0:
+            lines.append(f"🔴 Mayor baja: **{dn['symbol']}** {sg(dn.get('var_pct'))}")
+        links = [f"[PDF del cierre]({urls['es']}?v={dd['session']})"]
+        if mk_url:
+            links.append(f"[PDF capitalización]({mk_url}?v={dd['session']})")
+        if site():
+            links.append(f"[Ver en el Radar]({site('/es/bvc')})")
+        text = "\n".join(lines) + "\n\n🔗 " + "  ·  ".join(links)
+        ch = None
+        try:
+            ch = "telegram" if send_telegram(text) else None
+        except Exception as e:  # noqa: BLE001
+            r.note(f"Telegram: {e}")
+        upsert("alerts_log", [{"key": key, "rule": "pdf_cierre", "message": text, "channels": ch,
+                               "sent_at": dt.datetime.now(dt.timezone.utc).isoformat()}], "key")
+        r.rows = len(rows)

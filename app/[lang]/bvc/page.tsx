@@ -4,7 +4,7 @@ import ChartCard from "@/components/ChartCard";
 import { CardControls, CardScope } from "@/components/CardScope";
 import { chartLabels, NotConfigured, SeriesCard } from "@/components/ui";
 import { change, PERIOD_LABEL, valueAt, type Period, type Point } from "@/lib/stats";
-import { bvcLatest, configured, history, latest, mktcapReportUrl } from "@/lib/data";
+import { bvcLatest, configured, dailyReportUrl, history, latest, mktcapReportUrl } from "@/lib/data";
 import { date, num } from "@/lib/format";
 import { t, type Lang } from "@/lib/i18n";
 
@@ -53,7 +53,8 @@ export default async function BVC({ params }: { params: { lang: Lang } }) {
   const top3 = [...byCo.values()].sort((a, b) => b.cap - a.cap).slice(0, 3).map((g) => ({ symbol: g.symbol, market_cap_bs: g.cap }));
   const mm = (v: number | null) => v == null ? "—" : num(v / 1e6, lang, 0);
   const session = rv[0]?.date ?? rf[0]?.date;
-  const pdfUrl = await existing(mktcapReportUrl(lang, `${session ?? ""}-${Math.floor(Date.now() / 6e5)}`));
+  const ver = `${session ?? ""}-${Math.floor(Date.now() / 6e5)}`;
+  const [pdfUrl, dailyUrl] = await Promise.all([existing(mktcapReportUrl(lang, ver)), existing(dailyReportUrl(lang, ver))]);
   const labels = { symbol: d.symbol, company: d.company, price: d.price, change: d.change, volume: d.volume, amount: d.amount, mcap: d.mcap };
   return (
     <>
@@ -65,7 +66,9 @@ export default async function BVC({ params }: { params: { lang: Lang } }) {
             {es ? "Datos con 15 minutos de retraso." : "Data delayed 15 minutes."}
           </p>
         </div>
-        <div style={{ display: "flex", gap: 6 }}>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
+          {dailyUrl && <a className="btn primary" href={dailyUrl} target="_blank" rel="noreferrer">⬇ {es ? "Informe de cierre (PDF)" : "Closing report (PDF)"}</a>}
+          {pdfUrl && <a className="btn" href={pdfUrl} target="_blank" rel="noreferrer">⬇ {es ? "Informe mkt cap (PDF)" : "Market cap report (PDF)"}</a>}
           <a className="btn" href={`/api/export?bvc=RV&format=xlsx&lang=${lang}`}>⬇ Excel</a>
           <a className="btn" href={`/api/export?bvc=RV&format=csv&lang=${lang}`}>CSV</a>
         </div>
@@ -110,7 +113,6 @@ export default async function BVC({ params }: { params: { lang: Lang } }) {
           </>) : <div className="empty" style={{ height: 120 }}>{d.noData}</div>}
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 14 }}>
             <a className="btn" href={`/api/export?bvc=mktcap&format=xlsx&lang=${lang}`}>⬇ {es ? "Lista de capitalización (Excel)" : "Market cap list (Excel)"}</a>
-            {pdfUrl && <a className="btn" href={pdfUrl} target="_blank" rel="noreferrer">⬇ {es ? "Descargar informe mkt cap (PDF)" : "Download market cap report (PDF)"}</a>}
           </div>
         </div>
       </div>
