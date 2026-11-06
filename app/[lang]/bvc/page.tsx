@@ -68,7 +68,7 @@ export default async function BVC({ params }: { params: { lang: Lang } }) {
         </div>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
           {dailyUrl && <a className="btn primary" href={dailyUrl} target="_blank" rel="noreferrer">⬇ {es ? "Informe de cierre (PDF)" : "Closing report (PDF)"}</a>}
-          {pdfUrl && <a className="btn" href={pdfUrl} target="_blank" rel="noreferrer">⬇ {es ? "Informe mkt cap (PDF)" : "Market cap report (PDF)"}</a>}
+          {pdfUrl && <a className="btn primary" href={pdfUrl} target="_blank" rel="noreferrer">⬇ {es ? "Informe mkt cap (PDF)" : "Market cap report (PDF)"}</a>}
           <a className="btn" href={`/api/export?bvc=RV&format=xlsx&lang=${lang}`}>⬇ Excel</a>
           <a className="btn" href={`/api/export?bvc=RV&format=csv&lang=${lang}`}>CSV</a>
         </div>

@@ -581,7 +581,7 @@ def build_mktcap_html(mk: dict, lang: str) -> str:
 table.kq { width: 100%; border-collapse: separate; border-spacing: 6px 0; margin: 8px -6px 0; width: calc(100% + 12px); table-layout: fixed; }
 table.kq td { border: 0.6px solid #dfe2ea; border-top: 2.2px solid #004aa1; border-radius: 5px; padding: 9px 8px; text-align: center; vertical-align: middle; }
 table.kq .k { font-size: 7pt; letter-spacing: .5px; color: #555; font-weight: 700; }
-table.kq .v { font-size: 15pt; font-weight: 700; color: #121a30; margin: 4px 0 2px; white-space: nowrap; }
+table.kq .v { font-size: 14pt; font-weight: 700; color: #121a30; margin: 4px 0 2px; white-space: nowrap; }
 table.kq .m { font-size: 7.5pt; color: #777; }
 .card h2 { font-size: 12pt; }
 .src { font-size: 7pt; }
@@ -608,20 +608,20 @@ TD = {
     "es": dict(kicker="RADAR · CIERRE BVC", title="Cierre de la Bolsa de Valores de Caracas · {d}",
                sub="Renta variable: las {n} acciones que operaron en la sesión, con apertura, cierre en bolívares y en dólares, variación del día y rendimiento {wk}.",
                wk_run="en lo que va de semana", wk_full="de la semana (lunes a viernes)",
-               k_ibc="IBC", k_of="US$ OFICIAL BCV", k_par="US$ MERCADO ALTERNATIVO", k_monto="MONTO NEGOCIADO",
-               ibc_m="día {d} · semana {w}", h=["Símbolo", "Emisor", "Apertura<br>Bs.", "Cierre<br>Bs.", "Cierre<br>US$ oficial", "Cierre<br>US$ alt.",
-               "Var.<br>día", "Semana<br>Bs.", "Semana<br>US$ alt.", "Volumen", "Monto<br>Bs."], rank="Acciones que operaron · de mayor a menor variación del día",
+               k_ibc="IBC", k_of="US$ OFICIAL BCV", k_par="US$ MERCADO ALTERNATIVO", k_monto="MONTO NEGOCIADO (US$ ALT.)",
+               ibc_m="día {d} · semana {w}", h=["Símbolo", "Emisor", "Apertura<br>Bs.", "Cierre<br>Bs.", "Var. día<br>Bs.", "Cierre<br>US$ alt.",
+               "Var. día<br>US$ alt.", "Semana<br>US$ alt.", "Monto<br>US$ alt."], rank="Acciones que operaron · de mayor a menor variación del día",
                src="Fuente: Bolsa de Valores de Caracas (SIBE) y tipo de cambio del Radar Grupo Solfin: oficial BCV Bs. {of}/US$ y mercado alternativo Bs. {par}/US$. "
-               "Rendimiento semanal: cierre de hoy frente al último cierre de la semana anterior ({base}); en US$, cada precio se convierte con la tasa de su fecha. "
+               "Columnas en US$ alt.: cada precio se convierte con la tasa del mercado alternativo de su fecha. Semana: cierre de hoy frente al último cierre de la semana anterior ({base}). Monto: monto negociado del día ÷ tasa alternativa de hoy. "
                "Informe generado automáticamente el {now} — no constituye recomendación de inversión.", nobase="—"),
     "en": dict(kicker="RADAR · BVC CLOSE", title="Caracas Stock Exchange close · {d}",
                sub="Equities: the {n} stocks traded in the session, with open, close in bolivars and dollars, daily change and {wk} return.",
                wk_run="week-to-date", wk_full="full-week (Monday to Friday)",
-               k_ibc="IBC", k_of="US$ BCV OFFICIAL", k_par="US$ ALTERNATIVE MARKET", k_monto="TRADED AMOUNT",
-               ibc_m="day {d} · week {w}", h=["Symbol", "Issuer", "Open<br>Bs.", "Close<br>Bs.", "Close<br>US$ official", "Close<br>US$ alt.",
-               "Day<br>chg.", "Week<br>Bs.", "Week<br>US$ alt.", "Volume", "Amount<br>Bs."], rank="Stocks traded · sorted by daily change",
+               k_ibc="IBC", k_of="US$ BCV OFFICIAL", k_par="US$ ALTERNATIVE MARKET", k_monto="TRADED AMOUNT (ALT. US$)",
+               ibc_m="day {d} · week {w}", h=["Symbol", "Issuer", "Open<br>Bs.", "Close<br>Bs.", "Day chg.<br>Bs.", "Close<br>US$ alt.",
+               "Day chg.<br>US$ alt.", "Week<br>US$ alt.", "Amount<br>US$ alt."], rank="Stocks traded · sorted by daily change",
                src="Source: Caracas Stock Exchange (SIBE) and Radar Grupo Solfin exchange rates: BCV official Bs. {of}/US$ and alternative market Bs. {par}/US$. "
-               "Weekly return: today's close vs. the last close of the previous week ({base}); in US$, each price is converted at its own date's rate. "
+               "US$ alt. columns: each price is converted at the alternative-market rate of its own date. Week: today's close vs. the last close of the previous week ({base}). Amount: traded amount ÷ today's alternative rate. "
                "Report generated automatically on {now} — not investment advice.", nobase="—"),
 }
 
@@ -648,10 +648,12 @@ def daily_data(fx: dict) -> dict | None:
     monday = (d - dt.timedelta(days=d.weekday())).isoformat()
     prev = select("bvc_quotes", {"select": "symbol,date,close", "market": "eq.RV", "close": "gt.0",
                                  "date": f"gte.{(d - dt.timedelta(days=d.weekday() + 21)).isoformat()}", "order": "date"})
-    base = {}
+    base, last = {}, {}
     for q in prev:
         if q["date"] < monday:
             base[q["symbol"]] = (q["date"], q["close"])  # el último antes del lunes
+        if q["date"] < session:
+            last[q["symbol"]] = (q["date"], q["close"])  # la sesión anterior de cada acción
     emp = company_names()
     of, par = _at(fx["usd_bcv"], session), _at(fx["usd_paralelo"], session)
     for x in rows:
@@ -660,6 +662,11 @@ def daily_data(fx: dict) -> dict | None:
         x["wk_bs"] = (x["close"] / b[1] - 1) * 100 if b else None
         pb = _at(fx["usd_paralelo"], b[0]) if b else None
         x["wk_us"] = ((x["close"] / par) / (b[1] / pb) - 1) * 100 if b and par and pb else None
+        p = last.get(x["symbol"])
+        pp = _at(fx["usd_paralelo"], p[0]) if p else None
+        x["d_us"] = ((x["close"] / par) / (p[1] / pp) - 1) * 100 if p and par and pp else None
+        x["close_us"] = x["close"] / par if par else None
+        x["amount_us"] = (x.get("amount") or 0) / par if par else None
     rows.sort(key=lambda x: -(x.get("var_pct") or 0))
     ibc = fx.get("ibc") or []
     ibc_now = _at(ibc, session)
@@ -679,29 +686,32 @@ def build_daily_html(dd: dict, lang: str) -> str:
     pc = lambda v: "—" if v is None else f"<span class='{'up' if v > 0 else 'dn' if v < 0 else ''}'>{'+' if v > 0 else ''}{num(v, 2, lang)}%</span>"  # noqa: E731
     kpis = [(t["k_ibc"], num(dd["ibc"], 2, lang) if dd["ibc"] else "—", t["ibc_m"].format(d=pc(dd["ibc_d"]), w=pc(dd["ibc_w"]))),
             (t["k_of"], f"Bs. {rd(of)}", ""), (t["k_par"], f"Bs. {rd(par)}", ""),
-            (t["k_monto"], f"Bs. {num(dd['monto'] / 1e6, 2, lang)} MM" if dd["monto"] >= 1e6 else f"Bs. {num(dd['monto'], 0, lang)}",
-             f"US$ {num(dd['monto'] / par / 1e3, 1, lang)} mil alt." if par else "")]
+            (t["k_monto"], f"US$ {num(dd['monto'] / par / 1e3, 1, lang)} {'mil' if lang == 'es' else 'K'}" if par else "—",
+             (f"Bs. {num(dd['monto'] / 1e6, 2, lang)} MM" if dd["monto"] >= 1e6 else f"Bs. {num(dd['monto'], 0, lang)}") + (" en bolívares" if lang == "es" else " in bolivars"))]
     kp = "".join(f"<td><div class='k'>{k}</div><div class='v'>{v}</div><div class='m'>{m or '&nbsp;'}</div></td>" for k, v, m in kpis)
     body = "".join(
         f"<tr><td><b>{x['symbol']}</b></td><td class='l'>{x['nombre']}</td><td>{num(x.get('open'), 2, lang) if x.get('open') else '—'}</td>"
-        f"<td><b>{num(x['close'], 2, lang)}</b></td><td>{num(x['close'] / of, 4, lang) if of else '—'}</td><td>{num(x['close'] / par, 4, lang) if par else '—'}</td>"
-        f"<td>{pc(x.get('var_pct'))}</td><td>{pc(x['wk_bs'])}</td><td>{pc(x['wk_us'])}</td>"
-        f"<td>{num(x.get('volume'), 0, lang) if x.get('volume') else '—'}</td><td>{num(x.get('amount'), 0, lang) if x.get('amount') else '—'}</td></tr>"
+        f"<td><b>{num(x['close'], 2, lang)}</b></td><td>{pc(x.get('var_pct'))}</td>"
+        f"<td class='us'><b>{num(x['close_us'], 4, lang) if x['close_us'] else '—'}</b></td><td class='us'>{pc(x['d_us'])}</td><td class='us'>{pc(x['wk_us'])}</td>"
+        f"<td class='us'>{num(x['amount_us'], 0, lang) if x['amount_us'] else '—'}</td></tr>"
         for x in dd["rows"])
-    head = "".join(f"<th{' class=l' if j == 1 else ''}>{h}</th>" for j, h in enumerate(t["h"]))
+    head = "".join(f"<th{' class=l' if j == 1 else ' class=us' if j >= 5 else ''}>{h}</th>" for j, h in enumerate(t["h"]))
     now = dt.datetime.now(dt.timezone(dt.timedelta(hours=-4)))
     src = t["src"].format(of=rd(of), par=rd(par), base=dshort(dd["base"], lang) if dd["base"] else t["nobase"],
                           now=f"{dshort(now.date().isoformat(), lang)} {now:%H:%M} VET")
     extra = """
-@page { size: A4 landscape; margin: 10mm 11mm 9mm 11mm; }
+@page { size: A4; margin: 11mm 11mm 10mm 11mm; }
 table.kq { width: calc(100% + 12px); border-collapse: separate; border-spacing: 6px 0; margin: 8px -6px 0; table-layout: fixed; }
 table.kq td { border: 0.6px solid #dfe2ea; border-top: 2.2px solid #004aa1; border-radius: 5px; padding: 8px; text-align: center; vertical-align: middle; }
 table.kq .k { font-size: 7pt; letter-spacing: .5px; color: #555; font-weight: 700; }
 table.kq .v { font-size: 15pt; font-weight: 700; color: #121a30; margin: 3px 0 2px; white-space: nowrap; }
 table.kq .m { font-size: 7.5pt; color: #777; }
-table.rk { width: 100%; border-collapse: collapse; font-size: 8.6pt; margin-top: 6px; }
-table.rk th { background: #121a30; color: #fff; font-weight: 700; text-align: center; vertical-align: middle; padding: 6px 5px; font-size: 7.8pt; line-height: 1.25; white-space: nowrap; }
-table.rk td { text-align: right; padding: 4.5px 6px; border-bottom: 0.5px solid #e4e5ea; vertical-align: top; }
+table.rk { width: 100%; border-collapse: collapse; font-size: 8.2pt; margin-top: 6px; }
+table.rk th { background: #121a30; color: #fff; font-weight: 700; text-align: center; vertical-align: middle; padding: 6px 4px; font-size: 7.4pt; line-height: 1.25; white-space: nowrap; }
+table.rk th.us { background: #004aa1; }
+table.rk td.us { background: #f1f6fc; }
+table.rk tr:nth-child(even) td.us { background: #e7eff9; }
+table.rk td { text-align: right; padding: 4.5px 5px; border-bottom: 0.5px solid #e4e5ea; vertical-align: top; }
 table.rk tr:nth-child(even) td { background: #f6f7f9; }
 table.rk .l { text-align: left; }
 table.rk td:first-child { text-align: left; }
