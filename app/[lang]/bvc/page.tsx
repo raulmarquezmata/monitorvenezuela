@@ -8,6 +8,12 @@ import { bvcLatest, configured, history, latest, mktcapReportUrl } from "@/lib/d
 import { date, num } from "@/lib/format";
 import { t, type Lang } from "@/lib/i18n";
 
+/** Devuelve la URL solo si el archivo ya existe en Storage (si no, el botón no se muestra). */
+async function existing(u: string | null): Promise<string | null> {
+  if (!u) return null;
+  try { const r = await fetch(u, { method: "HEAD", next: { revalidate: 600 } }); return r.ok ? u : null; } catch { return null; }
+}
+
 // se regenera cada 2 minutos; los botones (moneda, renta fija) ya no recargan la página
 export const revalidate = 120;
 
@@ -32,10 +38,13 @@ export default async function BVC({ params }: { params: { lang: Lang } }) {
   const of = fx.find((s) => s.code === "usd_bcv")?.last_value ?? null;
   const par = fx.find((s) => s.code === "usd_paralelo")?.last_value ?? null;
   const capBs = rv.reduce((a, r) => a + (r.market_cap_bs ?? 0), 0);
-  const nCap = rv.filter((r) => r.market_cap_bs).length;
-  const top3 = [...rv].filter((r) => r.market_cap_bs).sort((a, b) => b.market_cap_bs! - a.market_cap_bs!).slice(0, 3);
+  // los tres mayores por empresa (las clases A/B de una misma compañía se suman)
+  const byCo = new Map<string, { symbol: string; cap: number }>();
+  for (const r of rv) if (r.market_cap_bs) { const k = (r.company ?? r.symbol).trim().toUpperCase(); const g = byCo.get(k); byCo.set(k, { symbol: g ? (g.symbol.length <= r.symbol.length ? g.symbol : r.symbol) : r.symbol, cap: (g?.cap ?? 0) + r.market_cap_bs }); }
+  const top3 = [...byCo.values()].sort((a, b) => b.cap - a.cap).slice(0, 3).map((g) => ({ symbol: g.symbol, market_cap_bs: g.cap }));
   const mm = (v: number | null) => v == null ? "—" : num(v / 1e6, lang, 0);
   const session = rv[0]?.date ?? rf[0]?.date;
+  const pdfUrl = await existing(mktcapReportUrl(lang, session));
   const labels = { symbol: d.symbol, company: d.company, price: d.price, change: d.change, volume: d.volume, amount: d.amount, mcap: d.mcap };
   return (
     <>
@@ -52,13 +61,18 @@ export default async function BVC({ params }: { params: { lang: Lang } }) {
           <a className="btn" href={`/api/export?bvc=RV&format=csv&lang=${lang}`}>CSV</a>
         </div>
       </div>
-      <div className="grid g2" style={{ marginBottom: 24 }}>
+      {/* 1) IBC a todo el ancho */}
+      <div style={{ marginBottom: 24 }}>
         <ChartCard lang={lang} title={es ? "Índice Bursátil Caracas (IBC)" : "Caracas Stock Index (IBC)"} date={ibcMeta?.last_date ? date(ibcMeta.last_date, lang) : ""}
-          series={[{ name: "IBC", points: ibcPts }]} unit="pts" height={220} area labels={chartLabels(lang)} rangeLabels={d.range}
-          ranges={["1M", "3M", "YTD", "1A"]} initial="YTD" stats={{ periods: ["1D", "1W", "1M", "YTD"] }}>
+          series={[{ name: "IBC", points: ibcPts }]} unit="pts" height={300} area labels={chartLabels(lang)} rangeLabels={d.range}
+          ranges={["1M", "3M", "YTD", "1A", "MAX"]} initial="YTD" stats={{ periods: ["1D", "1W", "1M", "YTD"] }}>
           <div className="big">{num(ibcMeta?.last_value, lang, 2)}<small>pts</small></div>
         </ChartCard>
-        <div className="card">
+      </div>
+
+      {/* 2) Rendimiento del IBC + capitalización total + descargas, en un mismo cuadro */}
+      <div className="card split" style={{ marginBottom: 24 }}>
+        <div>
           <div className="card-top"><h3>{es ? "Rendimiento del IBC" : "IBC return"}</h3><span className="date">{es ? "en bolívares y en dólares" : "in bolivars and dollars"}</span></div>
           <div className="tbl-wrap">
           <table className="tbl compact" style={{ marginTop: 14 }}>
@@ -69,37 +83,39 @@ export default async function BVC({ params }: { params: { lang: Lang } }) {
           </table>
           </div>
           <p className="muted" style={{ fontSize: 13, marginTop: 12 }}>{es
-            ? "Cuánto ganó o perdió quien tenía el índice, medido en bolívares y convertido a dólares con la tasa de cada fecha. Si el rendimiento en US$ es menor que en Bs, la devaluación se comió parte de la subida."
+            ? "Cuánto ganó o perdió quien tenía el índice, en bolívares y convertido a dólares con la tasa de cada fecha. Si el rendimiento en US$ es menor que en Bs, la devaluación se comió parte de la subida."
             : "Gain or loss for a holder of the index, in bolivars and converted to dollars at each date's rate. A lower US$ return means devaluation ate part of the rally."}</p>
         </div>
+        <div>
+          <div className="card-top"><h3>{es ? "Capitalización total · renta variable" : "Total market cap · equities"}</h3><span className="date">{session ? date(session, lang) : ""}</span></div>
+          {capBs > 0 ? (<>
+            <div className="cap-grid">
+              <div><span className="muted">{es ? "US$ mercado alternativo" : "US$ alternative market"}</span><b>US$ {mm(par ? capBs / par : null)} <small>MM</small></b></div>
+              <div><span className="muted">{es ? "US$ oficial BCV" : "US$ official (BCV)"}</span><b>US$ {mm(of ? capBs / of : null)} <small>MM</small></b></div>
+              <div><span className="muted">{es ? "Bolívares" : "Bolivars"}</span><b>Bs {mm(capBs)} <small>MM</small></b></div>
+            </div>
+            {top3.length > 0 && <p className="muted" style={{ fontSize: 13, margin: "12px 0 0" }}>{es ? "Los tres mayores: " : "Largest three: "}
+              {top3.map((r, i) => <span key={r.symbol}>{i ? " · " : ""}<Link href={`/${lang}/bvc/${r.symbol}`}>{r.symbol}</Link> {num((r.market_cap_bs! / capBs) * 100, lang, 1)}%</span>)}</p>}
+            <p className="muted" style={{ fontSize: 13, margin: "8px 0 0" }}>{es ? "Acciones en circulación × último cierre, convertido con la tasa de hoy." : "Shares outstanding × last close, converted at today's rate."}</p>
+          </>) : <div className="empty" style={{ height: 120 }}>{d.noData}</div>}
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 14 }}>
+            <a className="btn" href={`/api/export?bvc=mktcap&format=xlsx&lang=${lang}`}>⬇ {es ? "Lista de capitalización (Excel)" : "Market cap list (Excel)"}</a>
+            {pdfUrl && <a className="btn" href={pdfUrl} target="_blank" rel="noreferrer">⬇ {es ? "Descargar informe mkt cap (PDF)" : "Download market cap report (PDF)"}</a>}
+          </div>
+        </div>
       </div>
-      <div className="grid g2" style={{ marginBottom: 24 }}>
-        {monto && mp.length > 0 && (
-          <SeriesCard s={monto} points={mp} lang={lang} bars clip initial="3M" height={200} stats={false}
+
+      {/* 3) Monto negociado a todo el ancho */}
+      {monto && mp.length > 0 && (
+        <div style={{ marginBottom: 24 }}>
+          <SeriesCard s={monto} points={mp} lang={lang} bars clip initial="3M" height={240} stats={false}
             note={(vsAvg != null ? (es
               ? `Última sesión: ${vsAvg >= 0 ? "+" : ""}${num(vsAvg, lang, 1)}% frente al promedio de las 20 sesiones anteriores (Bs ${num(avg20, lang, 0)}). `
               : `Last session: ${vsAvg >= 0 ? "+" : ""}${num(vsAvg, lang, 1)}% vs the previous 20-session average (Bs ${num(avg20, lang, 0)}). `) : "")
               + (es ? "Cada barra es una sesión. Si una sesión es atípica, su barra se corta (↑) para que el resto se lea; pase el cursor para ver su valor real."
                     : "Each bar is one session. An outlier session is cut (↑) so the rest stays readable; hover to see its actual value.")} />
-        )}
-        {capBs > 0 && (
-          <div className="card">
-            <div className="card-top"><h3>{es ? "Capitalización total · renta variable" : "Total market cap · equities"}</h3><span className="date">{session ? date(session, lang) : ""}</span></div>
-            <div className="cap-grid">
-              <div><span className="muted">{es ? "US$ mercado alternativo" : "US$ alternative market"}</span><b>US$ {mm(par ? capBs / par : null)} <small>{es ? "millones" : "million"}</small></b></div>
-              <div><span className="muted">{es ? "US$ oficial BCV" : "US$ official (BCV)"}</span><b>US$ {mm(of ? capBs / of : null)} <small>{es ? "millones" : "million"}</small></b></div>
-              <div><span className="muted">{es ? "Bolívares" : "Bolivars"}</span><b>Bs {mm(capBs)} <small>{es ? "millones" : "million"}</small></b></div>
-            </div>
-            {top3.length > 0 && <p className="muted" style={{ fontSize: 13, margin: "12px 0 0" }}>{es ? `${nCap} emisores. Los tres mayores: ` : `${nCap} issuers. Largest three: `}
-              {top3.map((r, i) => <span key={r.symbol}>{i ? " · " : ""}<Link href={`/${lang}/bvc/${r.symbol}`}>{r.symbol}</Link> {num((r.market_cap_bs! / capBs) * 100, lang, 1)}%</span>)}</p>}
-            <p className="muted" style={{ fontSize: 13, margin: "8px 0 0" }}>{es ? "Acciones en circulación × último cierre, convertido con la tasa de hoy." : "Shares outstanding × last close, converted at today's rate."}</p>
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 14 }}>
-              <a className="btn" href={`/api/export?bvc=mktcap&format=xlsx&lang=${lang}`}>⬇ {es ? "Lista de capitalización (Excel)" : "Market cap list (Excel)"}</a>
-              {mktcapReportUrl(lang, session) && <a className="btn" href={mktcapReportUrl(lang, session)!} target="_blank" rel="noreferrer">⬇ {es ? "Descargar informe mkt cap (PDF)" : "Download market cap report (PDF)"}</a>}
-            </div>
-          </div>
-        )}
-      </div>
+        </div>
+      )}
 
       <div className="card">
         <CardScope initial="1M">

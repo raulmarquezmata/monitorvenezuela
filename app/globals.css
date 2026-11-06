@@ -359,3 +359,7 @@ details.fold > summary::-webkit-details-marker { display: none; }
 details.fold > summary::before { content: "▸"; display: inline-block; margin-right: 8px; transition: transform .15s; color: var(--accent); }
 details.fold[open] > summary::before { transform: rotate(90deg); }
 details.fold[open] > summary { margin-bottom: 12px; }
+.card.split { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+.card.split > div + div { border-left: 1px solid var(--line); padding-left: 32px; }
+@media (max-width: 900px) { .card.split { grid-template-columns: 1fr; } .card.split > div + div { border-left: 0; padding-left: 0; border-top: 1px solid var(--line); padding-top: 20px; } .cap-grid { grid-template-columns: 1fr; } }
+.tbl-wrap table th { white-space: nowrap; }
