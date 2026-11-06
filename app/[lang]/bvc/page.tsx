@@ -53,7 +53,7 @@ export default async function BVC({ params }: { params: { lang: Lang } }) {
   const top3 = [...byCo.values()].sort((a, b) => b.cap - a.cap).slice(0, 3).map((g) => ({ symbol: g.symbol, market_cap_bs: g.cap }));
   const mm = (v: number | null) => v == null ? "—" : num(v / 1e6, lang, 0);
   const session = rv[0]?.date ?? rf[0]?.date;
-  const pdfUrl = await existing(mktcapReportUrl(lang, session));
+  const pdfUrl = await existing(mktcapReportUrl(lang, `${session ?? ""}-${Math.floor(Date.now() / 6e5)}`));
   const labels = { symbol: d.symbol, company: d.company, price: d.price, change: d.change, volume: d.volume, amount: d.amount, mcap: d.mcap };
   return (
     <>
