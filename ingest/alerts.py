@@ -112,7 +112,7 @@ def market_summary(title: str, hist: dict, today: dt.date) -> str:
         return "" if d == today.isoformat() else f" ({int(d[8:10])}-{MESES[int(d[5:7]) - 1]})"
 
     out = [f"{title} · {DIAS[today.weekday()]} {today.day} {MESES[today.month - 1]} {today.year}", SEP, "💱 **TIPO DE CAMBIO**"]
-    for code, label, dec, emoji in (("usd_bcv", "Dólar oficial", 2, "💵"), ("usd_paralelo", "Dólar paralelo", 2, "💵"), ("eur_bcv", "Euro oficial", 2, "💶")):
+    for code, label, dec, emoji in (("usd_bcv", "Dólar oficial", 2, "💵"), ("usd_paralelo", "Mercado alternativo", 2, "💵"), ("eur_bcv", "Euro oficial", 2, "💶")):
         x = last(code)
         if x:
             p = hist[code][-2] if len(hist[code]) > 1 else None
@@ -136,7 +136,7 @@ def market_summary(title: str, hist: dict, today: dt.date) -> str:
             of = before("usd_bcv", (dt.date.fromisoformat(x[0]) + dt.timedelta(days=1)).isoformat())
             pa = before("usd_paralelo", (dt.date.fromisoformat(x[0]) + dt.timedelta(days=1)).isoformat())
             out.append(f"💰 {label}: **Bs {fmt(x[1], 0)}**{tag(x[0])}")
-            usd = [f"US$ {fmt(x[1] / r[1], 0)} {n}" for r, n in ((of, "oficial"), (pa, "paralelo")) if r]
+            usd = [f"US$ {fmt(x[1] / r[1], 0)} {n}" for r, n in ((of, "oficial"), (pa, "alternativo")) if r]
             if usd:
                 out.append("      " + " · ".join(usd))
     out += ["", "🌎 **RIESGO Y PETRÓLEO**"]
@@ -154,7 +154,7 @@ def market_summary(title: str, hist: dict, today: dt.date) -> str:
     if x:
         p = hist["merey"][-2] if len(hist["merey"]) > 1 else None
         out.append(f"🛢️ Merey ({MESES[int(x[0][5:7]) - 1]}): **US$ {fmt(x[1], 2)}**   mes {sg(pct(x[1], p[1]) if p else None)}")
-    return "\n".join(out) + foot(lk("Abrir el Monitor", site("/es")), lk("Tipo de cambio", site("/es/indicadores/cambiario")), lk("BVC", site("/es/bvc")))
+    return "\n".join(out) + foot(lk("Abrir el Radar", site("/es")), lk("Tipo de cambio", site("/es/indicadores/cambiario")), lk("BVC", site("/es/bvc")))
 
 
 def gather_extra(rules: list[dict], daily: bool = False) -> dict:
@@ -273,7 +273,7 @@ def source_links(rule: dict, code: str, ob: dict, m: dict, extra: dict) -> str:
                 links.append(lk("Copia archivada", f"https://github.com/{repo}/blob/main/data/archivo/bcv/{quote(name)}"))
     if not links and m.get("source_url"):
         links.append(lk(f"Fuente: {m.get('source') or 'ver'}", m["source_url"]))
-    links.append(lk("Ver en el Monitor", series_page(m)))
+    links.append(lk("Ver en el Radar", series_page(m)))
     return foot(*links)
 
 
@@ -296,7 +296,7 @@ def evaluate(rules: list[dict], meta: dict[str, dict], data: dict[str, list[dict
                 was_ok = prev["value"] > lim if op == ">" else prev["value"] < lim
                 if now_ok and not was_ok:
                     out.append((f"{rule['id']}:{cur['date']}", rule["texto"].format(valor=fmt(cur["value"], dec), fecha=fecha_txt(cur["date"]), cambio="", flecha="")
-                                + foot(lk(f"Fuente: {m.get('source') or 'ver'}", m.get("source_url")), lk("Ver en el Monitor", series_page(m)))))
+                                + foot(lk(f"Fuente: {m.get('source') or 'ver'}", m.get("source_url")), lk("Ver en el Radar", series_page(m)))))
             else:
                 if prev["value"]:
                     ch = (cur["value"] / prev["value"] - 1) * 100
@@ -304,7 +304,7 @@ def evaluate(rules: list[dict], meta: dict[str, dict], data: dict[str, list[dict
                         out.append((f"{rule['id']}:{cur['date']}", rule["texto"].format(
                             valor=fmt(cur["value"], dec), fecha=fecha_txt(cur["date"]), cambio=("+" if ch > 0 else "") + fmt(ch, 1), flecha=arrow(ch),
                             anterior=fmt(prev["value"], dec))
-                            + foot(lk(f"Fuente: {m.get('source') or 'ver'}", m.get("source_url")), lk("Ver en el Monitor", series_page(m)))))
+                            + foot(lk(f"Fuente: {m.get('source') or 'ver'}", m.get("source_url")), lk("Ver en el Radar", series_page(m)))))
         elif t == "nuevo_dato":
             for code in rule["series"]:
                 obs = data.get(code, [])
@@ -408,7 +408,7 @@ def evaluate(rules: list[dict], meta: dict[str, dict], data: dict[str, list[dict
                 out.append((f"{rule['id']}:{j}:{today_caracas().isoformat()}", rule["texto"].format(robot=j)
                             + foot(lk("Estado de los robots", site("/es/datos")))))
         elif t == "una_vez":
-            out.append((f"{rule['id']}:1", rule["texto"] + foot(lk("Abrir el Monitor", site("/es")))))
+            out.append((f"{rule['id']}:1", rule["texto"] + foot(lk("Abrir el Radar", site("/es")))))
         elif t in ("cierre_semana", "cierre_mes") and daily:
             hoy = today_caracas()
             if t == "cierre_semana" and hoy.weekday() != 4:
@@ -439,7 +439,7 @@ def evaluate(rules: list[dict], meta: dict[str, dict], data: dict[str, list[dict
                     return f"{arrow(v)} {'+' if v > 0 else ''}{fmt(v, 1)}{' pp' if pct else '%'}"
                 lines.append(f"• {m.get('name_es', code)}: **{fmt(last, min(m.get('decimals', 2), 2))} {m.get('unit_es', '')}**")
                 lines.append(f"      {'semana' if t == 'cierre_semana' else 'mes'} {ch(base)}   año {ch(y0)}")
-            out.append((f"{rule['id']}:{hoy.isoformat()}", "\n".join(lines) + foot(lk("Abrir el Monitor", site("/es")))))
+            out.append((f"{rule['id']}:{hoy.isoformat()}", "\n".join(lines) + foot(lk("Abrir el Radar", site("/es")))))
         elif t == "resumen_diario" and daily:
             hoy = today_caracas().isoformat()
             lines = [rule["texto"].format(fecha=hoy)]
@@ -479,6 +479,11 @@ def same_story(a: str, b: str) -> bool:
         return False
     shared = len(wa & wb)
     jac = shared / len(wa | wb)
+    pa = set(re.findall(r"\d+(?:[.,]\d+)?(?=\s?%)", ta))
+    pb = set(re.findall(r"\d+(?:[.,]\d+)?(?=\s?%)", tb))
+    # la misma cifra porcentual (p. ej. 6,2%) con al menos una palabra clave en común = la misma noticia
+    if pa & pb and shared >= 1:
+        return True
     return jac >= 0.4 or (bool(na & nb - {"2026", "2025"}) and shared >= 2)
 
 
@@ -498,7 +503,7 @@ def send_email(text: str) -> bool:
     if not (user and pw and to):
         return False
     msg = MIMEText(plain(text), "plain", "utf-8")
-    msg["Subject"] = "Monitor Venezuela · " + plain(text).splitlines()[0][:80]
+    msg["Subject"] = "Radar Grupo Solfin · " + plain(text).splitlines()[0][:80]
     msg["From"], msg["To"] = user, to
     with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=30) as s:
         s.login(user, pw)
@@ -521,10 +526,11 @@ def run(daily: bool = False):
             return
         # bitácora completa (sin filtros con caracteres especiales en la URL de la consulta)
         log_all = select("alerts_log", {"select": "key,rule,sent_at"})
-        # la misma noticia en varios medios: solo se avisa una vez (se compara con lo enviado en 48 horas)
-        since48 = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(hours=48)).isoformat()
+        # la misma noticia en varios medios (o repetida días después): solo se avisa una vez; se compara con lo
+        # enviado en los últimos 10 días, porque los medios siguen publicando la misma cifra varios días
+        since48 = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=10)).isoformat()
         recent_news = [x["message"] for x in select("alerts_log", {"select": "message,rule,sent_at,channels", "sent_at": f"gte.{since48}"})
-                       if (x.get("message") or "") and (x.get("channels") or "") and (by_tipo.get(x["rule"]) in NEWS_TYPES or x["rule"] == "bvc_lote")]
+                       if (x.get("message") or "") and (by_tipo.get(x["rule"]) in NEWS_TYPES or x["rule"] == "bvc_lote")]
         sent = {x["key"] for x in log_all}
         first_run = not log_all
         known_rules = {x["rule"] for x in log_all}
@@ -566,7 +572,7 @@ def run(daily: bool = False):
                 parts.append("📰 **Noticias de emisores**\n" + "\n".join(sec["bvc_noticia"][:8]))
             if sec["bvc_asamblea"]:
                 parts.append("🗓️ **Asambleas**\n" + "\n".join(sec["bvc_asamblea"]))
-            parts[-1] += foot(lk("Ver la BVC en el Monitor", site("/es/bvc")))
+            parts[-1] += foot(lk("Ver la BVC en el Radar", site("/es/bvc")))
             merged = (f"bvc_lote:{fecha}:{hashlib.sha1('|'.join(k for k, _ in acc).encode()).hexdigest()[:12]}", "\n\n".join(parts))
             candidates = [c for c in candidates if c not in acc] + [merged]
             by_lote = acc

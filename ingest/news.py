@@ -46,6 +46,31 @@ BUSINESS = re.compile(r"empresa|compa[nñ][ií]a|grupo\b|adquiri|adquisici|utili
                       r"planta|f[aá]brica|exportaci|importaci|comercio|acuerdo|alianza|franquicia|marca", re.I)
 
 
+# Perfil inversor: la web solo muestra noticias útiles para quien sigue la economía y los mercados de Venezuela.
+# NOISE = sucesos, crimen, migración, deportes, farándula, armamento: se descartan aunque mencionen a Venezuela,
+# salvo que el titular tenga además un tema económico fuerte (p. ej. «ataque a oleoducto de PDVSA»).
+NOISE = re.compile(r"\beln\b|guerrill|disidencias?\b|\bfarc\b|tren de aragua|homicid|asesin|femicid|feminicid|utopix|secuestr|sicari|tirote|balacera|"
+                   r"\brob[oó]\b|hurto|estafa|\bcicpc\b|sucesos|abuso sexual|violaci[oó]n de una|"
+                   r"deport|expulsi[oó]n|expulsad|repatriad|vuelta a la patria|caravana de migrantes|migrantes varados|"
+                   r"accidente|choque|fallecid|incendio forestal|lluvias|inundaci|sismo|temblor|deslave|"
+                   r"f[uú]tbol|b[eé]isbol|baloncesto|vinotinto|\blvbp\b|futve|copa (libertadores|sudamericana|am[eé]rica)|campeonato|torneo|\bgol(es)?\b|"
+                   r"carabobo fc|deportivo t[aá]chira|caracas fc|magallanes|leones del caracas|navegantes|tiburones de la guaira|cardenales de lara|"
+                   r"\bnba\b|\bmlb\b|grandes ligas|ol[ií]mpic|miss (venezuela|universo)|concierto|far[aá]ndula|telenovela|hor[oó]scopo|loter[ií]a|"
+                   r"\bdron(es)?\b|\bdrones?\b|misiles?\b|soccer|baseball|football|murder|homicide|kidnap|deport|migrants? (stranded|deported)|"
+                   r"\bgang\b|shooting|earthquake|flood", re.I)
+# tema económico, empresarial o de política pública (lo que interesa a un inversionista)
+ECON = re.compile(r"econom|crec|\bpib\b|inflaci|precio|d[oó]lar|bol[ií]var|divisa|cambiari|petr[oó]le|crudo|barril|\bgas\b|oleoduct|gasoduct|refiner|pdvsa|"
+                  r"chevron|repsol|\beni\b|maurel|ongc|reliance|citgo|opep|opec|miner|\boro\b|hierro|alumini|banc[oa]|cr[eé]dito|bolsa|acciones|bonos?\b|deuda|"
+                  r"riesgo pa[ií]s|sanci|licencia|ofac|export|import|arancel|comercio|comercial|inversi|invers|empresa|compa[nñ][ií]a|adquier|adquisi|"
+                  r"negocio|mercado|salario|ingreso m[ií]nimo|impuest|seniat|recaudaci|presupuesto|fiscal|decreto|\bley\b|reforma|gaceta|"
+                  r"consecomercio|fedec[aá]maras|conindustria|venamcham|cavecol|el[eé]ctric|medidas|corpoelec|megavatio|aerol[ií]nea|vuelos|turismo|agro|cosecha|"
+                  r"alimento|industria|f[aá]brica|planta|producci[oó]n|construcci|vivienda|telecom|cantv|\bbcv\b|\bfmi\b|\bimf\b|\bbid\b|\bcaf\b|"
+                  r"gobierno|presiden|ministr|canciller|asamblea nacional|elecci|negociaci|acuerdo|diplom|embajad|trump|rubio|casa blanca|"
+                  r"growth|\bgdp\b|\boil\b|barrel|sanction|license|invest|\bbank|\bbond|\bdebt|market|stock|compan|deal|acquisi|tariff|trade|"
+                  r"government|president|minister|election|policy|white house|energy|mining|gold|refin|shipping|tanker|cargo|\bfirms?\b|business", re.I)
+STRONG = re.compile(r"petr[oó]le|crudo|oleoduct|gasoduct|pdvsa|chevron|econom|inversi|empresa|export|import|sanci|bonos|deuda|\bbcv\b|\boil\b|pipeline|sanction|invest", re.I)
+
+
 FOOTER = re.compile(r"(la entrada|the post)\s.*?(apareci[oó] primero en|appeared first on)\s.*$|\[…\]|\[\.\.\.\]", re.I | re.S)
 
 
@@ -61,9 +86,15 @@ def clean_summary(summary: str | None, title: str = "") -> str | None:
 
 
 def is_relevant(title: str, summary: str | None, strict: bool) -> bool:
-    """Medios venezolanos (strict=False): se acepta todo salvo temas claramente extranjeros que no mencionen
+    """Perfil inversor: fuera sucesos, crimen, migración, deportes y armamento; hace falta un tema económico,
+    empresarial o de política pública. Medios venezolanos (strict=False): se acepta todo salvo temas claramente extranjeros que no mencionen
     a Venezuela en el titular. Medios internacionales y búsquedas (strict=True): el titular o el resumen deben
     mencionar Venezuela o algo propio del país."""
+    blob = f"{title} {summary or ''}"
+    if NOISE.search(title) and not STRONG.search(title):
+        return False
+    if not ECON.search(blob):
+        return False
     if RELEVANT.search(title):
         return True
     if FOREIGN_HARD.search(title):
@@ -138,7 +169,7 @@ def cleanup() -> int:
     """Quita de la base las noticias recientes que no son sobre Venezuela (reglas actuales)."""
     from .common import delete, select
     since = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=45)).isoformat()
-    ve = {f["name"] for f in load_feeds() if f.get("kind") == "medio" and not f.get("filter", True)}
+    ve = {re.sub(r"\s*\((RSS|búsqueda|economía)\)$", "", f["name"]) for f in load_feeds() if not f.get("filter", True)}
     bad = [x["url"] for x in select("news", {"select": "url,title,summary,source,symbols", "published_at": f"gte.{since}"})
            if not x.get("symbols") and not is_relevant(x["title"], clean_summary(x.get("summary"), x["title"]), x.get("source") not in ve)]
     for u in bad:

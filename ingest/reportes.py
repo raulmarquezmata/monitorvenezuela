@@ -17,7 +17,19 @@ from .common import Run, ensure_bucket, select, storage_upload
 
 BUCKET = "reportes"
 EMPRESAS = pathlib.Path(__file__).resolve().parent.parent / "config" / "bvc_empresas.json"
-NAVY, GOLD, GREEN, PAR, RED, GRID = "#1c2541", "#c9a227", "#1e7b45", "#d4a72c", "#b8322a", "#e6e8ee"
+# paleta del manual de marca Grupo Solfin: azul principal #004AA1, azul noche #121A30, acentos #0D407D / #1C7DE0, grises
+NAVY, BLUE, ACC, LIGHT, GRID = "#121a30", "#004aa1", "#1c7de0", "#f2f2f2", "#dbdbe0"
+GOLD = ACC                     # (nombre antiguo) acento de los indicadores
+GREEN, PAR, RED = BLUE, "#d9822b", "#d9822b"  # US$ oficial = azul de marca; mercado alternativo = ámbar (contraste)
+ASSETS = pathlib.Path(__file__).resolve().parent / "assets"
+
+
+def logo(variant: str = "blanco") -> str:
+    """Logo de Grupo Solfin (SVG del manual) como imagen embebida."""
+    try:
+        return "data:image/svg+xml;base64," + base64.b64encode((ASSETS / f"solfin-logo-{variant}.svg").read_bytes()).decode()
+    except Exception:  # noqa: BLE001
+        return ""
 MES = {"es": ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"],
        "en": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]}
 MES_LARGO = {"es": ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"],
@@ -26,40 +38,40 @@ MES_LARGO = {"es": ["enero", "febrero", "marzo", "abril", "mayo", "junio", "juli
 T = {
     "es": dict(
         title="{name} ({sym}) — Precio en Bs. y en US$",
-        sub="Serie diaria completa: {d0} al {d1}. Precio de cierre de la acción {cls} en bolívares y su conversión a dólares (Bs. del día ÷ tipo de cambio del día, oficial y paralelo).",
-        ind="INDICADORES {y} ({a} → {b})", val="VALORACIÓN DE MERCADO (US$ PARALELO)", par_note="Paralelo Bs. {r}/US$ · {d}",
+        sub="Serie diaria completa: {d0} al {d1}. Precio de cierre de la acción {cls} en bolívares y su conversión a dólares (Bs. del día ÷ tipo de cambio del día, oficial y mercado alternativo).",
+        ind="INDICADORES {y} ({a} → {b})", val="VALORACIÓN DE MERCADO (US$ ALTERNATIVO)", par_note="Alternativo Bs. {r}/US$ · {d}",
         shares="Acciones", close="Cierre Bs.", usd_sh="US$ / acc.", val_mm="Valor US$ MM", total="Total",
         at_off="A tasa oficial BCV (Bs. {r}): US$ {v} MM.", price="PRECIO ACTUAL (BS.)", last_close="{d} · último cierre SIBE",
-        nominal="RENDIMIENTO NOMINAL (BS.)", r_of="RENDIMIENTO EN US$ OFICIAL", r_par="RENDIMIENTO EN US$ PARALELO",
+        nominal="RENDIMIENTO NOMINAL (BS.)", r_of="RENDIMIENTO EN US$ OFICIAL", r_par="RENDIMIENTO EN US$ ALTERNATIVO",
         hilo_bs="MÁX / MÍN EN BS.", hilo_us="MÁX / MÍN EN US$ (OF.)", hilo_d="máx {a} · mín {b}",
         ch1="Precio de {sym} — Bs. y US$ en una sola vista",
         ch1_sub="Eje izquierdo: precio nominal en bolívares. Eje derecho: precio convertido a dólares. La divergencia entre ambos ejes es el efecto de la devaluación. Las líneas verticales marcan el nivel de mayo 2025 y el último dato disponible.",
-        l_bs="Precio Bs.", l_bs2="(eje izq.)", l_of="US$ oficial", l_par="US$ paralelo", l_right="(eje der.)",
-        may="Mayo 2025", lastd="Último dato ({d})", of_s="oficial", par_s="paralelo",
-        ch2="Tipo de cambio (Bs./US$)", ch2_sub="Oficial y paralelo utilizados para la conversión.", l_ofx="Oficial", l_parx="Paralelo",
-        cls_common="común", cls_a="Clase A", cls_b="Clase B",
-        src=("Fuente: Bolsa de Valores de Caracas (cierres diarios SIBE{syms}) y tipo de cambio de Monitor Venezuela: tasa oficial BCV "
-             "y referencia paralela del mercado P2P. Días sin dato de tipo de cambio: se usa el último disponible. Valoración: acciones en circulación "
-             "(BVC) × último cierre ÷ tipo de cambio paralelo. Metodología: precio en US$ = precio en Bs. del día ÷ tipo de cambio del día. "
+        l_bs="Precio Bs.", l_bs2="(eje izq.)", l_of="US$ oficial", l_par="US$ alternativo", l_right="(eje der.)",
+        may="Mayo 2025", lastd="Último dato ({d})", of_s="oficial", par_s="alternativo",
+        ch2="Tipo de cambio (Bs./US$)", ch2_sub="Oficial y mercado alternativo utilizados para la conversión.", l_ofx="Oficial", l_parx="Alternativo",
+        cls_common="común", cls_a="Clase A", cls_b="Clase B", about="LA EMPRESA", kicker="RADAR · INFORME DE ACCIÓN",
+        src=("Fuente: Bolsa de Valores de Caracas (cierres diarios SIBE{syms}) y tipo de cambio del Radar Grupo Solfin: tasa oficial BCV "
+             "y referencia del mercado alternativo (P2P). Días sin dato de tipo de cambio: se usa el último disponible. Valoración: acciones en circulación "
+             "(BVC) × último cierre ÷ tipo de cambio del mercado alternativo. Metodología: precio en US$ = precio en Bs. del día ÷ tipo de cambio del día. "
              "Informe generado automáticamente el {now} — no constituye recomendación de inversión."),
     ),
     "en": dict(
         title="{name} ({sym}) — Price in Bs. and US$",
-        sub="Full daily series: {d0} to {d1}. Closing price of the {cls} share in bolivars and its conversion to dollars (Bs. of the day ÷ exchange rate of the day, official and parallel).",
-        ind="{y} INDICATORS ({a} → {b})", val="MARKET VALUE (US$ PARALLEL)", par_note="Parallel Bs. {r}/US$ · {d}",
+        sub="Full daily series: {d0} to {d1}. Closing price of the {cls} share in bolivars and its conversion to dollars (Bs. of the day ÷ exchange rate of the day, official and alternative market).",
+        ind="{y} INDICATORS ({a} → {b})", val="MARKET VALUE (US$ ALTERNATIVE)", par_note="Alternative Bs. {r}/US$ · {d}",
         shares="Shares", close="Close Bs.", usd_sh="US$ / sh.", val_mm="Value US$ MM", total="Total",
         at_off="At the BCV official rate (Bs. {r}): US$ {v} MM.", price="LAST PRICE (BS.)", last_close="{d} · last SIBE close",
-        nominal="NOMINAL RETURN (BS.)", r_of="RETURN IN US$ (OFFICIAL)", r_par="RETURN IN US$ (PARALLEL)",
+        nominal="NOMINAL RETURN (BS.)", r_of="RETURN IN US$ (OFFICIAL)", r_par="RETURN IN US$ (ALTERNATIVE)",
         hilo_bs="HIGH / LOW IN BS.", hilo_us="HIGH / LOW IN US$ (OFF.)", hilo_d="high {a} · low {b}",
         ch1="{sym} price — Bs. and US$ in one view",
         ch1_sub="Left axis: nominal price in bolivars. Right axis: price converted to dollars. The gap between both axes is the effect of devaluation. Vertical lines mark the May 2025 level and the latest data point.",
-        l_bs="Price Bs.", l_bs2="(left axis)", l_of="US$ official", l_par="US$ parallel", l_right="(right axis)",
-        may="May 2025", lastd="Latest ({d})", of_s="official", par_s="parallel",
-        ch2="Exchange rate (Bs./US$)", ch2_sub="Official and parallel rates used for the conversion.", l_ofx="Official", l_parx="Parallel",
-        cls_common="common", cls_a="Class A", cls_b="Class B",
-        src=("Source: Caracas Stock Exchange (daily SIBE closes{syms}) and Monitor Venezuela exchange rates: BCV official rate and the "
-             "parallel P2P market reference. Days without an exchange-rate print use the latest available. Valuation: shares outstanding (BVC) × "
-             "last close ÷ parallel rate. Methodology: US$ price = Bs. price of the day ÷ exchange rate of the day. "
+        l_bs="Price Bs.", l_bs2="(left axis)", l_of="US$ official", l_par="US$ alternative", l_right="(right axis)",
+        may="May 2025", lastd="Latest ({d})", of_s="official", par_s="alternative",
+        ch2="Exchange rate (Bs./US$)", ch2_sub="Official and alternative-market rates used for the conversion.", l_ofx="Official", l_parx="Alternative",
+        cls_common="common", cls_a="Class A", cls_b="Class B", about="THE COMPANY", kicker="RADAR · STOCK REPORT",
+        src=("Source: Caracas Stock Exchange (daily SIBE closes{syms}) and Radar Grupo Solfin exchange rates: BCV official rate and the "
+             "alternative-market (P2P) reference. Days without an exchange-rate print use the latest available. Valuation: shares outstanding (BVC) × "
+             "last close ÷ alternative-market rate. Methodology: US$ price = Bs. price of the day ÷ exchange rate of the day. "
              "Report generated automatically on {now} — not investment advice."),
     ),
 }
@@ -194,7 +206,7 @@ def chart_fx(dates, of, par, lang) -> str:
     x = np.arange(len(dates))
     ofa = np.array([np.nan if v is None else v for v in of], dtype=float)
     pa = np.array([np.nan if v is None else v for v in par], dtype=float)
-    ax.plot(x, ofa, color=NAVY, lw=1.3)
+    ax.plot(x, ofa, color=BLUE, lw=1.3)
     ax.plot(x, pa, color=RED, lw=1.2, ls=(0, (4, 2)))
     lo = np.nanmin(np.concatenate([ofa, pa]))
     hi = np.nanmax(np.concatenate([ofa, pa]))
@@ -213,14 +225,18 @@ CSS = """
 @page { size: A4; margin: 11mm 11mm 10mm 11mm; }
 * { box-sizing: border-box; }
 body { font-family: Lato, Carlito, 'DejaVu Sans', sans-serif; color: #1f2333; font-size: 8pt; margin: 0; }
-.hero { background: %(navy)s; color: #fff; border-radius: 6px; padding: 12px 16px 12px; }
-.brand { color: %(gold)s; font-size: 6.6pt; font-weight: 700; letter-spacing: 1.4px; }
+.hero { background: %(blue)s; color: #fff; border-radius: 6px; padding: 12px 16px 12px; border-bottom: 3px solid %(navy)s; }
+.top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.top img { height: 22px; }
+.brand { color: #cfe0f5; font-size: 6.4pt; font-weight: 700; letter-spacing: 1.4px; }
+.about { background: %(light)s; border-left: 3px solid %(blue)s; border-radius: 4px; padding: 6px 10px; margin-top: 7px; font-size: 7.4pt; line-height: 1.45; color: #2a3247; }
+.about b { font-size: 6.2pt; letter-spacing: .6px; color: %(blue)s; margin-right: 6px; }
 .hero h1 { font-size: 15.5pt; margin: 4px 0 4px; font-weight: 700; }
-.hero p { margin: 0; font-size: 7.6pt; color: #dfe3ee; line-height: 1.4; }
-.sec { font-size: 7pt; font-weight: 700; letter-spacing: .6px; color: #333; margin: 9px 0 5px; }
+.hero p { margin: 0; font-size: 7.6pt; color: #e3ecf8; line-height: 1.4; }
+.sec { font-size: 7pt; font-weight: 700; letter-spacing: .6px; color: %(blue)s; margin: 9px 0 5px; }
 .val { background: %(navy)s; color: #fff; border-radius: 6px; padding: 10px 14px; display: flex; justify-content: space-between; margin-bottom: 7px; }
 .val .k { font-size: 6.4pt; letter-spacing: .6px; color: #c9cfdf; font-weight: 700; }
-.val .big { color: %(gold)s; font-size: 20pt; font-weight: 700; margin: 6px 0 2px; }
+.val .big { color: #7fb6f0; font-size: 20pt; font-weight: 700; margin: 6px 0 2px; }
 .val .s { font-size: 6.6pt; color: #c9cfdf; }
 .val table { border-collapse: collapse; font-size: 6.6pt; color: #e8ebf3; align-self: flex-start; }
 .val th { font-weight: 400; color: #c9cfdf; text-align: right; padding: 1px 0 2px 14px; }
@@ -231,7 +247,7 @@ body { font-family: Lato, Carlito, 'DejaVu Sans', sans-serif; color: #1f2333; fo
 .grid { display: flex; flex-wrap: wrap; justify-content: space-between; }
 .kpi { width: 49.2%%; border: 0.6px solid #dfe2ea; border-top: 2.2px solid %(gold)s; border-radius: 5px; padding: 6px 10px 6px; margin-bottom: 5px; }
 .kpi .k { font-size: 6.2pt; letter-spacing: .5px; color: #555; font-weight: 700; }
-.kpi .v { font-size: 13pt; font-weight: 700; margin: 2px 0 1px; color: #1c2541; }
+.kpi .v { font-size: 13pt; font-weight: 700; margin: 2px 0 1px; color: %(navy)s; }
 .kpi .m { font-size: 6.3pt; color: #777; }
 .card { border: 0.6px solid #dfe2ea; border-radius: 6px; padding: 8px 12px 6px; margin-top: 6px; }
 .card h2 { font-size: 10.5pt; margin: 0 0 2px; }
@@ -242,7 +258,7 @@ body { font-family: Lato, Carlito, 'DejaVu Sans', sans-serif; color: #1f2333; fo
 .leg i.dash { border-top-style: dashed; }
 .card img { width: 100%%; }
 .src { font-size: 5.9pt; color: #666; margin-top: 7px; line-height: 1.45; }
-""" % {"navy": NAVY, "gold": GOLD}
+""" % {"navy": NAVY, "gold": BLUE, "blue": BLUE, "light": LIGHT}
 
 
 def build_html(info: dict, lang: str) -> str:
@@ -305,15 +321,16 @@ def build_html(info: dict, lang: str) -> str:
         src = (f"<b>Serie ajustada por cambios en el capital ({evs}): los precios anteriores se expresan en las acciones actuales.</b> " if lang == "es"
                else f"<b>Series adjusted for capital changes ({evs}): earlier prices are expressed in today's shares.</b> ") + src
     return f"""<!doctype html><html><head><meta charset="utf-8"><style>{CSS}</style></head><body>
-<div class="hero"><div class="brand">SOLFÍN RESEARCH</div><h1>{t['title'].format(name=info['name'], sym=sym)}</h1>
+<div class="hero"><div class="top"><img src="{logo()}"><div class="brand">{t['kicker']}</div></div><h1>{t['title'].format(name=info['name'], sym=sym)}</h1>
 <p>{t['sub'].format(d0=dlong(dates[0], lang), d1=dlong(dates[last], lang), cls=class_label(sym, t, multi))}</p></div>
+{f"<div class='about'><b>{t['about']}</b>{info['desc']}</div>" if info.get('desc') else ""}
 <div class="sec">{t['ind'].format(y=year, a=a, b=b)}</div>
 {val}<div class="grid">{kp}</div>
 <div class="card"><h2>{t['ch1'].format(sym=sym)}</h2><p class="d">{t['ch1_sub']}</p>
 <div class="leg"><span><i style="border-color:{NAVY}"></i><b>{t['l_bs']}</b> {t['l_bs2']}</span><span><i style="border-color:{GREEN}"></i><b>{t['l_of']}</b> {t['l_right']}</span><span><i class="dash" style="border-color:{PAR}"></i><b>{t['l_par']}</b> {t['l_right']}</span></div>
 <img src="{c1}"></div>
 <div class="card"><h2>{t['ch2']}</h2><p class="d">{t['ch2_sub']}</p>
-<div class="leg"><span><i style="border-color:{NAVY}"></i><b>{t['l_ofx']}</b></span><span><i class="dash" style="border-color:{RED}"></i><b>{t['l_parx']}</b></span></div>
+<div class="leg"><span><i style="border-color:{BLUE}"></i><b>{t['l_ofx']}</b></span><span><i class="dash" style="border-color:{RED}"></i><b>{t['l_parx']}</b></span></div>
 <img src="{c2}"></div>
 <div class="src">{src}</div>
 </body></html>"""
@@ -350,6 +367,15 @@ def company_names() -> dict:
         return {}
 
 
+def describe(emp: dict, sym: str, siblings: list[str], lang: str) -> str | None:
+    """Descripción corta de la empresa (config/bvc_empresas.json), buscando también por sus otras clases."""
+    for k in [sym, *siblings, sym.split(".")[0]]:
+        e = emp.get(k) or {}
+        if e.get(lang):
+            return e[lang]
+    return None
+
+
 def run(only: list[str] | None = None):
     with Run("reportes") as r:
         ensure_bucket(BUCKET)
@@ -384,10 +410,108 @@ def run(only: list[str] | None = None):
                 if not info:
                     continue
                 info["splits"] = evs
+                info["desc"] = {lg: describe(emp, sym, [c["symbol"] for c in classes], lg) for lg in ("es", "en")}
                 for lang in ("es", "en"):
-                    storage_upload(BUCKET, f"acciones/{sym}_{lang}.pdf", render_pdf(build_html(info, lang)))
+                    storage_upload(BUCKET, f"acciones/{sym}_{lang}.pdf", render_pdf(build_html({**info, "desc": info["desc"][lang]}, lang)))
                 n += 1
             except Exception as e:  # noqa: BLE001
                 r.note(f"{sym}: {str(e)[:120]}")
+        try:
+            mk = mktcap_data(fx)
+            if mk:
+                for lang in ("es", "en"):
+                    storage_upload(BUCKET, f"mercado/mktcap_{lang}.pdf", render_pdf(build_mktcap_html(mk, lang)))
+                n += 1
+        except Exception as e:  # noqa: BLE001
+            r.note(f"mktcap: {str(e)[:160]}")
         r.rows = n
         r.log.info("Informes por acción generados: %d", n)
+
+
+# ---------------------------------------------------------------- informe de capitalización (toda la renta variable)
+TM = {
+    "es": dict(kicker="RADAR · CAPITALIZACIÓN BVC", title="Capitalización bursátil de la Bolsa de Valores de Caracas",
+               sub="Renta variable, sesión del {d}. Ordenado de mayor a menor capitalización en US$ al mercado alternativo.",
+               k1="CAPITALIZACIÓN TOTAL (US$ ALTERNATIVO)", k2="A TASA OFICIAL BCV", k3="EN BOLÍVARES", k4="EMISORES",
+               mm="MM", rate="Bs. {r}/US$", top="Los diez mayores · % de la capitalización total", rank="Ranking completo",
+               h=["#", "Símbolo", "Emisor", "Precio Bs.", "Precio US$ alt.", "Acciones", "Cap. US$ MM alt.", "Cap. US$ MM of.", "Peso"],
+               total="Total", src="Fuente: Bolsa de Valores de Caracas (acciones en circulación y último cierre SIBE) y tipo de cambio del Radar Grupo Solfin: "
+               "mercado alternativo Bs. {par}/US$ y oficial BCV Bs. {of}/US$ al {fd}. Capitalización = acciones en circulación × último cierre ÷ tipo de cambio. "
+               "Informe generado automáticamente el {now} — no constituye recomendación de inversión."),
+    "en": dict(kicker="RADAR · BVC MARKET CAP", title="Market capitalization of the Caracas Stock Exchange",
+               sub="Equities, session of {d}. Sorted by market cap in US$ at the alternative-market rate.",
+               k1="TOTAL MARKET CAP (US$ ALTERNATIVE)", k2="AT THE BCV OFFICIAL RATE", k3="IN BOLIVARS", k4="ISSUERS",
+               mm="MM", rate="Bs. {r}/US$", top="Ten largest · % of total market cap", rank="Full ranking",
+               h=["#", "Symbol", "Issuer", "Price Bs.", "Price US$ alt.", "Shares", "Cap US$ MM alt.", "Cap US$ MM off.", "Weight"],
+               total="Total", src="Source: Caracas Stock Exchange (shares outstanding and last SIBE close) and Radar Grupo Solfin exchange rates: "
+               "alternative market Bs. {par}/US$ and BCV official Bs. {of}/US$ as of {fd}. Market cap = shares outstanding × last close ÷ exchange rate. "
+               "Report generated automatically on {now} — not investment advice."),
+}
+
+
+def mktcap_data(fx: dict) -> dict | None:
+    rows = select("bvc_latest", {"select": "date,symbol,name,company,close,shares_outstanding,market_cap_bs", "market": "eq.RV"})
+    rows = [x for x in rows if x.get("market_cap_bs")]
+    if not rows or not fx.get("usd_paralelo") or not fx.get("usd_bcv"):
+        return None
+    par, of = fx["usd_paralelo"][-1], fx["usd_bcv"][-1]
+    rows.sort(key=lambda x: -x["market_cap_bs"])
+    tot = sum(x["market_cap_bs"] for x in rows)
+    emp = company_names()
+    for x in rows:
+        x["nombre"] = (emp.get(x["symbol"]) or {}).get("nombre") or x.get("company") or x.get("name") or x["symbol"]
+        x["w"] = x["market_cap_bs"] / tot * 100
+    return {"rows": rows, "tot": tot, "par": par, "of": of, "date": max(x["date"] for x in rows)}
+
+
+def chart_top(rows: list[dict], lang: str) -> str:
+    plt = _setup()
+    top = rows[:10][::-1]
+    fig, ax = plt.subplots(figsize=(7.4, 2.3))
+    ax.barh([f"{x['symbol']}" for x in top], [x["w"] for x in top], color=BLUE, height=0.62)
+    for i, x in enumerate(top):
+        ax.text(x["w"] + 0.4, i, f"{num(x['w'], 1, lang)}%", va="center", fontsize=6, color=NAVY)
+    ax.tick_params(length=0, labelsize=6.4)
+    ax.set_xticks([])
+    for sp in ax.spines.values():
+        sp.set_visible(False)
+    ax.set_xlim(0, max(x["w"] for x in top) * 1.15)
+    return _svg(fig)
+
+
+def build_mktcap_html(mk: dict, lang: str) -> str:
+    t = TM[lang]
+    par, of, tot = mk["par"][1], mk["of"][1], mk["tot"]
+    rd = lambda r: num(r, 0 if r > 100 else 2, lang)  # noqa: E731
+    kpis = [(t["k1"], f"US$ {num(tot / par / 1e6, 1, lang)} {t['mm']}", t["rate"].format(r=rd(par))),
+            (t["k2"], f"US$ {num(tot / of / 1e6, 1, lang)} {t['mm']}", t["rate"].format(r=rd(of))),
+            (t["k3"], f"Bs. {num(tot / 1e6, 0, lang)} {t['mm']}", dshort(mk["date"], lang)),
+            (t["k4"], str(len(mk["rows"])), "")]
+    kp = "".join(f"<div class='kpi q'><div class='k'>{k}</div><div class='v'>{v}</div><div class='m'>{m}</div></div>" for k, v, m in kpis)
+    body = "".join(
+        f"<tr><td>{i}</td><td><b>{x['symbol']}</b></td><td class='l'>{x['nombre']}</td><td>{num(x['close'], 2, lang)}</td><td>{num(x['close'] / par, 4, lang)}</td>"
+        f"<td>{num(x['shares_outstanding'], 0, lang)}</td><td><b>{num(x['market_cap_bs'] / par / 1e6, 1, lang)}</b></td><td>{num(x['market_cap_bs'] / of / 1e6, 1, lang)}</td>"
+        f"<td>{num(x['w'], 1, lang)}%</td></tr>" for i, x in enumerate(mk["rows"], 1))
+    body += (f"<tr class='tot'><td></td><td>{t['total']}</td><td></td><td></td><td></td><td></td><td>{num(tot / par / 1e6, 1, lang)}</td>"
+             f"<td>{num(tot / of / 1e6, 1, lang)}</td><td>100%</td></tr>")
+    head = "".join(f"<th{' class=l' if j == 2 else ''}>{h}</th>" for j, h in enumerate(t["h"]))
+    now = dt.datetime.now(dt.timezone(dt.timedelta(hours=-4)))
+    src = t["src"].format(par=rd(par), of=rd(of), fd=dshort(mk["par"][0], lang), now=f"{dshort(now.date().isoformat(), lang)} {now:%H:%M} VET")
+    extra = """
+.kpi.q { width: 24.2%; }
+table.rk { width: 100%; border-collapse: collapse; font-size: 6.9pt; margin-top: 4px; }
+table.rk th { background: #121a30; color: #fff; font-weight: 700; text-align: right; padding: 4px 5px; font-size: 6.4pt; }
+table.rk td { text-align: right; padding: 3px 5px; border-bottom: 0.5px solid #e4e5ea; }
+table.rk tr:nth-child(even) td { background: #f6f7f9; }
+table.rk .l { text-align: left; }
+table.rk td:first-child, table.rk th:first-child { text-align: left; color: #6e7486; }
+table.rk tr.tot td { background: #eaebed; font-weight: 700; border-top: 1px solid #004aa1; }
+"""
+    return f"""<!doctype html><html><head><meta charset="utf-8"><style>{CSS}{extra}</style></head><body>
+<div class="hero"><div class="top"><img src="{logo()}"><div class="brand">{t['kicker']}</div></div><h1>{t['title']}</h1>
+<p>{t['sub'].format(d=dlong(mk['date'], lang))}</p></div>
+<div class="grid" style="margin-top:8px">{kp}</div>
+<div class="card"><h2>{t['top']}</h2><img src="{chart_top(mk['rows'], lang)}"></div>
+<div class="card"><h2>{t['rank']}</h2><table class="rk"><tr>{head}</tr>{body}</table></div>
+<div class="src">{src}</div>
+</body></html>"""

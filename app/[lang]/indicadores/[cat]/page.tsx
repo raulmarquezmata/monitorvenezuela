@@ -17,7 +17,7 @@ export function generateStaticParams() {
 }
 
 const INTRO: Record<Category, { es: string; en: string }> = {
-  cambiario: { es: "Dólar oficial del BCV por fecha valor, dólar paralelo de Binance P2P, brecha e intervención cambiaria.", en: "BCV official rate by value date, Binance P2P parallel rate, gap and FX intervention." },
+  cambiario: { es: "Dólar oficial del BCV por fecha valor, mercado alternativo (Binance P2P), brecha e intervención cambiaria.", en: "BCV official rate by value date, Binance P2P alternative-market rate, gap and FX intervention." },
   monetario: { es: "Liquidez (M1 y M2) desde 1997, base monetaria desde 2001, multiplicador y encaje (BCV). Saldos en miles de bolívares actuales: use escala log para ver toda la serie.", en: "Money (M1, M2) since 1997, monetary base since 2001, multiplier and reserve requirement (BCV). Balances in thousand current bolivars: use log scale for the full series." },
   precios: { es: "Inflación oficial del BCV (INPC), serie mensual desde 1986.", en: "BCV official inflation (CPI), monthly series since 1986." },
   externo: { es: "Reservas internacionales (desde 1996), balanza de pagos trimestral del BCV (desde 1997), exportaciones petroleras mensuales, comercio mensual con EE.UU. (Census, casi al día) y comercio exterior espejo.", en: "International reserves (since 1996), BCV quarterly balance of payments (since 1997), monthly oil exports, monthly trade with the US (Census, near real time) and mirror trade." },
@@ -86,10 +86,14 @@ export default async function CategoryPage({ params }: { params: { lang: Lang; c
     cat === "banca" ? bankSystem() : [], cat === "banca" ? history(["usd_bcv"], 5) : Promise.resolve({} as Record<string, [string, number][]>)]);
   const by = Object.fromEntries(series.map((s) => [s.code, s]));
   const featured = cat === "cambiario" ? ["usd_bcv", "usd_paralelo", "brecha_cambiaria"] : [];
-  const rest = series.filter((s) => !featured.includes(s.code) && !(cat === "cambiario" && ["usd_paralelo", "eur_bcv"].includes(s.code))
+  // destacados de cada página (gráfico grande arriba de la cuadrícula)
+  const lead = cat === "monetario" ? "multiplicador" : null;
+  const rest = series.filter((s) => (!featured.includes(s.code) || s.code === "brecha_cambiaria") && !(cat === "cambiario" && ["usd_paralelo", "eur_bcv"].includes(s.code))
+    && s.code !== lead
     && !HIDDEN.has(s.code) && s.code !== "embi_venezuela"
     // series automáticas que todavía no tienen ningún dato no se muestran (sí en Metodología)
     && ((hist[s.code] ?? []).length > 0 || s.method !== "auto"));
+  if (cat === "cambiario") rest.sort((x, y) => (x.code === "brecha_cambiaria" ? -1 : y.code === "brecha_cambiaria" ? 1 : 0));
   const note = (code: string) => code.endsWith("_espejo") ? mirrorNote(hist[code] ?? [], lang === "es") : NOTES[code]?.[lang];
   const infl2026 = cat === "precios" ? cumulative(hist.inflacion_mensual ?? [], "2026-01") : [];
   // inflación de EE.UU. interanual (para comparar con la inflación en dólares)
@@ -115,13 +119,13 @@ export default async function CategoryPage({ params }: { params: { lang: Lang; c
         <>
           <div className="grid g3">{featured.map((c) => <Kpi key={c} s={by[c]} points={hist[c] ?? []} lang={lang} />)}</div>
           <div className="section">
-          <ChartCard lang={lang} title={es ? "Dólar oficial, dólar paralelo y euro oficial" : "Official dollar, parallel dollar and official euro"} date="Bs" decimals={2} height={340}
-            allowLog labels={chartLabels(lang)} rangeLabels={d.range} initial="1A"
-            series={[{ name: es ? "US$ oficial BCV" : "US$ official (BCV)", points: hist.usd_bcv ?? [] }, { name: es ? "US$ paralelo" : "US$ parallel", points: hist.usd_paralelo ?? [] },
+          <ChartCard lang={lang} title={es ? "Dólar oficial, mercado alternativo y euro oficial" : "Official dollar, alternative market and official euro"} date="Bs" decimals={2} height={340}
+            allowLog labels={chartLabels(lang)} rangeLabels={d.range} initial="1A" gap={{ a: 0, b: 1, label: es ? "Brecha" : "Gap" }}
+            series={[{ name: es ? "US$ oficial BCV" : "US$ official (BCV)", points: hist.usd_bcv ?? [] }, { name: es ? "US$ alternativo" : "US$ alternative", points: hist.usd_paralelo ?? [] },
               { name: es ? "Euro oficial BCV" : "Euro official (BCV)", points: hist.eur_bcv ?? [] }]}
             footer={<p className="muted" style={{ marginTop: 10, fontSize: 13 }}>{es
-              ? "Todo en bolívares de hoy: los valores anteriores a las reconversiones de 2008, 2018 y 2021 están reexpresados (por eso antes de 2021 se ven tan pequeños; use la escala logarítmica). Oficial desde 2000 (Fed/FRED y BCV); paralelo diario desde 2022."
-              : "All in today's bolivars: values before the 2008, 2018 and 2021 redenominations are re-expressed (hence tiny before 2021; use log scale). Official since 2000 (Fed/FRED and BCV); daily parallel since 2022."}</p>} />
+              ? "Todo en bolívares de hoy: los valores anteriores a las reconversiones de 2008, 2018 y 2021 están reexpresados (por eso antes de 2021 se ven tan pequeños; use la escala logarítmica). Oficial desde 2000 (Fed/FRED y BCV); mercado alternativo diario desde 2022."
+              : "All in today's bolivars: values before the 2008, 2018 and 2021 redenominations are re-expressed (hence tiny before 2021; use log scale). Official since 2000 (Fed/FRED and BCV); daily alternative market since 2022."}</p>} />
           </div>
         </>
       )}
@@ -157,17 +161,6 @@ export default async function CategoryPage({ params }: { params: { lang: Lang; c
         </div>
       )}
 
-      {cat === "precios" && usInfl.length > 0 && (
-        <div style={{ marginBottom: 20 }}>
-          <ChartCard lang={lang} title={es ? "Inflación en dólares (EE.UU., interanual)" : "Dollar inflation (US, year on year)"} date="%" decimals={1} height={220}
-            labels={chartLabels(lang)} rangeLabels={d.range} ranges={["1A", "MAX"]} initial="1A" unit="%"
-            series={[{ name: es ? "IPC de EE.UU., var. interanual" : "US CPI, y/y", points: usInfl }]}
-            footer={<p className="muted" style={{ marginTop: 10, fontSize: 13 }}>{es ? `Pérdida de poder de compra del dólar. Fuente: BLS (IPC de EE.UU.), último dato ${usInfl.at(-1)?.[0].slice(0, 7)}.` : `Loss of the dollar's purchasing power. Source: BLS (US CPI), latest ${usInfl.at(-1)?.[0].slice(0, 7)}.`}</p>}>
-            <div className="big">{num(usInfl.at(-1)?.[1], lang, 1)}<small>%</small></div>
-          </ChartCard>
-        </div>
-      )}
-
       {cat === "precios" && infl2026.length > 0 && (
         <div style={{ marginBottom: 20 }}>
           <ChartCard lang={lang} title={es ? "Inflación acumulada desde el 1 de enero de 2026" : "Cumulative inflation since 1 January 2026"} date="%" decimals={1} height={260}
@@ -178,10 +171,30 @@ export default async function CategoryPage({ params }: { params: { lang: Lang; c
         </div>
       )}
 
+      {lead && by[lead] && (
+        <div style={{ marginBottom: 20 }}>
+          <SeriesCard s={by[lead]} points={hist[lead] ?? []} lang={lang} height={320} note={note(lead) ?? (es
+            ? "Cuántos bolívares de liquidez (M2) genera cada bolívar de base monetaria. Si sube, los bancos están prestando más por cada bolívar que emite el BCV; si baja, el encaje o la cautela bancaria frenan la creación de dinero."
+            : "How many bolivars of money supply (M2) each bolivar of monetary base generates. Rising means banks lend more per bolivar issued by the BCV; falling means reserve requirements or bank caution are curbing money creation.")} />
+        </div>
+      )}
+
       <div className={`grid g2 ${cat === "cambiario" ? "section" : ""}`}>
         {rest.map((s) => <SeriesCard key={s.code} s={s} points={hist[s.code] ?? []} lang={lang} bars={BARS.has(s.code)}
           allowLog={LOG.has(s.code)} note={note(s.code)} ranges={RANGES[s.code]} initial={INITIAL[s.code]} hiLo={HILO.has(s.code)} />)}
       </div>
+
+      {cat === "precios" && usInfl.length > 0 && (
+        <div style={{ marginTop: 20 }}>
+          <ChartCard lang={lang} title={es ? "Inflación en dólares (EE.UU., interanual)" : "Dollar inflation (US, year on year)"} date="%" decimals={1} height={220}
+            labels={chartLabels(lang)} rangeLabels={d.range} ranges={["1A", "MAX"]} initial="1A" unit="%"
+            series={[{ name: es ? "IPC de EE.UU., var. interanual" : "US CPI, y/y", points: usInfl }]}
+            footer={<p className="muted" style={{ marginTop: 10, fontSize: 13 }}>{es ? `Pérdida de poder de compra del dólar. Fuente: BLS (IPC de EE.UU.), último dato ${usInfl.at(-1)?.[0].slice(0, 7)}.` : `Loss of the dollar's purchasing power. Source: BLS (US CPI), latest ${usInfl.at(-1)?.[0].slice(0, 7)}.`}</p>}>
+            <div className="big">{num(usInfl.at(-1)?.[1], lang, 1)}<small>%</small></div>
+          </ChartCard>
+        </div>
+      )}
+
 
       {cat === "banca" && ranking.length > 0 && (
         <section className="section">

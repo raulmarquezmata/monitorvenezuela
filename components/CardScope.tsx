@@ -13,7 +13,7 @@ export function CardControls({ lang, money = false, ranges = RANGES, rangeLabels
   const es = lang === "es";
   return (
     <div className="card-controls">
-      {money && <CurrencyButtons labels={{ BS: "Bs", USD_BCV: es ? "US$ oficial" : "US$ official", USD_PAR: es ? "US$ paralelo" : "US$ parallel" }} />}
+      {money && <CurrencyButtons labels={{ BS: "Bs", USD_BCV: es ? "US$ oficial" : "US$ official", USD_PAR: es ? "US$ alternativo" : "US$ alternative" }} />}
       {ranges && ranges.length > 0 && <RangeButtons labels={rangeLabels} options={ranges} />}
     </div>
   );

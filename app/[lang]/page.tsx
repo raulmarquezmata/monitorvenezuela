@@ -84,8 +84,8 @@ export default async function Home({ params }: { params: { lang: Lang } }) {
       <section className="section">
         <SectionHead label={d.fxSection} href={`/${lang}/indicadores/cambiario`} more={d.seeMacro} />
         <ChartCard lang={lang} title={d.oficialVsParalelo} date="Bs/US$" decimals={2} height={300} labels={chartLabels(lang)} rangeLabels={d.range}
-          initial="3M" allowLog
-          series={[{ name: lang === "es" ? "Oficial BCV" : "Official (BCV)", points: hist.usd_bcv ?? [] }, { name: lang === "es" ? "Paralelo" : "Parallel", points: hist.usd_paralelo ?? [] }]} />
+          initial="3M" allowLog gap={{ a: 0, b: 1, label: lang === "es" ? "Brecha" : "Gap" }}
+          series={[{ name: lang === "es" ? "Oficial BCV" : "Official (BCV)", points: hist.usd_bcv ?? [] }, { name: lang === "es" ? "Mercado alternativo" : "Alternative market", points: hist.usd_paralelo ?? [] }]} />
       </section>
 
       {evs.length > 0 && (

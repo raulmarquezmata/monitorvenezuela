@@ -10,11 +10,11 @@ type Labels = { logScale: string; table: string; chart: string; date: string; no
 
 /** Tarjeta con gráfico de una o varias series y sus propios controles de rango. */
 export default function ChartCard({ title, date, series, lang, unit, decimals = 2, height = 260, allowLog = false, logDefault = false, area = false, bars = false,
-  ranges, initial = "1A", labels, rangeLabels, stats, children, footer }: {
+  ranges, initial = "1A", labels, rangeLabels, stats, children, footer, gap, clip }: {
   title: string; date?: string; series: { name: string; points: Point[]; color?: string }[]; lang: "es" | "en"; unit?: string; decimals?: number;
   height?: number; allowLog?: boolean; logDefault?: boolean; area?: boolean; bars?: boolean; ranges?: Range[]; initial?: Range;
   labels: Labels; rangeLabels: Record<string, string>; stats?: { periods: Period[]; pctUnit?: boolean; points?: Point[] };
-  children?: React.ReactNode; footer?: React.ReactNode;
+  children?: React.ReactNode; footer?: React.ReactNode; gap?: { a: number; b: number; label: string }; clip?: boolean;
 }) {
   return (
     <div className="card">
@@ -24,7 +24,7 @@ export default function ChartCard({ title, date, series, lang, unit, decimals = 
         {stats && <Stats points={stats.points ?? series[0]?.points ?? []} periods={stats.periods} pctUnit={!!stats.pctUnit} lang={lang} />}
         <CardControls lang={lang} ranges={ranges} rangeLabels={rangeLabels} />
         <LineChart series={series} lang={lang} unit={unit} decimals={decimals} height={height} allowLog={allowLog} logDefault={logDefault}
-          area={area} bars={bars} labels={labels} />
+          area={area} bars={bars} labels={labels} gap={gap} clip={clip} />
         {footer}
       </CardScope>
     </div>

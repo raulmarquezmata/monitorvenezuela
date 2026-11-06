@@ -16,7 +16,7 @@ export default function StockChart({ lang, symbol, bs, usdOf, usdPar, shares, la
   const [view, setView] = useState<"dual" | "bs" | "of" | "par">("dual");
   const k = measure === "cap" && shares ? shares : 1;
   const scale = (pts: Point[]) => (k === 1 ? pts : pts.map(([d, v]) => [d, v * k] as Point));
-  const nBs = es ? "Bs" : "Bs", nOf = es ? "US$ oficial" : "US$ official", nPar = es ? "US$ paralelo" : "US$ parallel";
+  const nBs = es ? "Bs" : "Bs", nOf = es ? "US$ oficial" : "US$ official", nPar = es ? "US$ alternativo" : "US$ alternative";
   const right = es ? " (eje der.)" : " (right axis)";
   const series = view === "dual"
     ? [{ name: `${nBs}${es ? " (eje izq.)" : " (left axis)"}`, points: scale(bs), color: "var(--series-1)" },

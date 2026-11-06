@@ -7,9 +7,9 @@ import type { Period } from "@/lib/stats";
 type Point = [string, number];
 
 /** Valor actual + gráfico de una serie; respeta la moneda global (Bs o US$). */
-export default function SeriesBody({ name, points, unitEs, unit, decimals, lang, height, allowLog, bars, area, labels, stats, logDefault = false, hiLo = false }: {
+export default function SeriesBody({ name, points, unitEs, unit, decimals, lang, height, allowLog, bars, area, labels, stats, logDefault = false, hiLo = false, clip = false }: {
   name: string; points: Point[]; unitEs: string | null; unit: string; decimals: number; lang: "es" | "en"; height: number;
-  allowLog: boolean; bars: boolean; area: boolean; labels: { logScale: string; table: string; chart: string; date: string; noData: string };
+  allowLog: boolean; bars: boolean; clip?: boolean; area: boolean; labels: { logScale: string; table: string; chart: string; date: string; noData: string };
   stats?: { periods: Period[]; pctUnit: boolean }; logDefault?: boolean; hiLo?: boolean;
 }) {
   const m = useMoney(points, unitEs, unit, lang);
@@ -37,7 +37,7 @@ export default function SeriesBody({ name, points, unitEs, unit, decimals, lang,
         );
       })()}
       <LineChart series={[{ name, points: m.points }]} lang={lang} unit={m.unit} decimals={m.converted ? 1 : decimals}
-        height={height} allowLog={allowLog} bars={bars} area={area} labels={labels} logDefault={logDefault} />
+        height={height} allowLog={allowLog} bars={bars} area={area} labels={labels} logDefault={logDefault} clip={clip} />
     </>
   );
 }

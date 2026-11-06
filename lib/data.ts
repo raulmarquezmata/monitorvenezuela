@@ -1,4 +1,11 @@
 import { createClient } from "@supabase/supabase-js";
+import { unstable_cache } from "next/cache";
+
+/** Cada consulta se guarda unos minutos en la caché de Vercel: las páginas abren al instante y los
+ *  robots (cada 20 min) siguen viéndose casi de inmediato. */
+function cached<A extends unknown[], R>(fn: (...a: A) => Promise<R>, key: string, ttl: number) {
+  return unstable_cache(fn, ["data", key], { revalidate: ttl });
+}
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -41,7 +48,7 @@ async function all<T>(build: (from: number, to: number) => PromiseLike<{ data: T
   return out;
 }
 
-export async function latest(category?: string): Promise<Latest[]> {
+async function latest_(category?: string): Promise<Latest[]> {
   if (!sb) return [];
   let q = sb.from("latest_observations").select("*").order("sort");
   if (category) q = q.eq("category", category);
@@ -50,7 +57,7 @@ export async function latest(category?: string): Promise<Latest[]> {
   return (data as Latest[]) ?? [];
 }
 
-export async function history(codes: string[], sinceYears = 12): Promise<Record<string, Point[]>> {
+async function history_(codes: string[], sinceYears = 12): Promise<Record<string, Point[]>> {
   const since = new Date(Date.now() - sinceYears * 365.25 * 864e5).toISOString().slice(0, 10);
   const rows = await all<{ series_code: string; date: string; value: number }>((a, b) =>
     sb!.from("observations").select("series_code,date,value").in("series_code", codes).gte("date", since)
@@ -60,13 +67,13 @@ export async function history(codes: string[], sinceYears = 12): Promise<Record<
   return out;
 }
 
-export async function bvcLatest(market: "RV" | "RF" = "RV"): Promise<Quote[]> {
+async function bvcLatest_(market: "RV" | "RF" = "RV"): Promise<Quote[]> {
   if (!sb) return [];
   const { data } = await sb.from("bvc_latest").select("*").eq("market", market).order("amount", { ascending: false, nullsFirst: false });
   return (data as Quote[]) ?? [];
 }
 
-export async function bvcSymbol(symbol: string) {
+async function bvcSymbol_(symbol: string) {
   if (!sb) return { meta: null, quotes: [] as Quote[] };
   const [{ data: meta }, quotes] = await Promise.all([
     sb.from("bvc_symbols").select("*").eq("symbol", symbol).maybeSingle(),
@@ -77,21 +84,21 @@ export async function bvcSymbol(symbol: string) {
 
 export type BvcEvent = { id: string; symbol: string; date: string; kind: string | null; title: string | null; url: string | null; source: string | null };
 /** Asambleas y eventos de un emisor (todas sus clases de acciones). */
-export async function bvcEvents(symbols: string[]): Promise<BvcEvent[]> {
+async function bvcEvents_(symbols: string[]): Promise<BvcEvent[]> {
   if (!sb || !symbols.length) return [];
   const { data, error } = await sb.from("bvc_events").select("*").in("symbol", symbols).order("date", { ascending: false }).limit(20);
   return error ? [] : ((data as BvcEvent[]) ?? []);
 }
 
 /** Noticias etiquetadas con el símbolo (o con otra clase de la misma empresa). */
-export async function symbolNews(symbols: string[], lang: "es" | "en", limit = 12): Promise<News[]> {
+async function symbolNews_(symbols: string[], lang: "es" | "en", limit = 12): Promise<News[]> {
   if (!sb || !symbols.length) return [];
   const { data, error } = await sb.from("news").select("*").overlaps("symbols", symbols).order("published_at", { ascending: false }).limit(limit);
   return error ? [] : ((data as News[]) ?? []).map((n) => localizeNews(n, lang));
 }
 
 /** Clases de acciones de la misma empresa (p. ej. RST y RST.B) con su último cierre. */
-export async function companyClasses(company: string | null | undefined, symbol: string): Promise<Quote[]> {
+async function companyClasses_(company: string | null | undefined, symbol: string): Promise<Quote[]> {
   if (!sb) return [];
   if (!company) {
     const { data } = await sb.from("bvc_latest").select("*").eq("symbol", symbol);
@@ -108,7 +115,7 @@ export async function companyClasses(company: string | null | undefined, symbol:
 }
 
 export type Informe = { id: string; file: string; url: string; thumb_url: string | null; title: string; date: string | null; lang: string; topic: string; summary: string | null; pages: number | null; size: number | null; created_at: string };
-export async function informes(): Promise<Informe[]> {
+async function informes_(): Promise<Informe[]> {
   if (!sb) return [];
   const { data, error } = await sb.from("informes").select("id,file,url,thumb_url,title,date,lang,topic,summary,pages,size,created_at").order("date", { ascending: false, nullsFirst: false }).limit(1000);
   return error ? [] : ((data as Informe[]) ?? []);
@@ -120,15 +127,21 @@ export function stockReportUrl(symbol: string, lang: "es" | "en", version?: stri
   return `${url.replace(/\/$/, "")}/storage/v1/object/public/reportes/acciones/${encodeURIComponent(symbol)}_${lang}.pdf${version ? `?v=${version}` : ""}`;
 }
 
+/** URL pública del informe PDF de capitalización de la BVC (lo genera el robot «reportes» tras cada sesión). */
+export function mktcapReportUrl(lang: "es" | "en", version?: string | null): string | null {
+  if (!url) return null;
+  return `${url.replace(/\/$/, "")}/storage/v1/object/public/reportes/mercado/mktcap_${lang}.pdf${version ? `?v=${version}` : ""}`;
+}
+
 /** Todas las noticias recientes que capta el robot (todos los medios y temas) para la hemeroteca automática. */
-export async function hemerotecaAuto(since = "2026-10-01"): Promise<News[]> {
+async function hemerotecaAuto_(since = "2026-10-01"): Promise<News[]> {
   if (!sb) return [];
   const { data, error } = await sb.from("news").select("url,title,title_es,title_en,source,published_at,summary,category")
     .gte("published_at", since).order("published_at", { ascending: false }).limit(4000);
   return error ? [] : ((data as News[]) ?? []);
 }
 
-export async function news(limit = 60, category?: string, lang?: "es" | "en"): Promise<News[]> {
+async function news_(limit = 60, category?: string, lang?: "es" | "en"): Promise<News[]> {
   if (!sb) return [];
   let q = sb.from("news").select("*").order("published_at", { ascending: false }).limit(limit);
   // categorías unificadas: cambiario y precios → economía; sanciones → política
@@ -140,16 +153,16 @@ export async function news(limit = 60, category?: string, lang?: "es" | "en"): P
 }
 
 export type Trade = { year: number; flow: string; partner_code: number; partner: string; hs2: string; hs2_desc: string | null; value_usd: number };
-export async function trade(): Promise<Trade[]> {
+async function trade_(): Promise<Trade[]> {
   return all<Trade>((a, b) => sb!.from("trade_flows").select("year,flow,partner_code,partner,hs2,hs2_desc,value_usd").order("year").range(a, b));
 }
 
 export type Agro = { year: number; item_code: number; item: string; element: string; value: number; unit: string };
-export async function agro(): Promise<Agro[]> {
+async function agro_(): Promise<Agro[]> {
   return all<Agro>((a, b) => sb!.from("agro_production").select("*").order("year").range(a, b));
 }
 
-export async function status() {
+async function status_() {
   if (!sb) return { runs: [], files: [] };
   const [{ data: runs }, { data: files }] = await Promise.all([
     sb.from("ingest_status").select("*").order("job"),
@@ -158,21 +171,21 @@ export async function status() {
   return { runs: runs ?? [], files: files ?? [] };
 }
 
-export async function lastRun(): Promise<string | null> {
+async function lastRun_(): Promise<string | null> {
   if (!sb) return null;
   const { data } = await sb.from("ingest_runs").select("finished_at").in("status", ["ok", "partial"]).order("finished_at", { ascending: false }).limit(1);
   return data?.[0]?.finished_at ?? null;
 }
 
 export type FeedStatus = { name: string; url: string; lang: string; last_run: string | null; last_ok: string | null; last_items: number | null; last_error: string | null };
-export async function newsSources(): Promise<FeedStatus[]> {
+async function newsSources_(): Promise<FeedStatus[]> {
   if (!sb) return [];
   const { data } = await sb.from("news_sources").select("*").order("name");
   return (data as FeedStatus[]) ?? [];
 }
 
 export type OfacAction = { url: string; date: string; title: string };
-export async function ofacActions(limit = 10): Promise<OfacAction[]> {
+async function ofacActions_(limit = 10): Promise<OfacAction[]> {
   if (!sb) return [];
   const { data } = await sb.from("ofac_actions").select("url,date,title").order("date", { ascending: false }).limit(limit);
   return (data as OfacAction[]) ?? [];
@@ -187,7 +200,7 @@ export function freshness(s: Latest): "fresh" | "stale" | "empty" {
 
 export type Event = { id: string; date: string; precision: string; category: string | null; importance: number;
   title_es: string; title_en: string | null; body_es: string | null; series_code: string | null; url: string | null; origin: string };
-export async function events(limit = 400, year?: number): Promise<Event[]> {
+async function events_(limit = 400, year?: number): Promise<Event[]> {
   if (!sb) return [];
   let q = sb.from("events").select("*").order("date", { ascending: false }).order("importance").limit(limit);
   if (year) q = q.gte("date", `${year}-01-01`).lte("date", `${year}-12-31`);
@@ -196,7 +209,7 @@ export async function events(limit = 400, year?: number): Promise<Event[]> {
 }
 
 export type Bond = { ticker: string; issuer: string; coupon: number | null; maturity: string | null; name: string; sort: number };
-export async function bonds(): Promise<{ list: Bond[]; prices: Record<string, Point[]> }> {
+async function bonds_(): Promise<{ list: Bond[]; prices: Record<string, Point[]> }> {
   if (!sb) return { list: [], prices: {} };
   const [{ data: list }, rows] = await Promise.all([
     sb.from("bonds").select("*").order("issuer", { ascending: false }).order("maturity"),
@@ -208,7 +221,7 @@ export async function bonds(): Promise<{ list: Bond[]; prices: Record<string, Po
 }
 
 export type BankRow = { period: string; bank: string; metric: string; value: number; share: number | null };
-export async function bankRanking(): Promise<BankRow[]> {
+async function bankRanking_(): Promise<BankRow[]> {
   if (!sb) return [];
   const { data: last } = await sb.from("bank_ranking").select("period").in("metric", ["creditos", "captaciones"]).order("period", { ascending: false }).limit(1);
   if (!last?.length) return [];
@@ -217,13 +230,36 @@ export async function bankRanking(): Promise<BankRow[]> {
 }
 
 /** Todo el sistema (tablas de Finanzas Digital/SUDEBAN): todas las métricas que no son de la muestra, todos los meses. */
-export async function bankSystem(): Promise<BankRow[]> {
+async function bankSystem_(): Promise<BankRow[]> {
   if (!sb) return [];
   return all<BankRow>((a, b) => sb!.from("bank_ranking").select("period,bank,metric,value,share").not("metric", "like", "muestra_%").order("period").range(a, b));
 }
 
 /** Muestra de bancos (archivo data/bancos/Bancos.xlsx): todas las métricas, todos los meses. */
-export async function bankSample(): Promise<BankRow[]> {
+async function bankSample_(): Promise<BankRow[]> {
   if (!sb) return [];
   return all<BankRow>((a, b) => sb!.from("bank_ranking").select("period,bank,metric,value,share").like("metric", "muestra_%").order("period").range(a, b));
 }
+
+// ---------------------------------------------------------------- versiones con caché
+export const latest = cached(latest_, "latest", 300);
+export const history = cached(history_, "history", 300);
+export const bvcLatest = cached(bvcLatest_, "bvcLatest", 120);
+export const bvcSymbol = cached(bvcSymbol_, "bvcSymbol", 300);
+export const news = cached(news_, "news", 120);
+export const trade = cached(trade_, "trade", 3600);
+export const agro = cached(agro_, "agro", 3600);
+export const lastRun = cached(lastRun_, "lastRun", 60);
+export const events = cached(events_, "events", 600);
+export const bonds = cached(bonds_, "bonds", 600);
+export const bankRanking = cached(bankRanking_, "bankRanking", 1800);
+export const bankSystem = cached(bankSystem_, "bankSystem", 1800);
+export const bankSample = cached(bankSample_, "bankSample", 1800);
+export const informes = cached(informes_, "informes", 300);
+export const hemerotecaAuto = cached(hemerotecaAuto_, "hemerotecaAuto", 300);
+export const ofacActions = cached(ofacActions_, "ofacActions", 600);
+export const newsSources = cached(newsSources_, "newsSources", 300);
+export const status = cached(status_, "status", 120);
+export const bvcEvents = cached(bvcEvents_, "bvcEvents", 600);
+export const symbolNews = cached(symbolNews_, "symbolNews", 300);
+export const companyClasses = cached(companyClasses_, "companyClasses", 300);

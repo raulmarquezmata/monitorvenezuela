@@ -28,10 +28,14 @@ function logTicks(min: number, max: number): number[] {
 }
 
 export default function LineChart({
-  series, lang, unit, decimals = 2, height = 240, allowLog = false, labels, area = false, ignoreRange = false, minPoints = 12, bars = false, logDefault = false,
+  series, lang, unit, decimals = 2, height = 240, allowLog = false, labels, area = false, ignoreRange = false, minPoints = 12, bars = false, logDefault = false, gap, clip = false,
 }: {
   series: S[]; lang: "es" | "en"; unit?: string | null; decimals?: number; height?: number; allowLog?: boolean;
   labels: Labels; area?: boolean; ignoreRange?: boolean; minPoints?: number; bars?: boolean; logDefault?: boolean;
+  /** Muestra en el tooltip la brecha entre dos series: serie[b] ÷ serie[a] − 1. */
+  gap?: { a: number; b: number; label: string };
+  /** Barras: si hay un valor atípico, recorta el eje para que el resto se lea (la barra atípica se marca y su valor real sale al pasar el cursor). */
+  clip?: boolean;
 }) {
   const box = useRef<HTMLDivElement>(null);
   const { range } = useRange();
@@ -74,7 +78,13 @@ export default function LineChart({
     const yAll = dual ? left : all;
     y0 = Math.min(...yAll.map((p) => p[1])); y1 = Math.max(...yAll.map((p) => p[1]));
     if (bars) y0 = Math.min(0, y0);
+    if (bars && clip && !dual) {
+      const vs = yAll.map((p) => p[1]).filter((v) => v > 0).sort((a, b) => a - b);
+      const ref = vs.length >= 5 ? vs[Math.floor(vs.length * 0.85)] : 0;
+      if (ref > 0 && y1 > ref * 3) y1 = ref * 1.6;
+    }
   }
+  const cap = (v: number) => (bars && clip ? Math.min(v, y1) : v);
   const yt = log ? logTicks(y0, y1) : niceTicks(y0, y1);
   const ylo = log ? y0 : Math.min(y0, yt[0] ?? y0), yhi = log ? y1 : Math.max(y1, yt.at(-1) ?? y1);
   const bw = bars && data[0]?.pts.length ? Math.max(2, (iw / data[0].pts.length) * 0.7) : 0;
@@ -146,8 +156,8 @@ export default function LineChart({
             </g>
             {data.map((s) => bars ? (
               <g key={s.name}>{s.pts.map((p) => {
-                const y = Y(Math.max(p[1], 0)), h = Math.abs(Y(p[1]) - Y(0));
-                return <rect key={p[0]} x={X(ts(p[0])) - bw / 2} y={p[1] >= 0 ? y : Y(0)} width={bw} height={Math.max(1, h)} rx={2} fill={s.color} opacity={hp && hp[0] !== p[0] ? .55 : 1} />;
+                const v = cap(p[1]), y = Y(Math.max(v, 0)), h = Math.abs(Y(v) - Y(0)), cut = v < p[1];
+                return <g key={p[0]}>{cut && <path d={`M${X(ts(p[0])) - bw / 2},${y + 6}l${bw},-5M${X(ts(p[0])) - bw / 2},${y + 11}l${bw},-5`} stroke="var(--surface)" strokeWidth={2} />}<rect x={X(ts(p[0])) - bw / 2} y={v >= 0 ? y : Y(0)} width={bw} height={Math.max(1, h)} rx={2} fill={s.color} opacity={hp && hp[0] !== p[0] ? .55 : 1} />{cut && <text x={X(ts(p[0]))} y={padT + 10} textAnchor="middle" fontSize={11} fill="var(--text-2)">↑</text>}</g>;
               })}</g>
             ) : s.pts.length === 1 ? (
               <circle key={s.name} cx={X(ts(s.pts[0][0]))} cy={Ys(s)(s.pts[0][1])} r={4} fill={s.color} />
@@ -170,6 +180,8 @@ export default function LineChart({
               <div className="muted" style={{ fontSize: 12 }}>{fmtDate(hp[0], true)}</div>
               {data.map((s) => { const v = valueAt(s.pts, hp[0]); return (
                 <div key={s.name}>{data.length > 1 && <i className="swatch" style={{ background: s.color }} />}<b>{v == null ? "—" : fmt(v)}</b> {data.length > 1 ? s.name : unit ?? ""}</div>); })}
+              {gap && (() => { const a = valueAt(data[gap.a]?.pts ?? [], hp[0]), b = valueAt(data[gap.b]?.pts ?? [], hp[0]);
+                return a && b ? <div style={{ borderTop: "1px solid var(--line)", marginTop: 4, paddingTop: 4 }}>{gap.label}: <b>{new Intl.NumberFormat(loc, { maximumFractionDigits: 1, minimumFractionDigits: 1 }).format((b / a - 1) * 100)}%</b></div> : null; })()}
             </div>
           )}
         </div>

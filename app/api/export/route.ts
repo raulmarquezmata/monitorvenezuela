@@ -1,3 +1,4 @@
+import { BRAND_NAME } from "@/lib/brand";
 import ExcelJS from "exceljs";
 import { NextRequest } from "next/server";
 import { bvcLatest, history, latest } from "@/lib/data";
@@ -16,6 +17,23 @@ export async function GET(req: NextRequest) {
   const format = q.get("format") === "csv" ? "csv" : "xlsx";
   const lang = q.get("lang") === "en" ? "en" : "es";
   const stamp = new Date().toISOString().slice(0, 10);
+
+  // ---------------- BVC: ranking de capitalización (renta variable, US$ al mercado alternativo y al oficial)
+  if (q.get("bvc") === "mktcap") {
+    const [rows, fx] = await Promise.all([bvcLatest("RV"), latest("cambiario")]);
+    const par = fx.find((s) => s.code === "usd_paralelo")?.last_value ?? null, of = fx.find((s) => s.code === "usd_bcv")?.last_value ?? null;
+    const es = lang === "es";
+    const list = rows.filter((r) => r.market_cap_bs).sort((a, b) => (b.market_cap_bs ?? 0) - (a.market_cap_bs ?? 0));
+    const head = es ? ["#", "simbolo", "emisor", "precio_bs", "precio_usd_alternativo", "acciones_circulacion", "capitalizacion_bs", "capitalizacion_usd_alternativo", "capitalizacion_usd_oficial", "peso_pct"]
+      : ["#", "symbol", "issuer", "price_bs", "price_usd_alternative", "shares_outstanding", "market_cap_bs", "market_cap_usd_alternative", "market_cap_usd_official", "weight_pct"];
+    const tot = list.reduce((a, r) => a + (r.market_cap_bs ?? 0), 0);
+    const body = list.map((r, i) => [i + 1, r.symbol, r.company ?? r.name, r.close, r.close != null && par ? r.close / par : null, r.shares_outstanding, r.market_cap_bs,
+      par ? r.market_cap_bs! / par : null, of ? r.market_cap_bs! / of : null, tot ? (r.market_cap_bs! / tot) * 100 : null]);
+    body.push(["", "TOTAL", "", null, null, null, tot, par ? tot / par : null, of ? tot / of : null, 100]);
+    return respond(format, lang, `bvc_capitalizacion_${stamp}`, head, body, [[es ? "Fuente" : "Source",
+      es ? `Bolsa de Valores de Caracas (sesión ${list[0]?.date ?? ""}); tasas del ${BRAND_NAME.es}: mercado alternativo Bs ${par ?? "—"}, oficial BCV Bs ${of ?? "—"}`
+         : `Caracas Stock Exchange (session ${list[0]?.date ?? ""}); ${BRAND_NAME.en} rates: alternative market Bs ${par ?? "—"}, BCV official Bs ${of ?? "—"}`]]);
+  }
 
   // ---------------- BVC
   if (q.get("bvc")) {
@@ -65,7 +83,7 @@ async function respond(format: string, lang: string, name: string, head: string[
     return new Response(csv, { headers: { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": `attachment; filename="${name}.csv"` } });
   }
   const wb = new ExcelJS.Workbook();
-  wb.creator = "Monitor Venezuela";
+  wb.creator = BRAND_NAME.es;
   const ws = wb.addWorksheet(lang === "es" ? "Datos" : "Data", { views: [{ state: "frozen", ySplit: 1 }] });
   ws.addRow(head).font = { bold: true };
   for (const r of body) ws.addRow(r.map((v, i) => (i === 0 && typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) ? new Date(`${v}T00:00:00Z`) : v)));
@@ -74,7 +92,7 @@ async function respond(format: string, lang: string, name: string, head: string[
   const wi = wb.addWorksheet(lang === "es" ? "Series" : "Series");
   info.forEach((r, i) => { const row = wi.addRow(r); if (i === 0) row.font = { bold: true }; });
   wi.addRow([]);
-  wi.addRow([lang === "es" ? "Descargado de Monitor Venezuela · fuentes públicas, no constituye recomendación de inversión." : "Downloaded from Venezuela Monitor · public sources, not investment advice."]);
+  wi.addRow([lang === "es" ? `Descargado de ${BRAND_NAME.es} · fuentes públicas, no constituye recomendación de inversión.` : `Downloaded from ${BRAND_NAME.en} · public sources, not investment advice.`]);
   wi.columns.forEach((c) => { c.width = 28; });
   const buf = await wb.xlsx.writeBuffer();
   return new Response(buf as ArrayBuffer, {

@@ -15,8 +15,8 @@ OWN = "Cálculo propio"
 _S = [
     # ---------------- Cambiario
     ("usd_bcv", "cambiario", "Dólar oficial BCV", "Official USD rate (BCV)", "Bs/US$", "Bs/US$", "D", "BCV", BCV, 2, 10),
-    ("usd_paralelo", "cambiario", "Dólar paralelo (Binance P2P)", "Parallel USD rate (Binance P2P)", "Bs/US$", "Bs/US$", "D", "Binance P2P", "https://p2p.binance.com/es/trade/all-payments/USDT?fiat=VES", 2, 20),
-    ("brecha_cambiaria", "cambiario", "Brecha cambiaria", "FX gap (parallel vs. official)", "%", "%", "D", OWN, None, 1, 30),
+    ("usd_paralelo", "cambiario", "Dólar mercado alternativo (Binance P2P)", "Alternative-market USD rate (Binance P2P)", "Bs/US$", "Bs/US$", "D", "Binance P2P", "https://p2p.binance.com/es/trade/all-payments/USDT?fiat=VES", 2, 20),
+    ("brecha_cambiaria", "cambiario", "Brecha cambiaria", "FX gap (alternative market vs. official)", "%", "%", "D", OWN, None, 1, 30),
     ("eur_bcv", "cambiario", "Euro oficial BCV", "Official EUR rate (BCV)", "Bs/€", "Bs/€", "D", "BCV", BCV, 2, 40),
     ("intervencion_bcv_mensual", "cambiario", "Intervención cambiaria (mensual)", "BCV FX intervention (monthly)", "millones US$", "US$ million", "M", "BCV · prensa (Banca y Negocios)", "https://www.bancaynegocios.com/tag/intervencion-cambiaria/", 1, 50),
     ("intervencion_bcv", "cambiario", "Intervención cambiaria (por operación)", "BCV FX intervention (per operation)", "millones US$", "US$ million", "W", "BCV · prensa (Banca y Negocios)", "https://www.bancaynegocios.com/tag/intervencion-cambiaria/", 1, 55),
@@ -71,7 +71,7 @@ _S = [
 
     # ---------------- Mercados
     ("ibc", "mercados", "Índice Bursátil Caracas (IBC)", "Caracas Stock Index (IBC)", "puntos", "points", "D", "BVC", "https://www.bolsadecaracas.com", 2, 10),
-    ("ibc_usd_paralelo", "mercados", "IBC en dólares (paralelo)", "IBC in US$ (parallel rate)", "puntos US$", "US$ points", "D", OWN, None, 4, 12),
+    ("ibc_usd_paralelo", "mercados", "IBC en dólares (mercado alternativo)", "IBC in US$ (alternative market)", "puntos US$", "US$ points", "D", OWN, None, 4, 12),
     ("ibc_usd", "mercados", "IBC en dólares (oficial)", "IBC in US$ (official rate)", "puntos US$", "US$ points", "D", OWN, None, 4, 15),
     ("ibc_financiero", "mercados", "Índice Financiero", "Financial Index", "puntos", "points", "D", "BVC", "https://www.bolsadecaracas.com", 2, 20),
     ("ibc_industrial", "mercados", "Índice Industrial", "Industrial Index", "puntos", "points", "D", "BVC", "https://www.bolsadecaracas.com", 2, 30),
@@ -124,7 +124,7 @@ A, C, M = "auto", "calibrar", "manual"
 PLAN = {
     "usd_bcv": (A, 5, "Robot fx cada 30 min (portal BCV por fecha valor). Histórico diario desde la reconversión de oct-2021."),
     "usd_paralelo": (A, 4, "Robot fx cada 30 min: mediana de los mejores anuncios de compra y venta USDT/VES en Binance P2P."),
-    "brecha_cambiaria": (A, 5, "Se calcula sola: paralelo ÷ oficial − 1."),
+    "brecha_cambiaria": (A, 5, "Se calcula sola: mercado alternativo ÷ oficial − 1."),
     "eur_bcv": (A, 5, "Robot fx (portal BCV)."),
     "intervencion_bcv_mensual": (A, 40, "Robot de prensa diario: suma de las ventas del BCV a la banca reportadas, o la asignación mensual anunciada."),
     "intervencion_bcv": (A, 15, "Robot de prensa diario (titulares de Banca y Negocios)."),

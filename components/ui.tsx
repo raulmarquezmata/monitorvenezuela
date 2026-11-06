@@ -40,9 +40,9 @@ export function SectionHead({ label, href, more }: { label: string; href?: strin
 }
 
 /** Tarjeta de serie: nombre, último valor, gráfico (rango global), fuente y descarga. */
-export function SeriesCard({ s, points, lang, allowLog = false, bars = false, area = false, height = 220, ranges, initial, stats = true, logDefault = false, note, hiLo = false }: {
+export function SeriesCard({ s, points, lang, allowLog = false, bars = false, area = false, height = 220, ranges, initial, stats = true, logDefault = false, note, hiLo = false, clip = false }: {
   s: Latest; points: Point[]; lang: Lang; allowLog?: boolean; bars?: boolean; area?: boolean; height?: number;
-  ranges?: Range[]; initial?: Range; stats?: boolean; logDefault?: boolean; note?: string; hiLo?: boolean;
+  ranges?: Range[]; initial?: Range; stats?: boolean; logDefault?: boolean; note?: string; hiLo?: boolean; clip?: boolean;
 }) {
   const d = t(lang);
   const unit = lang === "es" ? s.unit_es : s.unit_en;
@@ -53,7 +53,7 @@ export function SeriesCard({ s, points, lang, allowLog = false, bars = false, ar
         <span className="date">{s.last_date ? fmtDateFor(s.last_date, s.frequency, lang) : ""}</span></div>
       <CardControls lang={lang} money={isBsUnit(s.unit_es)} ranges={ranges} rangeLabels={d.range} />
       <SeriesBody name={lang === "es" ? s.name_es : s.name_en} points={points} unitEs={s.unit_es} unit={unit ?? ""} decimals={s.decimals}
-        lang={lang} height={height} allowLog={allowLog} bars={bars} area={area} logDefault={logDefault} hiLo={hiLo}
+        lang={lang} height={height} allowLog={allowLog} bars={bars} area={area} logDefault={logDefault} hiLo={hiLo} clip={clip}
         stats={stats && points.length > 2 ? { periods: defaultPeriods(s.frequency), pctUnit: s.unit_es === "%" } : undefined}
         labels={{ ...chartLabels(lang), noData: s.method !== "auto" ? `${d.noData} · ${d.method[s.method]}` : d.noData }} />
       {note && <p className="muted" style={{ fontSize: 13, marginTop: 8 }}>{note}</p>}

@@ -42,6 +42,42 @@
   --up: #46c27a; --down: #f0605b; --warn: #e0a43a;
 }
 
+/* ---------------- Marca Grupo Solfín (manual de marca 2021) ----------------
+   Principal #004AA1 · secundarios #121A30 y #F2F2F2 · acentos #0D407D y #1C7DE0 · grises #EAEBED #DBDBE0 #B5B6BA #A4A2A3.
+   En los gráficos, la segunda serie usa un ámbar de contraste para que dos líneas no se confundan. */
+:root[data-brand="solfin"] {
+  --bg: #f2f2f2;
+  --surface: #ffffff;
+  --surface-2: #eaebed;
+  --line: #dbdbe0;
+  --grid: #dbdbe0;
+  --text: #121a30;
+  --text-2: #3d455c;
+  --text-3: #6e7486;
+  --accent: #004aa1;
+  --accent-ink: #ffffff;
+  --logo: #004aa1;
+  --series-1: #004aa1;
+  --series-2: #d9822b;
+  --series-3: #1c7de0;
+  --area: rgba(0, 74, 161, .12);
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-brand="solfin"]:not([data-theme="light"]) {
+    --bg: #0b1122; --surface: #121a30; --surface-2: #19233f; --line: #263150; --grid: #243050;
+    --text: #f2f2f2; --text-2: #c4c9d6; --text-3: #8d94a8; --accent: #1c7de0; --accent-ink: #ffffff; --logo: #1c7de0;
+    --series-1: #5aa2ee; --series-2: #f0a44a; --series-3: #9ec8f5; --area: rgba(90, 162, 238, .14);
+  }
+}
+:root[data-brand="solfin"][data-theme="dark"] {
+  --bg: #0b1122; --surface: #121a30; --surface-2: #19233f; --line: #263150; --grid: #243050;
+  --text: #f2f2f2; --text-2: #c4c9d6; --text-3: #8d94a8; --accent: #1c7de0; --accent-ink: #ffffff; --logo: #1c7de0;
+  --series-1: #5aa2ee; --series-2: #f0a44a; --series-3: #9ec8f5; --area: rgba(90, 162, 238, .14);
+}
+:root[data-brand="solfin"] .top { border-bottom: 3px solid var(--accent); }
+.brand-sep { width: 1px; height: 26px; background: var(--line); display: inline-block; }
+.brand-app { font-weight: 700; letter-spacing: .14em; text-transform: uppercase; font-size: 14px; color: var(--accent); }
+
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
 body { background: var(--bg); color: var(--text); font: 16px/1.5 var(--sans); -webkit-font-smoothing: antialiased; }
@@ -298,3 +334,28 @@ footer a { color: var(--text-3); }
 .informe .portada { aspect-ratio: 16 / 9; }
 tr.row-link { cursor: pointer; }
 tr.row-link:hover td { background: var(--surface-2); }
+
+/* Esqueleto de carga (aparece al instante al cambiar de página) */
+.loading { padding-top: 8px; }
+.sk { background: linear-gradient(90deg, var(--surface-2) 0%, var(--line) 50%, var(--surface-2) 100%); background-size: 200% 100%; animation: sk 1.2s ease-in-out infinite; border-radius: 6px; }
+.sk-title { height: 34px; width: 280px; max-width: 70%; }
+.sk-sub { height: 16px; width: 460px; max-width: 90%; margin-top: 12px; }
+.sk-card { min-height: 110px; }
+.sk-line { height: 12px; width: 50%; }
+.sk-big { height: 30px; width: 70%; margin-top: 16px; }
+.sk-chart { height: 200px; margin-top: 16px; }
+@keyframes sk { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) { .sk { animation: none; } }
+
+/* BVC: capitalización total y renta fija desplegable */
+.cap-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 14px; }
+.cap-grid > div { background: var(--surface-2); border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 4px; }
+.cap-grid span { font-size: 12px; }
+.cap-grid b { font-size: 20px; font-variant-numeric: tabular-nums; }
+.cap-grid small { font-size: 12px; font-weight: 400; color: var(--text-3); }
+@media (max-width: 700px) { .cap-grid { grid-template-columns: 1fr; } }
+details.fold > summary { cursor: pointer; list-style: none; }
+details.fold > summary::-webkit-details-marker { display: none; }
+details.fold > summary::before { content: "▸"; display: inline-block; margin-right: 8px; transition: transform .15s; color: var(--accent); }
+details.fold[open] > summary::before { transform: rotate(90deg); }
+details.fold[open] > summary { margin-bottom: 12px; }

@@ -19,7 +19,7 @@
       "tipo": "variacion",
       "serie": "usd_paralelo",
       "pct": 2,
-      "texto": "💵 **Dólar paralelo** {flecha} {cambio}%\nBs **{valor}** · {fecha}"
+      "texto": "💵 **Mercado alternativo** {flecha} {cambio}%\nBs **{valor}** · {fecha}"
     },
     {
       "id": "oficial_salto",

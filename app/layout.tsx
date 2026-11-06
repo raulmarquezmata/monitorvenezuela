@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import { BRAND, BRAND_NAME } from "@/lib/brand";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: { default: "Monitor Venezuela", template: "%s · Monitor Venezuela" },
+  title: { default: BRAND_NAME.es, template: `%s · ${BRAND_NAME.es}` },
+  icons: BRAND === "solfin" ? { icon: "/brand/solfin-isotipo.svg" } : undefined,
   description: "Mercados y macroeconomía de Venezuela actualizados automáticamente: BVC, tipo de cambio, liquidez, reservas, inflación, banca, petróleo, comercio exterior y noticias.",
 };
 
@@ -11,7 +13,7 @@ const themeScript = `try{var m=localStorage.getItem("theme");if(m==="light"||m==
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es" suppressHydrationWarning>
+    <html lang="es" data-brand={BRAND} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />

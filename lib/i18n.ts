@@ -1,3 +1,4 @@
+import { BRAND_NAME } from "./brand";
 export const LANGS = ["es", "en"] as const;
 export type Lang = (typeof LANGS)[number];
 export const isLang = (x: string): x is Lang => (LANGS as readonly string[]).includes(x);
@@ -9,7 +10,7 @@ export const MACRO: Category[] = ["cambiario", "monetario", "precios", "externo"
 
 const dict = {
   es: {
-    site: "Monitor Venezuela",
+    site: BRAND_NAME.es,
     tagline: "Mercados y macroeconomía, actualizados automáticamente",
     by: "Mercados y macro de Venezuela",
     nav: { home: "Inicio", bvc: "Mercado BVC", macro: "Macro", oil: "Petróleo y gas", commodities: "Materias primas", trade: "Comercio exterior", agro: "Agro", news: "Noticias", research: "Informes", tools: "Herramientas", data: "Metodología", timeline: "Línea de tiempo", headlines: "Titulares", compare: "Comparador", calc: "Calculadora" },
@@ -35,7 +36,7 @@ const dict = {
     change: "Var. %",
     volume: "Volumen",
     amount: "Monto (Bs)",
-    mcap: "Capitalización (US$)",
+    mcap: "Capitalización",
     session: "Sesión del",
     movers: "Mayores movimientos",
     latestNews: "Últimas noticias",
@@ -54,13 +55,13 @@ const dict = {
     statusOk: { ok: "OK", partial: "Parcial", error: "Error" } as Record<string, string>,
     disclaimer: "Información de fuentes públicas con fines informativos; no constituye recomendación de inversión. Verifique las cifras con la fuente oficial antes de usarlas.",
     cats: { economia: "Economía", petroleo: "Petróleo y gas", cambiario: "Economía", mercados: "Mercado", banca: "Banca", sanciones: "Política", agro: "Agro", politica: "Política", precios: "Economía", mineria: "Minería", deuda: "Deuda" } as Record<string, string>,
-    oficialVsParalelo: "Dólar oficial vs. paralelo",
+    oficialVsParalelo: "Dólar oficial vs. mercado alternativo",
     seeAll: "Ver sección",
     download: "Descargar",
     downloadAll: "Descargar todo",
     fxBasis: "Dólares al tipo de cambio",
     official: "oficial",
-    parallel: "paralelo",
+    parallel: "mercado alternativo",
     equities: "Renta variable",
     fixedIncome: "Renta fija",
     research: "Informes",
@@ -73,7 +74,7 @@ const dict = {
     theme: { light: "Claro", dark: "Oscuro", system: "Auto" } as Record<string, string>,
   },
   en: {
-    site: "Venezuela Monitor",
+    site: BRAND_NAME.en,
     tagline: "Markets and macro, updated automatically",
     by: "Venezuelan markets and macro",
     nav: { home: "Home", bvc: "BVC market", macro: "Macro", oil: "Oil & gas", commodities: "Commodities", trade: "Foreign trade", agro: "Agriculture", news: "News", research: "Reports", tools: "Tools", data: "Methodology", timeline: "Timeline", headlines: "Headlines", compare: "Comparator", calc: "Calculator" },
@@ -99,7 +100,7 @@ const dict = {
     change: "Chg. %",
     volume: "Volume",
     amount: "Value (Bs)",
-    mcap: "Market cap (US$)",
+    mcap: "Market cap",
     session: "Session of",
     movers: "Top movers",
     latestNews: "Latest news",
@@ -118,13 +119,13 @@ const dict = {
     statusOk: { ok: "OK", partial: "Partial", error: "Error" } as Record<string, string>,
     disclaimer: "Public-source information for reference only; not investment advice. Check figures against the official source before use.",
     cats: { economia: "Economy", petroleo: "Oil & gas", cambiario: "Economy", mercados: "Market", banca: "Banking", sanciones: "Politics", agro: "Agriculture", politica: "Politics", precios: "Economy", mineria: "Mining", deuda: "Debt" } as Record<string, string>,
-    oficialVsParalelo: "Official vs. parallel USD",
+    oficialVsParalelo: "Official vs. alternative market USD",
     seeAll: "See section",
     download: "Download",
     downloadAll: "Download all",
     fxBasis: "Dollars at the",
     official: "official rate",
-    parallel: "parallel rate",
+    parallel: "alternative market",
     equities: "Equities",
     fixedIncome: "Fixed income",
     research: "Reports",

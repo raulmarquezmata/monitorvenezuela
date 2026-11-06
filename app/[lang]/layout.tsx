@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { SolfinLogo } from "@/components/Logo";
+import { BRAND } from "@/lib/brand";
 import { notFound } from "next/navigation";
 import { LangSwitch, MainNav, ThemeSwitch } from "@/components/Nav";
 import { CurrencyProvider } from "@/components/Currency";
@@ -40,9 +42,10 @@ export default async function LangLayout({ children, params }: { children: React
   const items = [
     { href: L, label: d.nav.home, match: [L] },
     { href: `${L}/bvc`, label: d.nav.bvc, match: [`${L}/bvc`] },
-    { href: `${L}/indicadores/cambiario`, label: d.nav.macro, match: [`${L}/indicadores`, `${L}/comercio`, `${L}/agro`, `${L}/herramientas`] },
+    { href: `${L}/indicadores/cambiario`, label: d.nav.macro, match: [`${L}/indicadores`, `${L}/comercio`, `${L}/agro` ] },
     { href: `${L}/noticias`, label: d.nav.news, match: [`${L}/noticias`] },
     { href: `${L}/informes`, label: d.nav.research, match: [`${L}/informes`, `${L}/research`] },
+    { href: `${L}/herramientas`, label: d.nav.tools, match: [`${L}/herramientas`] },
     { href: `${L}/datos`, label: d.nav.data, match: [`${L}/datos`] },
   ];
   const [updated, fx] = await Promise.all([lastRun(), fxForCurrency()]);
@@ -53,7 +56,11 @@ export default async function LangLayout({ children, params }: { children: React
     <RangeProvider>
       <header className="top">
         <div className="wrap">
-          <Link href={L} className="brand"><i aria-hidden />{d.site}</Link>
+          <Link href={L} className="brand">
+            {BRAND === "solfin" ? (
+              <><SolfinLogo height={30} /><span className="brand-sep" aria-hidden /><span className="brand-app">Radar</span></>
+            ) : (<><i aria-hidden />{d.site}</>)}
+          </Link>
           <MainNav items={items} />
           <div className="spacer" />
           <LangSwitch lang={lang} />

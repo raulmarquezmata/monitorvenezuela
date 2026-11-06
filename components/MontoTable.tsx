@@ -14,7 +14,7 @@ export default function MontoTable({ rows, lang, symbol }: { rows: Row[]; lang: 
     <div className="card">
       <div className="card-top"><h3>{es ? "Monto negociado" : "Traded amount"}</h3>
         <div className="seg" role="group">
-          <button className={cur === "par" ? "on" : ""} onClick={() => setCur("par")}>{es ? "US$ paralelo" : "US$ parallel"}</button>
+          <button className={cur === "par" ? "on" : ""} onClick={() => setCur("par")}>{es ? "US$ alternativo" : "US$ alternative"}</button>
           <button className={cur === "of" ? "on" : ""} onClick={() => setCur("of")}>{es ? "US$ oficial" : "US$ official"}</button>
           <button className={cur === "bs" ? "on" : ""} onClick={() => setCur("bs")}>Bs</button>
         </div>

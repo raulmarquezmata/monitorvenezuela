@@ -1,376 +1,516 @@
 {
- "_ayuda": "Fuentes de noticias. 'medio' = RSS propio; 'agregador' = búsqueda en Google News limitada a ese medio (para los que no tienen RSS o para filtrar solo Venezuela). filter=true guarda solo noticias que mencionan Venezuela/BCV/PDVSA. Para agregar una fuente copia un bloque. 'medio' con RSS internacional general usa filter=true (solo notas sobre Venezuela).",
- "feeds": [
-  {
-   "name": "Banca y Negocios",
-   "url": "https://www.bancaynegocios.com/feed/",
-   "lang": "es",
-   "filter": false,
-   "kind": "medio"
-  },
-  {
-   "name": "Finanzas Digital",
-   "url": "https://www.finanzasdigital.com/feed/",
-   "lang": "es",
-   "filter": false,
-   "kind": "medio"
-  },
-  {
-   "name": "Tal Cual",
-   "url": "https://talcualdigital.com/feed/",
-   "lang": "es",
-   "filter": true,
-   "kind": "medio"
-  },
-  {
-   "name": "El Estímulo",
-   "url": "https://elestimulo.com/feed/",
-   "lang": "es",
-   "filter": true,
-   "kind": "medio"
-  },
-  {
-   "name": "Ecosistema",
-   "url": "https://news.google.com/rss/search?q=%22Ecosistema%22+Venezuela+econom%C3%ADa+when%3A7d&hl=es-419&gl=VE&ceid=VE:es-419",
-   "lang": "es",
-   "filter": true,
-   "kind": "agregador"
-  },
-  {
-   "name": "Bitácora Económica",
-   "url": "https://news.google.com/rss/search?q=%22Bit%C3%A1cora+Econ%C3%B3mica%22+when%3A14d&hl=es-419&gl=VE&ceid=VE:es-419",
-   "lang": "es",
-   "filter": false,
-   "kind": "agregador"
-  },
-  {
-   "name": "Venevisión",
-   "url": "https://news.google.com/rss/search?q=site%3Anoticiasvenevision.com+econom%C3%ADa+when%3A3d&hl=es-419&gl=VE&ceid=VE:es-419",
-   "lang": "es",
-   "filter": true,
-   "kind": "agregador"
-  },
-  {
-   "name": "Reuters",
-   "url": "https://news.google.com/rss/search?q=Venezuela+site%3Areuters.com+when%3A7d&hl=en-US&gl=US&ceid=US:en",
-   "lang": "en",
-   "filter": true,
-   "kind": "agregador"
-  },
-  {
-   "name": "The Wall Street Journal",
-   "url": "https://news.google.com/rss/search?q=Venezuela+site%3Awsj.com+when%3A7d&hl=en-US&gl=US&ceid=US:en",
-   "lang": "en",
-   "filter": true,
-   "kind": "agregador"
-  },
-  {
-   "name": "Axios",
-   "url": "https://news.google.com/rss/search?q=Venezuela+site%3Aaxios.com+when%3A7d&hl=en-US&gl=US&ceid=US:en",
-   "lang": "en",
-   "filter": true,
-   "kind": "agregador"
-  },
-  {
-   "name": "Bloomberg",
-   "url": "https://news.google.com/rss/search?q=Venezuela+site%3Abloomberg.com+when%3A7d&hl=en-US&gl=US&ceid=US:en",
-   "lang": "en",
-   "filter": true,
-   "kind": "agregador"
-  },
-  {
-   "name": "The Economist",
-   "url": "https://news.google.com/rss/search?q=Venezuela+site%3Aeconomist.com+when%3A14d&hl=en-US&gl=US&ceid=US:en",
-   "lang": "en",
-   "filter": true,
-   "kind": "agregador"
-  },
-  {
-   "name": "Fox News",
-   "url": "https://news.google.com/rss/search?q=Venezuela+site%3Afoxnews.com+when%3A7d&hl=en-US&gl=US&ceid=US:en",
-   "lang": "en",
-   "filter": true,
-   "kind": "agregador"
-  },
-  {
-   "name": "CNBC",
-   "url": "https://news.google.com/rss/search?q=Venezuela+site%3Acnbc.com+when%3A7d&hl=en-US&gl=US&ceid=US:en",
-   "lang": "en",
-   "filter": true,
-   "kind": "agregador"
-  },
-  {
-   "name": "CNN",
-   "url": "https://news.google.com/rss/search?q=Venezuela+site%3Acnn.com+when%3A7d&hl=en-US&gl=US&ceid=US:en",
-   "lang": "en",
-   "filter": true,
-   "kind": "agregador"
-  },
-  {
-   "name": "CNN en Español",
-   "url": "https://news.google.com/rss/search?q=Venezuela+econom%C3%ADa+site%3Acnnespanol.cnn.com+when%3A7d&hl=es-419&gl=VE&ceid=VE:es-419",
-   "lang": "es",
-   "filter": true,
-   "kind": "agregador"
-  },
-  {
-   "name": "The Guardian",
-   "url": "https://www.theguardian.com/world/venezuela/rss",
-   "lang": "en",
-   "filter": false,
-   "kind": "medio"
-  },
-  {
-   "name": "Financial Times",
-   "url": "https://www.ft.com/venezuela?format=rss",
-   "lang": "en",
-   "filter": false,
-   "kind": "medio"
-  },
-  {
-   "name": "The New York Times",
-   "url": "https://rss.nytimes.com/services/xml/rss/nyt/Americas.xml",
-   "lang": "en",
-   "filter": true,
-   "kind": "medio"
-  },
-  {
-   "name": "The Wall Street Journal (RSS)",
-   "url": "https://feeds.a.dj.com/rss/RSSWorldNews.xml",
-   "lang": "en",
-   "filter": true,
-   "kind": "medio"
-  },
-  {
-   "name": "The Economist (RSS)",
-   "url": "https://www.economist.com/the-americas/rss.xml",
-   "lang": "en",
-   "filter": true,
-   "kind": "medio"
-  },
-  {
-   "name": "CNBC (RSS)",
-   "url": "https://www.cnbc.com/id/100727362/device/rss/rss.html",
-   "lang": "en",
-   "filter": true,
-   "kind": "medio"
-  },
-  {
-   "name": "Fox News (RSS)",
-   "url": "https://moxie.foxnews.com/google-publisher/world.xml",
-   "lang": "en",
-   "filter": true,
-   "kind": "medio"
-  },
-  {
-   "name": "Al Jazeera",
-   "url": "https://www.aljazeera.com/xml/rss/all.xml",
-   "lang": "en",
-   "filter": true,
-   "kind": "medio"
-  },
-  {
-   "name": "BBC Mundo",
-   "url": "https://feeds.bbci.co.uk/mundo/rss.xml",
-   "lang": "es",
-   "filter": true,
-   "kind": "medio"
-  },
-  {
-   "name": "El País (América)",
-   "url": "https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/section/america/portada",
-   "lang": "es",
-   "filter": true,
-   "kind": "medio"
-  },
-  {
-   "name": "DW Español",
-   "url": "https://rss.dw.com/rdf/rss-sp-all",
-   "lang": "es",
-   "filter": true,
-   "kind": "medio"
-  },
-  {
-   "name": "France 24 Español",
-   "url": "https://www.france24.com/es/am%C3%A9rica-latina/rss",
-   "lang": "es",
-   "filter": true,
-   "kind": "medio"
-  },
-  {
-   "name": "Infobae",
-   "url": "https://www.infobae.com/arc/outboundfeeds/rss/category/america/",
-   "lang": "es",
-   "filter": true,
-   "kind": "medio"
-  },
-  {
-   "name": "Bloomberg Línea",
-   "url": "https://www.bloomberglinea.com/arc/outboundfeeds/rss/?outputType=xml",
-   "lang": "es",
-   "filter": true,
-   "kind": "medio"
-  },
-  {
-   "name": "Efecto Cocuyo",
-   "url": "https://efectococuyo.com/feed/",
-   "lang": "es",
-   "filter": true,
-   "kind": "medio"
-  },
-  {
-   "name": "El Nacional",
-   "url": "https://www.elnacional.com/feed/",
-   "lang": "es",
-   "filter": true,
-   "kind": "medio"
-  },
-  {
-   "name": "Associated Press",
-   "url": "https://news.google.com/rss/search?q=Venezuela%20site%3Aapnews.com%20when%3A3d&hl=en-US&gl=US&ceid=US:en",
-   "lang": "en",
-   "filter": true,
-   "kind": "agregador"
-  },
-  {
-   "name": "Financial Times (búsqueda)",
-   "url": "https://news.google.com/rss/search?q=Venezuela%20site%3Aft.com%20when%3A7d&hl=en-US&gl=US&ceid=US:en",
-   "lang": "en",
-   "filter": true,
-   "kind": "agregador"
-  },
-  {
-   "name": "Barclays",
-   "url": "https://news.google.com/rss/search?q=Barclays%20Venezuela%20when%3A14d&hl=en-US&gl=US&ceid=US:en",
-   "lang": "en",
-   "filter": true,
-   "kind": "agregador"
-  },
-  {
-   "name": "Guidepost",
-   "url": "https://news.google.com/rss/search?q=Guidepost%20Venezuela%20when%3A14d&hl=en-US&gl=US&ceid=US:en",
-   "lang": "en",
-   "filter": true,
-   "kind": "agregador"
-  },
-  {
-   "name": "Prensa de EE.UU.",
-   "url": "https://news.google.com/rss/search?q=Venezuela%20economy%20OR%20oil%20OR%20sanctions%20when%3A3d&hl=en-US&gl=US&ceid=US:en",
-   "lang": "en",
-   "filter": true,
-   "kind": "agregador"
-  },
-  {
-   "name": "Prensa del Reino Unido",
-   "url": "https://news.google.com/rss/search?q=Venezuela%20economy%20OR%20oil%20when%3A3d&hl=en-GB&gl=GB&ceid=GB:en",
-   "lang": "en",
-   "filter": true,
-   "kind": "agregador"
-  },
-  {
-   "name": "Prensa de España",
-   "url": "https://news.google.com/rss/search?q=Venezuela%20econom%C3%ADa%20OR%20petr%C3%B3leo%20when%3A3d&hl=es&gl=ES&ceid=ES:es",
-   "lang": "es",
-   "filter": true,
-   "kind": "agregador"
-  },
-  {
-   "name": "Prensa de Colombia",
-   "url": "https://news.google.com/rss/search?q=Venezuela%20econom%C3%ADa%20OR%20petr%C3%B3leo%20OR%20frontera%20when%3A3d&hl=es-419&gl=CO&ceid=CO:es-419",
-   "lang": "es",
-   "filter": true,
-   "kind": "agregador"
-  },
-  {
-   "name": "Prensa de México",
-   "url": "https://news.google.com/rss/search?q=Venezuela%20econom%C3%ADa%20OR%20petr%C3%B3leo%20when%3A3d&hl=es-419&gl=MX&ceid=MX:es-419",
-   "lang": "es",
-   "filter": true,
-   "kind": "agregador"
-  },
-  {
-   "name": "Prensa de Argentina",
-   "url": "https://news.google.com/rss/search?q=Venezuela%20econom%C3%ADa%20when%3A3d&hl=es-419&gl=AR&ceid=AR:es-419",
-   "lang": "es",
-   "filter": true,
-   "kind": "agregador"
-  },
-  {
-   "name": "Prensa de Brasil",
-   "url": "https://news.google.com/rss/search?q=Venezuela%20economia%20OR%20petr%C3%B3leo%20when%3A3d&hl=pt-BR&gl=BR&ceid=BR:pt-419",
-   "lang": "pt",
-   "filter": true,
-   "kind": "agregador"
-  },
-  {
-   "name": "Prensa de Francia",
-   "url": "https://news.google.com/rss/search?q=Venezuela%20%C3%A9conomie%20OR%20p%C3%A9trole%20when%3A3d&hl=fr&gl=FR&ceid=FR:fr",
-   "lang": "fr",
-   "filter": true,
-   "kind": "agregador"
-  },
-  {
-   "name": "Prensa de Asia",
-   "url": "https://news.google.com/rss/search?q=Venezuela%20oil%20China%20OR%20India%20when%3A3d&hl=en-IN&gl=IN&ceid=IN:en",
-   "lang": "en",
-   "filter": true,
-   "kind": "agregador"
-  },
-  {
-   "name": "Empresas e inversión (búsqueda)",
-   "url": "https://news.google.com/rss/search?q=Venezuela%20%28adquiere%20OR%20adquisici%C3%B3n%20OR%20invertir%C3%A1%20OR%20inversi%C3%B3n%20OR%20expansi%C3%B3n%20OR%20%22nueva%20planta%22%29%20empresa%20when%3A3d&hl=es-419&gl=VE&ceid=VE:es-419",
-   "lang": "es",
-   "filter": true,
-   "kind": "agregador"
-  },
-  {
-   "name": "Aerolíneas y turismo (búsqueda)",
-   "url": "https://news.google.com/rss/search?q=Venezuela%20%28aerol%C3%ADnea%20OR%20vuelos%20OR%20frecuencias%20OR%20ruta%20OR%20turismo%29%20when%3A3d&hl=es-419&gl=VE&ceid=VE:es-419",
-   "lang": "es",
-   "filter": true,
-   "kind": "agregador"
-  },
-  {
-   "name": "Electricidad (búsqueda)",
-   "url": "https://news.google.com/rss/search?q=Venezuela%20%28Corpoelec%20OR%20megavatios%20OR%20hidroel%C3%A9ctrica%20OR%20%22sistema%20el%C3%A9ctrico%22%20OR%20termoel%C3%A9ctrica%29%20when%3A3d&hl=es-419&gl=VE&ceid=VE:es-419",
-   "lang": "es",
-   "filter": true,
-   "kind": "agregador"
-  },
-  {
-   "name": "Comercio y fiscal (búsqueda)",
-   "url": "https://news.google.com/rss/search?q=Venezuela%20%28Seniat%20OR%20aranceles%20OR%20%22intercambio%20comercial%22%20OR%20exportaciones%20OR%20importaciones%20OR%20recaudaci%C3%B3n%29%20when%3A3d&hl=es-419&gl=VE&ceid=VE:es-419",
-   "lang": "es",
-   "filter": true,
-   "kind": "agregador"
-  },
-  {
-   "name": "Minería e industrias básicas (búsqueda)",
-   "url": "https://news.google.com/rss/search?q=Venezuela%20%28aluminio%20OR%20Venalum%20OR%20Sidor%20OR%20hierro%20OR%20%22oro%22%20OR%20miner%C3%ADa%20OR%20Ferrominera%29%20when%3A3d&hl=es-419&gl=VE&ceid=VE:es-419",
-   "lang": "es",
-   "filter": true,
-   "kind": "agregador"
-  },
-  {
-   "name": "Salarios y trabajo (búsqueda)",
-   "url": "https://news.google.com/rss/search?q=Venezuela%20%28salario%20OR%20%22ingreso%20m%C3%ADnimo%22%20OR%20bonos%20OR%20remuneraciones%20OR%20%22mesa%20de%20di%C3%A1logo%20laboral%22%29%20when%3A3d&hl=es-419&gl=VE&ceid=VE:es-419",
-   "lang": "es",
-   "filter": true,
-   "kind": "agregador"
-  },
-  {
-   "name": "Gobierno y diplomacia (búsqueda)",
-   "url": "https://news.google.com/rss/search?q=Venezuela%20%28canciller%20OR%20%22presidenta%20encargada%22%20OR%20embajada%20OR%20cooperaci%C3%B3n%20OR%20ministro%29%20when%3A3d&hl=es-419&gl=VE&ceid=VE:es-419",
-   "lang": "es",
-   "filter": true,
-   "kind": "agregador"
-  },
-  {
-   "name": "Consumo y empresas (búsqueda)",
-   "url": "https://news.google.com/rss/search?q=Venezuela%20%28consumo%20OR%20ventas%20OR%20%22Empresas%20Polar%22%20OR%20supermercados%20OR%20franquicias%20OR%20%22centros%20comerciales%22%29%20when%3A3d&hl=es-419&gl=VE&ceid=VE:es-419",
-   "lang": "es",
-   "filter": true,
-   "kind": "agregador"
-  }
- ]
+  "_ayuda": "Fuentes de noticias. 'medio' = RSS propio; 'agregador' = búsqueda en Google News limitada a ese medio (para los que no tienen RSS o para filtrar solo Venezuela). filter=true guarda solo noticias que mencionan Venezuela/BCV/PDVSA. Para agregar una fuente copia un bloque. 'medio' con RSS internacional general usa filter=true (solo notas sobre Venezuela).",
+  "feeds": [
+    {
+      "name": "Banca y Negocios",
+      "url": "https://www.bancaynegocios.com/feed/",
+      "lang": "es",
+      "filter": false,
+      "kind": "medio"
+    },
+    {
+      "name": "Finanzas Digital",
+      "url": "https://www.finanzasdigital.com/feed/",
+      "lang": "es",
+      "filter": false,
+      "kind": "medio"
+    },
+    {
+      "name": "Tal Cual",
+      "url": "https://talcualdigital.com/feed/",
+      "lang": "es",
+      "filter": true,
+      "kind": "medio"
+    },
+    {
+      "name": "El Estímulo",
+      "url": "https://elestimulo.com/feed/",
+      "lang": "es",
+      "filter": true,
+      "kind": "medio"
+    },
+    {
+      "name": "Ecosistema",
+      "url": "https://news.google.com/rss/search?q=%22Ecosistema%22+Venezuela+econom%C3%ADa+when%3A7d&hl=es-419&gl=VE&ceid=VE:es-419",
+      "lang": "es",
+      "filter": true,
+      "kind": "agregador"
+    },
+    {
+      "name": "Bitácora Económica",
+      "url": "https://news.google.com/rss/search?q=%22Bit%C3%A1cora+Econ%C3%B3mica%22+when%3A14d&hl=es-419&gl=VE&ceid=VE:es-419",
+      "lang": "es",
+      "filter": false,
+      "kind": "agregador"
+    },
+    {
+      "name": "Venevisión",
+      "url": "https://news.google.com/rss/search?q=site%3Anoticiasvenevision.com+econom%C3%ADa+when%3A3d&hl=es-419&gl=VE&ceid=VE:es-419",
+      "lang": "es",
+      "filter": true,
+      "kind": "agregador"
+    },
+    {
+      "name": "Reuters",
+      "url": "https://news.google.com/rss/search?q=Venezuela+site%3Areuters.com+when%3A7d&hl=en-US&gl=US&ceid=US:en",
+      "lang": "en",
+      "filter": true,
+      "kind": "agregador"
+    },
+    {
+      "name": "The Wall Street Journal",
+      "url": "https://news.google.com/rss/search?q=Venezuela+site%3Awsj.com+when%3A7d&hl=en-US&gl=US&ceid=US:en",
+      "lang": "en",
+      "filter": true,
+      "kind": "agregador"
+    },
+    {
+      "name": "Axios",
+      "url": "https://news.google.com/rss/search?q=Venezuela+site%3Aaxios.com+when%3A7d&hl=en-US&gl=US&ceid=US:en",
+      "lang": "en",
+      "filter": true,
+      "kind": "agregador"
+    },
+    {
+      "name": "Bloomberg",
+      "url": "https://news.google.com/rss/search?q=Venezuela+site%3Abloomberg.com+when%3A7d&hl=en-US&gl=US&ceid=US:en",
+      "lang": "en",
+      "filter": true,
+      "kind": "agregador"
+    },
+    {
+      "name": "The Economist",
+      "url": "https://news.google.com/rss/search?q=Venezuela+site%3Aeconomist.com+when%3A14d&hl=en-US&gl=US&ceid=US:en",
+      "lang": "en",
+      "filter": true,
+      "kind": "agregador"
+    },
+    {
+      "name": "Fox News",
+      "url": "https://news.google.com/rss/search?q=Venezuela+site%3Afoxnews.com+when%3A7d&hl=en-US&gl=US&ceid=US:en",
+      "lang": "en",
+      "filter": true,
+      "kind": "agregador"
+    },
+    {
+      "name": "CNBC",
+      "url": "https://news.google.com/rss/search?q=Venezuela+site%3Acnbc.com+when%3A7d&hl=en-US&gl=US&ceid=US:en",
+      "lang": "en",
+      "filter": true,
+      "kind": "agregador"
+    },
+    {
+      "name": "CNN",
+      "url": "https://news.google.com/rss/search?q=Venezuela+site%3Acnn.com+when%3A7d&hl=en-US&gl=US&ceid=US:en",
+      "lang": "en",
+      "filter": true,
+      "kind": "agregador"
+    },
+    {
+      "name": "CNN en Español",
+      "url": "https://news.google.com/rss/search?q=Venezuela+econom%C3%ADa+site%3Acnnespanol.cnn.com+when%3A7d&hl=es-419&gl=VE&ceid=VE:es-419",
+      "lang": "es",
+      "filter": true,
+      "kind": "agregador"
+    },
+    {
+      "name": "The Guardian",
+      "url": "https://www.theguardian.com/world/venezuela/rss",
+      "lang": "en",
+      "filter": false,
+      "kind": "medio"
+    },
+    {
+      "name": "Financial Times",
+      "url": "https://www.ft.com/venezuela?format=rss",
+      "lang": "en",
+      "filter": false,
+      "kind": "medio"
+    },
+    {
+      "name": "The New York Times",
+      "url": "https://rss.nytimes.com/services/xml/rss/nyt/Americas.xml",
+      "lang": "en",
+      "filter": true,
+      "kind": "medio"
+    },
+    {
+      "name": "The Wall Street Journal (RSS)",
+      "url": "https://feeds.a.dj.com/rss/RSSWorldNews.xml",
+      "lang": "en",
+      "filter": true,
+      "kind": "medio"
+    },
+    {
+      "name": "The Economist (RSS)",
+      "url": "https://www.economist.com/the-americas/rss.xml",
+      "lang": "en",
+      "filter": true,
+      "kind": "medio"
+    },
+    {
+      "name": "CNBC (RSS)",
+      "url": "https://www.cnbc.com/id/100727362/device/rss/rss.html",
+      "lang": "en",
+      "filter": true,
+      "kind": "medio"
+    },
+    {
+      "name": "Fox News (RSS)",
+      "url": "https://moxie.foxnews.com/google-publisher/world.xml",
+      "lang": "en",
+      "filter": true,
+      "kind": "medio"
+    },
+    {
+      "name": "Al Jazeera",
+      "url": "https://www.aljazeera.com/xml/rss/all.xml",
+      "lang": "en",
+      "filter": true,
+      "kind": "medio"
+    },
+    {
+      "name": "BBC Mundo",
+      "url": "https://feeds.bbci.co.uk/mundo/rss.xml",
+      "lang": "es",
+      "filter": true,
+      "kind": "medio"
+    },
+    {
+      "name": "El País (América)",
+      "url": "https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/section/america/portada",
+      "lang": "es",
+      "filter": true,
+      "kind": "medio"
+    },
+    {
+      "name": "DW Español",
+      "url": "https://rss.dw.com/rdf/rss-sp-all",
+      "lang": "es",
+      "filter": true,
+      "kind": "medio"
+    },
+    {
+      "name": "France 24 Español",
+      "url": "https://www.france24.com/es/am%C3%A9rica-latina/rss",
+      "lang": "es",
+      "filter": true,
+      "kind": "medio"
+    },
+    {
+      "name": "Infobae",
+      "url": "https://www.infobae.com/arc/outboundfeeds/rss/category/america/",
+      "lang": "es",
+      "filter": true,
+      "kind": "medio"
+    },
+    {
+      "name": "Bloomberg Línea",
+      "url": "https://www.bloomberglinea.com/arc/outboundfeeds/rss/?outputType=xml",
+      "lang": "es",
+      "filter": true,
+      "kind": "medio"
+    },
+    {
+      "name": "Efecto Cocuyo",
+      "url": "https://efectococuyo.com/feed/",
+      "lang": "es",
+      "filter": true,
+      "kind": "medio"
+    },
+    {
+      "name": "El Nacional",
+      "url": "https://www.elnacional.com/feed/",
+      "lang": "es",
+      "filter": true,
+      "kind": "medio"
+    },
+    {
+      "name": "Associated Press",
+      "url": "https://news.google.com/rss/search?q=Venezuela%20site%3Aapnews.com%20when%3A3d&hl=en-US&gl=US&ceid=US:en",
+      "lang": "en",
+      "filter": true,
+      "kind": "agregador"
+    },
+    {
+      "name": "Financial Times (búsqueda)",
+      "url": "https://news.google.com/rss/search?q=Venezuela%20site%3Aft.com%20when%3A7d&hl=en-US&gl=US&ceid=US:en",
+      "lang": "en",
+      "filter": true,
+      "kind": "agregador"
+    },
+    {
+      "name": "Barclays",
+      "url": "https://news.google.com/rss/search?q=Barclays%20Venezuela%20when%3A14d&hl=en-US&gl=US&ceid=US:en",
+      "lang": "en",
+      "filter": true,
+      "kind": "agregador"
+    },
+    {
+      "name": "Guidepost",
+      "url": "https://news.google.com/rss/search?q=Guidepost%20Venezuela%20when%3A14d&hl=en-US&gl=US&ceid=US:en",
+      "lang": "en",
+      "filter": true,
+      "kind": "agregador"
+    },
+    {
+      "name": "Prensa de EE.UU.",
+      "url": "https://news.google.com/rss/search?q=Venezuela%20economy%20OR%20oil%20OR%20sanctions%20when%3A3d&hl=en-US&gl=US&ceid=US:en",
+      "lang": "en",
+      "filter": true,
+      "kind": "agregador"
+    },
+    {
+      "name": "Prensa del Reino Unido",
+      "url": "https://news.google.com/rss/search?q=Venezuela%20economy%20OR%20oil%20when%3A3d&hl=en-GB&gl=GB&ceid=GB:en",
+      "lang": "en",
+      "filter": true,
+      "kind": "agregador"
+    },
+    {
+      "name": "Prensa de España",
+      "url": "https://news.google.com/rss/search?q=Venezuela%20econom%C3%ADa%20OR%20petr%C3%B3leo%20when%3A3d&hl=es&gl=ES&ceid=ES:es",
+      "lang": "es",
+      "filter": true,
+      "kind": "agregador"
+    },
+    {
+      "name": "Prensa de Colombia",
+      "url": "https://news.google.com/rss/search?q=Venezuela%20econom%C3%ADa%20OR%20petr%C3%B3leo%20OR%20frontera%20when%3A3d&hl=es-419&gl=CO&ceid=CO:es-419",
+      "lang": "es",
+      "filter": true,
+      "kind": "agregador"
+    },
+    {
+      "name": "Prensa de México",
+      "url": "https://news.google.com/rss/search?q=Venezuela%20econom%C3%ADa%20OR%20petr%C3%B3leo%20when%3A3d&hl=es-419&gl=MX&ceid=MX:es-419",
+      "lang": "es",
+      "filter": true,
+      "kind": "agregador"
+    },
+    {
+      "name": "Prensa de Argentina",
+      "url": "https://news.google.com/rss/search?q=Venezuela%20econom%C3%ADa%20when%3A3d&hl=es-419&gl=AR&ceid=AR:es-419",
+      "lang": "es",
+      "filter": true,
+      "kind": "agregador"
+    },
+    {
+      "name": "Prensa de Brasil",
+      "url": "https://news.google.com/rss/search?q=Venezuela%20economia%20OR%20petr%C3%B3leo%20when%3A3d&hl=pt-BR&gl=BR&ceid=BR:pt-419",
+      "lang": "pt",
+      "filter": true,
+      "kind": "agregador"
+    },
+    {
+      "name": "Prensa de Francia",
+      "url": "https://news.google.com/rss/search?q=Venezuela%20%C3%A9conomie%20OR%20p%C3%A9trole%20when%3A3d&hl=fr&gl=FR&ceid=FR:fr",
+      "lang": "fr",
+      "filter": true,
+      "kind": "agregador"
+    },
+    {
+      "name": "Prensa de Asia",
+      "url": "https://news.google.com/rss/search?q=Venezuela%20oil%20China%20OR%20India%20when%3A3d&hl=en-IN&gl=IN&ceid=IN:en",
+      "lang": "en",
+      "filter": true,
+      "kind": "agregador"
+    },
+    {
+      "name": "Empresas e inversión (búsqueda)",
+      "url": "https://news.google.com/rss/search?q=Venezuela%20%28adquiere%20OR%20adquisici%C3%B3n%20OR%20invertir%C3%A1%20OR%20inversi%C3%B3n%20OR%20expansi%C3%B3n%20OR%20%22nueva%20planta%22%29%20empresa%20when%3A3d&hl=es-419&gl=VE&ceid=VE:es-419",
+      "lang": "es",
+      "filter": true,
+      "kind": "agregador"
+    },
+    {
+      "name": "Aerolíneas y turismo (búsqueda)",
+      "url": "https://news.google.com/rss/search?q=Venezuela%20%28aerol%C3%ADnea%20OR%20vuelos%20OR%20frecuencias%20OR%20ruta%20OR%20turismo%29%20when%3A3d&hl=es-419&gl=VE&ceid=VE:es-419",
+      "lang": "es",
+      "filter": true,
+      "kind": "agregador"
+    },
+    {
+      "name": "Electricidad (búsqueda)",
+      "url": "https://news.google.com/rss/search?q=Venezuela%20%28Corpoelec%20OR%20megavatios%20OR%20hidroel%C3%A9ctrica%20OR%20%22sistema%20el%C3%A9ctrico%22%20OR%20termoel%C3%A9ctrica%29%20when%3A3d&hl=es-419&gl=VE&ceid=VE:es-419",
+      "lang": "es",
+      "filter": true,
+      "kind": "agregador"
+    },
+    {
+      "name": "Comercio y fiscal (búsqueda)",
+      "url": "https://news.google.com/rss/search?q=Venezuela%20%28Seniat%20OR%20aranceles%20OR%20%22intercambio%20comercial%22%20OR%20exportaciones%20OR%20importaciones%20OR%20recaudaci%C3%B3n%29%20when%3A3d&hl=es-419&gl=VE&ceid=VE:es-419",
+      "lang": "es",
+      "filter": true,
+      "kind": "agregador"
+    },
+    {
+      "name": "Minería e industrias básicas (búsqueda)",
+      "url": "https://news.google.com/rss/search?q=Venezuela%20%28aluminio%20OR%20Venalum%20OR%20Sidor%20OR%20hierro%20OR%20%22oro%22%20OR%20miner%C3%ADa%20OR%20Ferrominera%29%20when%3A3d&hl=es-419&gl=VE&ceid=VE:es-419",
+      "lang": "es",
+      "filter": true,
+      "kind": "agregador"
+    },
+    {
+      "name": "Salarios y trabajo (búsqueda)",
+      "url": "https://news.google.com/rss/search?q=Venezuela%20%28salario%20OR%20%22ingreso%20m%C3%ADnimo%22%20OR%20bonos%20OR%20remuneraciones%20OR%20%22mesa%20de%20di%C3%A1logo%20laboral%22%29%20when%3A3d&hl=es-419&gl=VE&ceid=VE:es-419",
+      "lang": "es",
+      "filter": true,
+      "kind": "agregador"
+    },
+    {
+      "name": "Gobierno y diplomacia (búsqueda)",
+      "url": "https://news.google.com/rss/search?q=Venezuela%20%28canciller%20OR%20%22presidenta%20encargada%22%20OR%20embajada%20OR%20cooperaci%C3%B3n%20OR%20ministro%29%20when%3A3d&hl=es-419&gl=VE&ceid=VE:es-419",
+      "lang": "es",
+      "filter": true,
+      "kind": "agregador"
+    },
+    {
+      "name": "Consumo y empresas (búsqueda)",
+      "url": "https://news.google.com/rss/search?q=Venezuela%20%28consumo%20OR%20ventas%20OR%20%22Empresas%20Polar%22%20OR%20supermercados%20OR%20franquicias%20OR%20%22centros%20comerciales%22%29%20when%3A3d&hl=es-419&gl=VE&ceid=VE:es-419",
+      "lang": "es",
+      "filter": true,
+      "kind": "agregador"
+    },
+    {
+      "name": "Petroguía",
+      "url": "https://news.google.com/rss/search?q=site%3Apetroguia.com%20when%3A7d&hl=es-419&gl=VE&ceid=VE:es-419",
+      "lang": "es",
+      "filter": false,
+      "kind": "agregador"
+    },
+    {
+      "name": "Descifrado",
+      "url": "https://news.google.com/rss/search?q=site%3Adescifrado.com%20when%3A7d&hl=es-419&gl=VE&ceid=VE:es-419",
+      "lang": "es",
+      "filter": false,
+      "kind": "agregador"
+    },
+    {
+      "name": "El Universal (economía)",
+      "url": "https://news.google.com/rss/search?q=site%3Aeluniversal.com%20econom%C3%ADa%20when%3A3d&hl=es-419&gl=VE&ceid=VE:es-419",
+      "lang": "es",
+      "filter": false,
+      "kind": "agregador"
+    },
+    {
+      "name": "Últimas Noticias (economía)",
+      "url": "https://news.google.com/rss/search?q=site%3Aultimasnoticias.com.ve%20econom%C3%ADa%20when%3A3d&hl=es-419&gl=VE&ceid=VE:es-419",
+      "lang": "es",
+      "filter": false,
+      "kind": "agregador"
+    },
+    {
+      "name": "2001 (economía)",
+      "url": "https://news.google.com/rss/search?q=site%3A2001online.com%20econom%C3%ADa%20when%3A3d&hl=es-419&gl=VE&ceid=VE:es-419",
+      "lang": "es",
+      "filter": false,
+      "kind": "agregador"
+    },
+    {
+      "name": "Prodavinci",
+      "url": "https://news.google.com/rss/search?q=site%3Aprodavinci.com%20econom%C3%ADa%20when%3A14d&hl=es-419&gl=VE&ceid=VE:es-419",
+      "lang": "es",
+      "filter": false,
+      "kind": "agregador"
+    },
+    {
+      "name": "Crónica Uno (economía)",
+      "url": "https://news.google.com/rss/search?q=site%3Acronica.uno%20econom%C3%ADa%20when%3A7d&hl=es-419&gl=VE&ceid=VE:es-419",
+      "lang": "es",
+      "filter": false,
+      "kind": "agregador"
+    },
+    {
+      "name": "Banca y Negocios (búsqueda)",
+      "url": "https://news.google.com/rss/search?q=site%3Abancaynegocios.com%20when%3A2d&hl=es-419&gl=VE&ceid=VE:es-419",
+      "lang": "es",
+      "filter": false,
+      "kind": "agregador"
+    },
+    {
+      "name": "OilPrice",
+      "url": "https://news.google.com/rss/search?q=Venezuela%20site%3Aoilprice.com%20when%3A7d&hl=en-US&gl=US&ceid=US:en",
+      "lang": "en",
+      "filter": true,
+      "kind": "agregador"
+    },
+    {
+      "name": "Argus Media",
+      "url": "https://news.google.com/rss/search?q=Venezuela%20site%3Aargusmedia.com%20when%3A7d&hl=en-US&gl=US&ceid=US:en",
+      "lang": "en",
+      "filter": true,
+      "kind": "agregador"
+    },
+    {
+      "name": "S&P Global Commodity Insights",
+      "url": "https://news.google.com/rss/search?q=Venezuela%20site%3Aspglobal.com%20when%3A7d&hl=en-US&gl=US&ceid=US:en",
+      "lang": "en",
+      "filter": true,
+      "kind": "agregador"
+    },
+    {
+      "name": "Energy Intelligence",
+      "url": "https://news.google.com/rss/search?q=Venezuela%20site%3Aenergyintel.com%20when%3A14d&hl=en-US&gl=US&ceid=US:en",
+      "lang": "en",
+      "filter": true,
+      "kind": "agregador"
+    },
+    {
+      "name": "Americas Quarterly",
+      "url": "https://news.google.com/rss/search?q=Venezuela%20site%3Aamericasquarterly.org%20when%3A14d&hl=en-US&gl=US&ceid=US:en",
+      "lang": "en",
+      "filter": true,
+      "kind": "agregador"
+    },
+    {
+      "name": "Caracas Chronicles",
+      "url": "https://news.google.com/rss/search?q=site%3Acaracaschronicles.com%20when%3A7d&hl=en-US&gl=US&ceid=US:en",
+      "lang": "en",
+      "filter": false,
+      "kind": "agregador"
+    },
+    {
+      "name": "Latinvex",
+      "url": "https://news.google.com/rss/search?q=Venezuela%20site%3Alatinvex.com%20when%3A14d&hl=en-US&gl=US&ceid=US:en",
+      "lang": "en",
+      "filter": true,
+      "kind": "agregador"
+    },
+    {
+      "name": "Semafor",
+      "url": "https://news.google.com/rss/search?q=Venezuela%20site%3Asemafor.com%20when%3A7d&hl=en-US&gl=US&ceid=US:en",
+      "lang": "en",
+      "filter": true,
+      "kind": "agregador"
+    },
+    {
+      "name": "Politico",
+      "url": "https://news.google.com/rss/search?q=Venezuela%20site%3Apolitico.com%20when%3A7d&hl=en-US&gl=US&ceid=US:en",
+      "lang": "en",
+      "filter": true,
+      "kind": "agregador"
+    },
+    {
+      "name": "The Washington Post",
+      "url": "https://news.google.com/rss/search?q=Venezuela%20site%3Awashingtonpost.com%20when%3A7d&hl=en-US&gl=US&ceid=US:en",
+      "lang": "en",
+      "filter": true,
+      "kind": "agregador"
+    },
+    {
+      "name": "Upstream / TradeWinds",
+      "url": "https://news.google.com/rss/search?q=Venezuela%20site%3Aupstreamonline.com%20OR%20site%3Atradewindsnews.com%20when%3A7d&hl=en-US&gl=US&ceid=US:en",
+      "lang": "en",
+      "filter": true,
+      "kind": "agregador"
+    },
+    {
+      "name": "Lloyd's List / Kpler",
+      "url": "https://news.google.com/rss/search?q=Venezuela%20%28tanker%20OR%20exports%29%20Kpler%20when%3A7d&hl=en-US&gl=US&ceid=US:en",
+      "lang": "en",
+      "filter": true,
+      "kind": "agregador"
+    }
+  ]
 }

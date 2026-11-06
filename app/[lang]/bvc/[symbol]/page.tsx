@@ -110,7 +110,7 @@ export default async function SymbolPage({ params }: { params: { lang: Lang; sym
         <Kpi label={es ? "Precio (Bs)" : "Price (Bs)"} val={num(last?.close, lang)}
           meta={<><span className={(rets[0].bs ?? 0) > 0 ? "up" : (rets[0].bs ?? 0) < 0 ? "down" : "flat"}>{rets[0].bs != null ? `${rets[0].bs > 0 ? "+" : ""}${num(rets[0].bs, lang, 2)}%` : "—"}</span><span>{date(last?.date, lang)}</span></>} />
         <Kpi label={es ? "Precio en US$ oficial" : "Price in US$ (official)"} val={num(usdOf.at(-1)?.[1], lang, 4)} meta={rateOf ? `Bs ${num(rateOf, lang, 2)} / US$` : undefined} />
-        <Kpi label={es ? "Precio en US$ paralelo" : "Price in US$ (parallel)"} val={num(usdPar.at(-1)?.[1], lang, 4)} meta={ratePar ? `Bs ${num(ratePar, lang, 2)} / US$` : undefined} />
+        <Kpi label={es ? "Precio en US$ alternativo" : "Price in US$ (alternative)"} val={num(usdPar.at(-1)?.[1], lang, 4)} meta={ratePar ? `Bs ${num(ratePar, lang, 2)} / US$` : undefined} />
         <Kpi label={es ? "Monto negociado (última sesión)" : "Traded amount (last session)"} val={lastSession?.amount ? `Bs ${compact(lastSession.amount, lang)}` : "—"}
           meta={lastSession?.amount ? `US$ ${compact(usd(lastSession.amount, rateOf), lang)} ${es ? "of." : "off."} · US$ ${compact(usd(lastSession.amount, ratePar), lang)} par.${lastSession.trades ? ` · ${lastSession.trades} ${es ? "op." : "trades"}` : ""}` : (es ? "sin operaciones en la última sesión" : "no trades in the last session")} />
         <Kpi label={es ? "Acciones en circulación" : "Shares outstanding"} val={shares ? compact(shares, lang) : "—"} meta={shares ? num(shares, lang, 0) : undefined} />
@@ -118,7 +118,7 @@ export default async function SymbolPage({ params }: { params: { lang: Lang; sym
           meta={company ? `${es ? "Empresa, todas las clases" : "Company, all classes"}: Bs ${compact(company, lang)}` : undefined} />
         <Kpi label={es ? "Capitalización US$ oficial" : "Market cap US$ (official)"} val={capBs && rateOf ? compact(capBs / rateOf, lang) : "—"}
           meta={company && rateOf ? `${es ? "Empresa" : "Company"}: US$ ${compact(company / rateOf, lang)}` : undefined} />
-        <Kpi label={es ? "Capitalización US$ paralelo" : "Market cap US$ (parallel)"} val={capBs && ratePar ? compact(capBs / ratePar, lang) : "—"}
+        <Kpi label={es ? "Capitalización US$ alternativo" : "Market cap US$ (alternative)"} val={capBs && ratePar ? compact(capBs / ratePar, lang) : "—"}
           meta={company && ratePar ? `${es ? "Empresa" : "Company"}: US$ ${compact(company / ratePar, lang)}` : undefined} />
       </div>
 
@@ -129,7 +129,7 @@ export default async function SymbolPage({ params }: { params: { lang: Lang; sym
             <table className="tbl compact" style={{ marginTop: 14 }}>
               <thead><tr><th>{es ? "Período" : "Period"}</th><th style={{ textAlign: "right" }}>Bs</th>
                 <th style={{ textAlign: "right" }}><span className="long">{es ? "US$ oficial" : "US$ official"}</span><span className="short">{es ? "US$ of." : "US$ off."}</span></th>
-                <th style={{ textAlign: "right" }}><span className="long">{es ? "US$ paralelo" : "US$ parallel"}</span><span className="short">US$ par.</span></th></tr></thead>
+                <th style={{ textAlign: "right" }}><span className="long">{es ? "US$ alternativo" : "US$ alternative"}</span><span className="short">US$ par.</span></th></tr></thead>
               <tbody>{rets.map((r) => <tr key={r.p}><td style={{ whiteSpace: "nowrap" }}>{PERIOD_LABEL[r.p][lang]}</td>{pctCell(r.bs)}{pctCell(r.of)}{pctCell(r.par)}</tr>)}</tbody>
             </table>
           </div>

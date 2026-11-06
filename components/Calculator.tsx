@@ -26,11 +26,11 @@ export default function Calculator({ lang, fx, inflation, usCpi }: Props) {
   const a = parse(amount);
   const conv = useMemo(() => {
     const { of, pa, eu } = rates;
-    if (from === "USD") return [{ k: es ? "Bs al oficial" : "Bs at official", v: of && a * of }, { k: es ? "Bs al paralelo" : "Bs at parallel", v: pa && a * pa },
+    if (from === "USD") return [{ k: es ? "Bs al oficial" : "Bs at official", v: of && a * of }, { k: es ? "Bs al alternativo" : "Bs at alternative", v: pa && a * pa },
       { k: es ? "€ (cruce oficial)" : "€ (official cross)", v: eu && of && (a * of) / eu }];
-    if (from === "EUR") return [{ k: es ? "Bs al oficial" : "Bs at official", v: eu && a * eu }, { k: es ? "Bs al paralelo (cruce)" : "Bs at parallel (cross)", v: eu && of && pa && ((a * eu) / of) * pa },
+    if (from === "EUR") return [{ k: es ? "Bs al oficial" : "Bs at official", v: eu && a * eu }, { k: es ? "Bs al alternativo (cruce)" : "Bs at alternative (cross)", v: eu && of && pa && ((a * eu) / of) * pa },
       { k: es ? "US$ (cruce oficial)" : "US$ (official cross)", v: eu && of && (a * eu) / of }];
-    return [{ k: es ? "US$ al oficial" : "US$ at official", v: of && a / of }, { k: es ? "US$ al paralelo" : "US$ at parallel", v: pa && a / pa }, { k: es ? "€ al oficial" : "€ at official", v: eu && a / eu }];
+    return [{ k: es ? "US$ al oficial" : "US$ at official", v: of && a / of }, { k: es ? "US$ al alternativo" : "US$ at alternative", v: pa && a / pa }, { k: es ? "€ al oficial" : "€ at official", v: eu && a / eu }];
   }, [a, from, rates.of, rates.pa, rates.eu, es]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ---- Indexación por inflación (Bs): del cierre de un mes al cierre de otro
@@ -74,7 +74,7 @@ export default function Calculator({ lang, fx, inflation, usCpi }: Props) {
           {conv.map((r) => <tr key={r.k}><td>{r.k}</td><td style={{ fontWeight: 650, fontSize: 18 }}>{f(r.v as number)}</td></tr>)}
         </tbody></table>
         <p className="muted" style={{ marginTop: 8 }}>
-          {es ? "Tasas" : "Rates"}: {es ? "oficial" : "official"} {f(rates.of, 4)} · {es ? "paralelo" : "parallel"} {f(rates.pa)} · € {f(rates.eu, 4)}
+          {es ? "Tasas" : "Rates"}: {es ? "oficial" : "official"} {f(rates.of, 4)} · {es ? "alternativo" : "alternative"} {f(rates.pa)} · € {f(rates.eu, 4)}
           {rates.of && rates.pa ? ` · ${es ? "brecha" : "gap"} ${f((rates.pa / rates.of - 1) * 100, 1)}%` : ""}
         </p>
       </div>

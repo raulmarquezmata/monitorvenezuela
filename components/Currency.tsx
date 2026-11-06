@@ -35,8 +35,8 @@ export function useMoney(points: Point[], unitEs: string | null | undefined, uni
     const pts = toUsd(points, unitEs!, rate);
     const since = rate[0]?.[0];
     const note = lang === "es"
-      ? `En dólares al ${cur === "USD_BCV" ? "oficial BCV" : "paralelo"} de cada fecha${since ? `, desde ${since.slice(0, 7)}` : ""}`
-      : `In dollars at the ${cur === "USD_BCV" ? "official BCV" : "parallel"} rate of each date${since ? `, since ${since.slice(0, 7)}` : ""}`;
+      ? `En dólares al ${cur === "USD_BCV" ? "oficial BCV" : "mercado alternativo"} de cada fecha${since ? `, desde ${since.slice(0, 7)}` : ""}`
+      : `In dollars at the ${cur === "USD_BCV" ? "official BCV" : "alternative market"} rate of each date${since ? `, since ${since.slice(0, 7)}` : ""}`;
     return { points: pts, unit: lang === "es" ? u.usd : u.usdEn, converted: true, note };
   }, [cur, fx, points, unitEs, unitShown, lang]);
 }
