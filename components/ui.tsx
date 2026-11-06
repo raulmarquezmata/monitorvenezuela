@@ -40,9 +40,9 @@ export function SectionHead({ label, href, more }: { label: string; href?: strin
 }
 
 /** Tarjeta de serie: nombre, último valor, gráfico (rango global), fuente y descarga. */
-export function SeriesCard({ s, points, lang, allowLog = false, bars = false, area = false, height = 220, ranges, initial, stats = true, logDefault = false, note, hiLo = false, clip = false }: {
+export function SeriesCard({ s, points, lang, allowLog = false, bars = false, area = false, height = 220, ranges, initial, stats = true, logDefault = false, note, hiLo = false, clip = false, extra }: {
   s: Latest; points: Point[]; lang: Lang; allowLog?: boolean; bars?: boolean; area?: boolean; height?: number;
-  ranges?: Range[]; initial?: Range; stats?: boolean; logDefault?: boolean; note?: string; hiLo?: boolean; clip?: boolean;
+  ranges?: Range[]; initial?: Range; stats?: boolean; logDefault?: boolean; note?: string; hiLo?: boolean; clip?: boolean; extra?: React.ReactNode;
 }) {
   const d = t(lang);
   const unit = lang === "es" ? s.unit_es : s.unit_en;
@@ -57,6 +57,7 @@ export function SeriesCard({ s, points, lang, allowLog = false, bars = false, ar
         stats={stats && points.length > 2 ? { periods: defaultPeriods(s.frequency), pctUnit: s.unit_es === "%" } : undefined}
         labels={{ ...chartLabels(lang), noData: s.method !== "auto" ? `${d.noData} · ${d.method[s.method]}` : d.noData }} />
       {note && <p className="muted" style={{ fontSize: 13, marginTop: 8 }}>{note}</p>}
+      {extra}
       </CardScope>
       <div className="src">
         <span>{d.source}: {s.source_url ? <a href={s.source_url} target="_blank" rel="noreferrer">{s.source}</a> : s.source}

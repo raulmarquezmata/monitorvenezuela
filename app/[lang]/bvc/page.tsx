@@ -35,6 +35,15 @@ export default async function BVC({ params }: { params: { lang: Lang } }) {
   const mp = hist.bvc_monto ?? [];
   const avg20 = mp.length > 5 ? mp.slice(-21, -1).reduce((a, p) => a + p[1], 0) / Math.min(20, mp.length - 1) : null;
   const vsAvg = avg20 && mp.length ? (mp[mp.length - 1][1] / avg20 - 1) * 100 : null;
+  // monto acumulado de la semana, el mes y el año (renta variable, Bs)
+  const lastD = mp.at(-1)?.[0] ?? "";
+  const monday = (() => { if (!lastD) return ""; const x = new Date(`${lastD}T00:00:00Z`); x.setUTCDate(x.getUTCDate() - ((x.getUTCDay() + 6) % 7)); return x.toISOString().slice(0, 10); })();
+  const sumFrom = (d0: string) => mp.filter((p) => p[0] >= d0).reduce((a, p) => a + p[1], 0);
+  const acc = lastD ? [
+    { k: es ? "Esta semana" : "This week", v: sumFrom(monday), n: mp.filter((p) => p[0] >= monday).length },
+    { k: es ? "Este mes" : "This month", v: sumFrom(lastD.slice(0, 8) + "01"), n: mp.filter((p) => p[0] >= lastD.slice(0, 8) + "01").length },
+    { k: es ? "En el año" : "Year to date", v: sumFrom(lastD.slice(0, 5) + "01-01"), n: mp.filter((p) => p[0] >= lastD.slice(0, 5) + "01-01").length },
+  ] : [];
   const of = fx.find((s) => s.code === "usd_bcv")?.last_value ?? null;
   const par = fx.find((s) => s.code === "usd_paralelo")?.last_value ?? null;
   const capBs = rv.reduce((a, r) => a + (r.market_cap_bs ?? 0), 0);
@@ -70,8 +79,9 @@ export default async function BVC({ params }: { params: { lang: Lang } }) {
         </ChartCard>
       </div>
 
-      {/* 2) Rendimiento del IBC + capitalización total + descargas, en un mismo cuadro */}
-      <div className="card split" style={{ marginBottom: 24 }}>
+      {/* 2) Fila de dos cuadros: (rendimiento del IBC + capitalización + descargas) | monto negociado */}
+      <div className="grid g2 eq" style={{ marginBottom: 24 }}>
+      <div className="card stack">
         <div>
           <div className="card-top"><h3>{es ? "Rendimiento del IBC" : "IBC return"}</h3><span className="date">{es ? "en bolívares y en dólares" : "in bolivars and dollars"}</span></div>
           <div className="tbl-wrap">
@@ -105,17 +115,16 @@ export default async function BVC({ params }: { params: { lang: Lang } }) {
         </div>
       </div>
 
-      {/* 3) Monto negociado a todo el ancho */}
       {monto && mp.length > 0 && (
-        <div style={{ marginBottom: 24 }}>
-          <SeriesCard s={monto} points={mp} lang={lang} bars clip initial="3M" height={240} stats={false}
+          <SeriesCard s={monto} points={mp} lang={lang} bars clip initial="3M" height={250} stats={false}
+            extra={acc.length > 0 && <div className="cap-grid acc">{acc.map((x) => <div key={x.k}><span className="muted">{x.k} · {x.n} {es ? "sesiones" : "sessions"}</span><b>Bs {new Intl.NumberFormat(es ? "es-VE" : "en-US", { notation: x.v >= 1e6 ? "compact" : "standard", maximumFractionDigits: x.v >= 1e6 ? 1 : 0 }).format(x.v)}</b></div>)}</div>}
             note={(vsAvg != null ? (es
               ? `Última sesión: ${vsAvg >= 0 ? "+" : ""}${num(vsAvg, lang, 1)}% frente al promedio de las 20 sesiones anteriores (Bs ${num(avg20, lang, 0)}). `
               : `Last session: ${vsAvg >= 0 ? "+" : ""}${num(vsAvg, lang, 1)}% vs the previous 20-session average (Bs ${num(avg20, lang, 0)}). `) : "")
               + (es ? "Cada barra es una sesión. Si una sesión es atípica, su barra se corta (↑) para que el resto se lea; pase el cursor para ver su valor real."
                     : "Each bar is one session. An outlier session is cut (↑) so the rest stays readable; hover to see its actual value.")} />
-        </div>
       )}
+      </div>
 
       <div className="card">
         <CardScope initial="1M">
