@@ -12,6 +12,7 @@ import datetime as dt
 import io
 import json
 import pathlib
+import re
 
 from .common import Run, ensure_bucket, select, storage_upload
 
@@ -367,6 +368,37 @@ def company_names() -> dict:
         return {}
 
 
+ACENTOS = {"FABRICA": "Fábrica", "CERAMICA": "Cerámica", "ELECTRICA": "Eléctrica", "ELECTRICIDAD": "Electricidad", "COMPAÑIA": "Compañía", "COMPANIA": "Compañía",
+           "CORPORACION": "Corporación", "INVERSION": "Inversión", "INVERSIONES": "Inversiones", "QUIMICO": "Químico", "QUIMICA": "Química", "PETROLEO": "Petróleo",
+           "TELEFONOS": "Teléfonos", "NACIONAL": "Nacional", "CREDITO": "Crédito", "AGRICOLA": "Agrícola", "INDUSTRIAS": "Industrias", "DOMINGUEZ": "Domínguez",
+           "CIA": "Cía", "PAPEL": "Papel", "FINANCIERA": "Financiera", "ECONOMICO": "Económico", "TECNICA": "Técnica", "MINERIA": "Minería", "MAQUINARIA": "Maquinaria", "SIDERURGICA": "Siderúrgica", "TURISTICA": "Turística", "AEREA": "Aérea", "COMUNICACION": "Comunicación", "PRODUCCION": "Producción", "PUBLICO": "Público", "RAPIDO": "Rápido"}
+MENORES = {"de", "del", "la", "las", "el", "los", "y", "e", "en", "para", "por", "a"}
+SIGLAS = {"BBVA", "CANTV", "EFE", "BVC", "BNC", "FVI", "SIBE", "BOD", "BFC", "II", "III"}
+LEGAL = re.compile(r"(^|\s|,)(C\.?\s?A\.?|S\.?\s?A\.?(\s?C\.?\s?A\.?)?|S\.?\s?A\.?\s?I\.?\s?C\.?\s?A\.?|S\.?\s?A\.?\s?C\.?\s?A\.?\s?S\.?\s?A\.?\s?I\.?\s?C\.?\s?A\.?)(?=\s|,|$)", re.I)
+
+
+def pretty_name(name: str) -> str:
+    """«C.A. FABRICA NACIONAL DE VIDRIO» → «Fábrica Nacional de Vidrio»: sin forma jurídica y con mayúsculas normales."""
+    n = LEGAL.sub(" ", name or "").replace(",", " ").strip()
+    n = re.sub(r"\s+", " ", n)
+    if not n or not (n.isupper() or n.islower()):
+        return n or name
+    out = []
+    for i, w in enumerate(n.split(" ")):
+        up = w.upper()
+        if up.strip("()") in SIGLAS or (w.startswith("(") and len(w.strip("()")) <= 6):  # (CANTV), (MANPA)
+            out.append(up)
+        elif up in SIGLAS:
+            out.append(up)
+        elif up in ACENTOS:
+            out.append(ACENTOS[up])
+        elif i and w.lower() in MENORES:
+            out.append(w.lower())
+        else:
+            out.append(w[:1].upper() + w[1:].lower())
+    return " ".join(out)
+
+
 def describe(emp: dict, sym: str, siblings: list[str], lang: str) -> str | None:
     """Descripción corta de la empresa (config/bvc_empresas.json), buscando también por sus otras clases."""
     for k in [sym, *siblings, sym.split(".")[0]]:
@@ -405,7 +437,7 @@ def run(only: list[str] | None = None):
                 for c in sorted(sib, key=lambda x: x["symbol"]):
                     last = select("bvc_quotes", {"select": "close", "symbol": f"eq.{c['symbol']}", "close": "gt.0", "order": "date.desc", "limit": 1})
                     classes.append({"symbol": c["symbol"], "shares": c.get("shares_outstanding"), "close": last[0]["close"] if last else None})
-                name = (emp.get(sym) or {}).get("nombre") or s.get("company") or s.get("name") or sym
+                name = (emp.get(sym) or {}).get("nombre") or pretty_name(s.get("company") or s.get("name") or sym)
                 info = prepare(sym, quotes, fx["usd_bcv"], fx["usd_paralelo"], s, classes, name)
                 if not info:
                     continue
@@ -473,7 +505,7 @@ def mktcap_data(fx: dict) -> dict | None:
         g["cap"] += cap or 0
         g["shares"] += sh or 0
         g["date"] = max(filter(None, [g["date"], date]), default=None)
-        g["nombre"] = g["nombre"] or (emp.get(sym) or {}).get("nombre") or s_.get("company") or s_.get("name") or sym
+        g["nombre"] = g["nombre"] or (emp.get(sym) or {}).get("nombre") or pretty_name(s_.get("company") or s_.get("name") or sym)
     rows = [g for g in groups.values() if any(c["close"] for c in g["classes"])]
     if not rows:
         return None

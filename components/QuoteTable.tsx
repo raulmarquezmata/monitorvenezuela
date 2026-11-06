@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useCurrency } from "./Currency";
+import { prettyName } from "@/lib/names";
 
 type Q = { symbol: string; name: string | null; company: string | null; close: number | null; var_pct: number | null;
   volume: number | null; amount: number | null; market_cap_bs: number | null };
@@ -38,7 +39,7 @@ export default function QuoteTable({ rows, lang, labels, showCap = true, initial
           {sorted.map((q) => (
             <tr key={q.symbol} className="row-link" onClick={(e) => { if (!(e.target as HTMLElement).closest("a")) router.push(`/${lang}/bvc/${q.symbol}`); }}>
               <td><Link href={`/${lang}/bvc/${q.symbol}`}>{q.symbol}</Link></td>
-              <td className="l" style={{ maxWidth: 260, overflow: "hidden", textOverflow: "ellipsis" }}>{q.company ?? q.name}</td>
+              <td className="l" style={{ maxWidth: 260, overflow: "hidden", textOverflow: "ellipsis" }}>{prettyName(q.company ?? q.name)}</td>
               <td>{f(q.close == null ? null : q.close * k, rate ? 4 : 2)}</td>
               <td className={q.var_pct == null ? "" : q.var_pct > 0 ? "up" : q.var_pct < 0 ? "down" : "flat"}>{q.var_pct == null ? "—" : `${q.var_pct > 0 ? "+" : ""}${f(q.var_pct)}%`}</td>
               <td>{f(q.volume, 0)}</td>

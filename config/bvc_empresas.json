@@ -208,6 +208,24 @@
       ],
       "es": "Fondo de Valores Inmobiliarios, empresa de inversión en bienes raíces comerciales.",
       "en": "Fondo de Valores Inmobiliarios, a commercial real-estate investment company."
+    },
+    "FNV": {
+      "nombre": "Fábrica Nacional de Vidrio",
+      "alias": [
+        "Fábrica Nacional de Vidrio"
+      ]
+    },
+    "IVC.A": {
+      "nombre": "Invaca Investment",
+      "alias": [
+        "Invaca Investment"
+      ]
+    },
+    "IVC.B": {
+      "nombre": "Invaca Investment",
+      "alias": [
+        "Invaca Investment"
+      ]
     }
   }
 }

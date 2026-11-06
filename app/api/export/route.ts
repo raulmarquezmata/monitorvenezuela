@@ -3,6 +3,7 @@ import ExcelJS from "exceljs";
 import { NextRequest } from "next/server";
 import { bvcLatest, history, latest } from "@/lib/data";
 import { BS_UNITS, toUsd } from "@/lib/money";
+import { prettyName } from "@/lib/names";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +28,7 @@ export async function GET(req: NextRequest) {
     const groups = new Map<string, { name: string; syms: string[]; prices: string[]; shares: number; cap: number }>();
     for (const r of rows) {
       const k = (r.company ?? r.symbol).trim().toUpperCase();
-      const g = groups.get(k) ?? { name: r.company ?? r.name ?? r.symbol, syms: [], prices: [], shares: 0, cap: 0 };
+      const g = groups.get(k) ?? { name: prettyName(r.company ?? r.name ?? r.symbol), syms: [], prices: [], shares: 0, cap: 0 };
       g.syms.push(r.symbol); g.prices.push(r.close != null ? String(r.close) : "—");
       g.shares += r.shares_outstanding ?? 0; g.cap += r.market_cap_bs ?? 0;
       groups.set(k, g);
