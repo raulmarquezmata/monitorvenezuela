@@ -249,20 +249,21 @@ async function bankSample_(): Promise<BankRow[]> {
 
 // ---------------------------------------------------------------- versiones con caché
 export const latest = cached(latest_, "latest", 300);
-export const history = cached(history_, "history", 300);
+export const history = history_; // sin caché propia: la respuesta puede pasar de 2 MB (límite de la caché de Vercel)
 export const bvcLatest = cached(bvcLatest_, "bvcLatest", 120);
-export const bvcSymbol = cached(bvcSymbol_, "bvcSymbol", 300);
+export const bvcSymbol = bvcSymbol_; // sin caché propia: la respuesta puede pasar de 2 MB (límite de la caché de Vercel)
 export const news = cached(news_, "news", 120);
 export const trade = cached(trade_, "trade", 3600);
 export const agro = cached(agro_, "agro", 3600);
 export const lastRun = cached(lastRun_, "lastRun", 60);
+export const lastRunFresh = lastRun_;
 export const events = cached(events_, "events", 600);
 export const bonds = cached(bonds_, "bonds", 600);
 export const bankRanking = cached(bankRanking_, "bankRanking", 1800);
 export const bankSystem = cached(bankSystem_, "bankSystem", 1800);
 export const bankSample = cached(bankSample_, "bankSample", 1800);
 export const informes = cached(informes_, "informes", 300);
-export const hemerotecaAuto = cached(hemerotecaAuto_, "hemerotecaAuto", 300);
+export const hemerotecaAuto = hemerotecaAuto_; // sin caché propia: la respuesta puede pasar de 2 MB (límite de la caché de Vercel)
 export const ofacActions = cached(ofacActions_, "ofacActions", 600);
 export const newsSources = cached(newsSources_, "newsSources", 300);
 export const status = cached(status_, "status", 120);

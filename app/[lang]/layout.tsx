@@ -6,6 +6,7 @@ import { LangSwitch, MainNav, ThemeSwitch } from "@/components/Nav";
 import { CurrencyProvider } from "@/components/Currency";
 import { RangeProvider } from "@/components/Range";
 import { history, lastRun } from "@/lib/data";
+import LastUpdate from "@/components/LastUpdate";
 import { isLang, LANGS, t } from "@/lib/i18n";
 import { unstable_cache } from "next/cache";
 
@@ -49,8 +50,6 @@ export default async function LangLayout({ children, params }: { children: React
     { href: `${L}/datos`, label: d.nav.data, match: [`${L}/datos`] },
   ];
   const [updated, fx] = await Promise.all([lastRun(), fxForCurrency()]);
-  const upd = updated ? new Intl.DateTimeFormat(lang === "es" ? "es-VE" : "en-US", { timeZone: "America/Caracas", day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date(updated)) : "—";
-  const live = updated ? Date.now() - Date.parse(updated) < 2 * 3600e3 : false;
   return (
     <CurrencyProvider fx={fx}>
     <RangeProvider>
@@ -69,7 +68,7 @@ export default async function LangLayout({ children, params }: { children: React
       </header>
       <div className="statusbar">
         <div className="wrap">
-          <span><i className={`dot ${live ? "live" : ""}`} />{d.lastUpdate}: {upd} {d.vet}</span>
+          <LastUpdate initial={updated} lang={lang} label={d.lastUpdate} vet={d.vet} />
         </div>
       </div>
       <main><div className="wrap">{children}</div></main>
