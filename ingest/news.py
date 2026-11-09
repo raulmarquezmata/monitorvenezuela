@@ -40,6 +40,13 @@ FOREIGN_HARD = re.compile(r"\bir[aá]n\b|ormuz|hormuz|\bPIF\b|saud[ií]|arabia|e
                           r"bitcoin|ethereum|\bcripto|crypto|\bnft\b|blockchain|memecoin|solana|dogecoin|lazarus|trader ?traitor|"
                           r"champions|f[uú]tbol|mundial de|nba\b|mlb\b|hollywood|celebrity", re.I)
 FOREIGN_COUNTRY = re.compile(r"argentina|milei|chile\b|per[uú]\b|ecuador|bolivia|m[eé]xico|brasil|lula|colombia(?! .*venezuel)|petro\b", re.I)
+# noticias internas de otros países (sin Venezuela en el titular): fuera, salvo mercados globales que mueven a Venezuela
+OTHER_COUNTRY = re.compile(r"\b(francia|franc[eé]s|espa[nñ]a|espa[nñ]ol(a|es)?|alemania|alem[aá]n|italia|italian|reino unido|brit[aá]nic|portugal|"
+                           r"china|chin[oa]s?|jap[oó]n|india|rusia|ucrania|turqu[ií]a|canad[aá]|panam[aá]|costa rica|rep[uú]blica dominicana|cuba|"
+                           r"uruguay|paraguay|guatemala|honduras|nicaragua|el salvador|guyana|trinidad|europa|uni[oó]n europea|"
+                           r"france|spain|germany|italy|united kingdom|britain|japan|russia|canada|europe)\b", re.I)
+GLOBAL_MKT = re.compile(r"petr[oó]le|crudo|\boil\b|brent|\bwti\b|opep|opec|\boro\b|\bgold\b|\bfed\b|reserva federal|wall street|"
+                        r"mercados globales|materias primas|commodit", re.I)
 FOREIGN = re.compile(f"{FOREIGN_HARD.pattern}|{FOREIGN_COUNTRY.pattern}", re.I)
 # noticias de empresas (p. ej. «Grupo Nutresa de Colombia registra utilidad»): en medios venezolanos se aceptan
 BUSINESS = re.compile(r"empresa|compa[nñ][ií]a|grupo\b|adquiri|adquisici|utilidad|ganancia|ventas|inversi[oó]n|invertir|aerol[ií]nea|vuelos|"
@@ -69,7 +76,7 @@ NOISE = re.compile(r"\beln\b|guerrill|disidencias?\b|\bfarc\b|tren de aragua|hom
 # tema económico, empresarial o de política pública (lo que interesa a un inversionista)
 ECON = re.compile(r"econom|crec|\bpib\b|inflaci|precio|d[oó]lar|bol[ií]vares\b|divisa|cambiari|petr[oó]le|crudo|barril|\bgas\b|oleoduct|gasoduct|refiner|pdvsa|"
                   r"chevron|repsol|\beni\b|maurel|ongc|reliance|citgo|opep|opec|miner|\boro\b|hierro|alumini|banc[oa]|cr[eé]dito|bolsa|acciones|bonos?\b|deuda|"
-                  r"riesgo pa[ií]s|sanci|licencia|ofac|export|import|arancel|comercio|comercial|inversi|invers|\bempresas?\b|compa[nñ][ií]a|adquier|adquisi|"
+                  r"riesgo pa[ií]s|sanci|licencia|ofac|export|import|arancel|comercio|comercial|inversi[oó]n|inversiones|inversionista|invertir|invierte|\bempresas?\b|compa[nñ][ií]a|adquier|adquisi|"
                   r"negocio|mercado|salario|ingreso m[ií]nimo|impuest|seniat|recaudaci|presupuesto|fiscal|decreto|\bley\b|reforma|gaceta|"
                   r"consecomercio|fedec[aá]maras|conindustria|venamcham|cavecol|el[eé]ctric|medidas|corpoelec|megavatio|aerol[ií]nea|vuelos|turismo|agro|cosecha|"
                   r"alimento|industria|f[aá]brica|planta|producci[oó]n|construcci|vivienda|telecom|cantv|\bbcv\b|\bfmi\b|\bimf\b|\bbid\b|\bcaf\b|"
@@ -95,7 +102,7 @@ TONE = re.compile(r"\badmite\b|arremete|\bacusa|critica|cuestiona|pol[eé]mic|es
                   r"soldad|guerra\b|\bwar\b|b[eé]lic|invasi[oó]n|invasion|invadir|despliegue|deploy|buque de guerra|warship|portaaviones|aircraft carrier|"
                   r"\bnavy\b|armada\b|fuerzas armadas|\bfanb\b|pent[aá]gono|pentagon|ofensiva|strikes? on|airstrike|intervenci[oó]n militar|"
                   r"narcolancha|lanchas? (con droga|del narco)|drug boats?|cartel de los soles|terroris", re.I)
-STRONG = re.compile(r"petr[oó]le|crudo|oleoduct|gasoduct|pdvsa|chevron|econom|inversi|empresa|export|import|sanci[oó]n(es)?\b|bonos|deuda|\bbcv\b|\boil\b|pipeline|sanction|invest", re.I)
+STRONG = re.compile(r"petr[oó]le|crudo|oleoduct|gasoduct|pdvsa|chevron|econom|inversi[oó]n|inversiones|empresa|export|import|sanci[oó]n(es)?\b|bonos|deuda|\bbcv\b|\boil\b|pipeline|sanction|\binvest(s|ment|ments|or|ors|ing)?\b", re.I)
 
 
 FOOTER = re.compile(r"(la entrada|the post)\s.*?(apareci[oó] primero en|appeared first on)\s.*$|\[…\]|\[\.\.\.\]", re.I | re.S)
@@ -128,6 +135,8 @@ def is_relevant(title: str, summary: str | None, strict: bool) -> bool:
     if TONE.search(title):  # conflicto o tono amarillista: fuera siempre
         return False
     if categorize(blob) == "politica" and not POL_OK.search(blob) and not ECON_POLICY.search(title):
+        return False
+    if OTHER_COUNTRY.search(title) and not RELEVANT.search(title) and not GLOBAL_MKT.search(title):
         return False
     if RELEVANT.search(title):
         return True
