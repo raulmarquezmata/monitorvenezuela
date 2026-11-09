@@ -31,7 +31,7 @@ CATEGORIES = [  # orden = prioridad. Cambiario y precios van en economía; sanci
     ("politica", r"ofac|sanci[oó]n|licencia general|sanction|general license|elecci|asamblea nacional|tsj|gobierno|presiden|canciller|di[aá]logo|oposici|delcy|trump|rubio|embajad|ministr|diplomac|machado|maduro|cabello|political|election|government"),
     ("economia", r"inflaci[oó]n|\bpib\b|econom|import|export|liquidez|reservas|recaudaci|seniat|presupuesto|d[oó]lar|tipo de cambio|bol[ií]var|divisa|intervenci[oó]n cambiaria|salario|precios|gdp|inflation|economy|exchange rate"),
 ]
-RELEVANT = re.compile(r"venezuel|caracas|\bbcv\b|pdvsa|bol[ií]var|sudeban|seniat|sunaval|\bbvc\b|fedec[aá]maras|conindustria|consecomercio|"
+RELEVANT = re.compile(r"venezuel|venezolan|venezuelan|caracas|\bbcv\b|pdvsa|bol[ií]var|sudeban|seniat|sunaval|\bbvc\b|fedec[aá]maras|conindustria|consecomercio|"
                       r"delcy|maracaibo|zulia|carabobo|anzo[aá]tegui|monagas|guayana|orinoco|\bfaja\b|corpoelec|cantv|cashea|citgo|"
                       r"esequibo|bolpriaven|casa de bolsa|banesco|mercantil|provincial|bancaribe|banco de venezuela|\bbnc\b|maduro|machado", re.I)
 # temas que no son de Venezuela (salvo que el titular también la mencione): se descartan aunque vengan de medios venezolanos
@@ -61,18 +61,36 @@ NOISE = re.compile(r"\beln\b|guerrill|disidencias?\b|\bfarc\b|tren de aragua|hom
                    # protestas, reclamos vecinales y vida universitaria/escolar: no son noticias para inversionistas
                    r"protest|manifestaci[oó]n|marcha (de|por|hacia)|plant[oó]n|cacerolazo|vecinos|comunidad (universitaria|educativa)|universitari|"
                    r"estudiant|semestre|\bucla\b|\bucv\b|\bluz\b|\bula\b|liceo|escuela|docentes? (protest|exig)|exige[n]? (a|al|que)|reclaman|denuncian? (fallas|falta)|"
-                   r"^video\b|#\d{1,2}(ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic)\b", re.I)
+                   r"^video\b|#\d{1,2}(ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic)\b|"
+                   # sucesos, cárceles, premios y deportes que se colaban
+                   r"incendio|cobr[oó] la vida|murieron|\bmuert[oe]s?\b|menores de edad|\bmenores\b|excarcel|\bpresos?\b|c[aá]rcel|el rodeo|tocor[oó]n|"
+                   r"detenid|privad[oa] de libertad|liberar[aá]n?\b|premio|postulaci|concurso|certamen|festival|pitcheo|s[uú]per ronda|premier 12|"
+                   r"jonr[oó]n|\binning|cl[aá]sico mundial|serie del caribe|tragedia|v[ií]ctimas", re.I)
 # tema económico, empresarial o de política pública (lo que interesa a un inversionista)
-ECON = re.compile(r"econom|crec|\bpib\b|inflaci|precio|d[oó]lar|bol[ií]var|divisa|cambiari|petr[oó]le|crudo|barril|\bgas\b|oleoduct|gasoduct|refiner|pdvsa|"
+ECON = re.compile(r"econom|crec|\bpib\b|inflaci|precio|d[oó]lar|bol[ií]vares\b|divisa|cambiari|petr[oó]le|crudo|barril|\bgas\b|oleoduct|gasoduct|refiner|pdvsa|"
                   r"chevron|repsol|\beni\b|maurel|ongc|reliance|citgo|opep|opec|miner|\boro\b|hierro|alumini|banc[oa]|cr[eé]dito|bolsa|acciones|bonos?\b|deuda|"
-                  r"riesgo pa[ií]s|sanci|licencia|ofac|export|import|arancel|comercio|comercial|inversi|invers|empresa|compa[nñ][ií]a|adquier|adquisi|"
+                  r"riesgo pa[ií]s|sanci|licencia|ofac|export|import|arancel|comercio|comercial|inversi|invers|\bempresas?\b|compa[nñ][ií]a|adquier|adquisi|"
                   r"negocio|mercado|salario|ingreso m[ií]nimo|impuest|seniat|recaudaci|presupuesto|fiscal|decreto|\bley\b|reforma|gaceta|"
                   r"consecomercio|fedec[aá]maras|conindustria|venamcham|cavecol|el[eé]ctric|medidas|corpoelec|megavatio|aerol[ií]nea|vuelos|turismo|agro|cosecha|"
                   r"alimento|industria|f[aá]brica|planta|producci[oó]n|construcci|vivienda|telecom|cantv|\bbcv\b|\bfmi\b|\bimf\b|\bbid\b|\bcaf\b|"
                   r"gobierno|presiden|ministr|canciller|asamblea nacional|elecci|negociaci|acuerdo|diplom|embajad|trump|rubio|casa blanca|"
                   r"growth|\bgdp\b|\boil\b|barrel|sanction|license|invest|\bbank|\bbond|\bdebt|market|stock|compan|deal|acquisi|tariff|trade|"
                   r"government|president|minister|election|policy|white house|energy|mining|gold|refin|shipping|tanker|cargo|\bfirms?\b|business", re.I)
-STRONG = re.compile(r"petr[oó]le|crudo|oleoduct|gasoduct|pdvsa|chevron|econom|inversi|empresa|export|import|sanci|bonos|deuda|\bbcv\b|\boil\b|pipeline|sanction|invest", re.I)
+# Política: solo designaciones, eventos diplomáticos y sanciones/licencias. El resto de la política (declaraciones,
+# anuncios de dirigentes, polémicas) se descarta salvo que sea una medida económica concreta.
+POL_OK = re.compile(r"design|nombra|nombramiento|juramenta|nuev[oa] (ministr|president|canciller|embajador|director|gobernador|vicepresident)|"
+                    r"asume (como|la presidencia|el ministerio|el cargo)|ministr[oa] (de|para)|embajad|canciller|diplom|visita oficial|gira (por|oficial)|"
+                    r"cumbre|bilateral|reuni[oó]n con|cooperaci[oó]n|memorando|aprueb|aprobad|aprobaci[oó]n|sancion[oó] la ley|sancionad[oa] la ley|promulg|"
+                    r"\bley (de|del|org[aá]nica)|reforma (de la )?ley|(primera|segunda) discusi[oó]n|restablec|relaciones con|ofac|sanci[oó]n(es)?\b|licencia general|"
+                    r"appoint|named|ambassador|embassy|diplomat|summit|state visit|sanction|general license", re.I)
+ECON_POLICY = re.compile(r"decreto|gaceta oficial|arancel|impuest|export|import|inversi|hidrocarbur|miner|bonos?\b|deuda|presupuesto|salari|"
+                         r"\bbcv\b|petr[oó]le|crudo|tipo de cambio|inflaci|tariff|oil|crude|bond|debt|budget", re.I)
+# tono de confrontación o amarillista: fuera, salvo tema económico fuerte en el titular
+TONE = re.compile(r"\badmite\b|arremete|\bacusa|critica|cuestiona|pol[eé]mic|esc[aá]ndalo|responde a|amenaza|arremeti|lanza (dura|fuerte)|"
+                  r"querell|demanda (contra|a)\b|se robaron|robaron|corrupci|a oscuras|opositor|oposici[oó]n|campamento|desmantel|denuncia|"
+                  r"enfrentamiento|conflicto|tensi[oó]n|rechaza|condena|exige|"
+                  r"blasts|slams|lashes out|accuses|opposition|lawsuit|sues|corruption|condemn", re.I)
+STRONG = re.compile(r"petr[oó]le|crudo|oleoduct|gasoduct|pdvsa|chevron|econom|inversi|empresa|export|import|sanci[oó]n(es)?\b|bonos|deuda|\bbcv\b|\boil\b|pipeline|sanction|invest", re.I)
 
 
 FOOTER = re.compile(r"(la entrada|the post)\s.*?(apareci[oó] primero en|appeared first on)\s.*$|\[…\]|\[\.\.\.\]", re.I | re.S)
@@ -83,7 +101,8 @@ def clean_summary(summary: str | None, title: str = "") -> str | None:
     confundía la clasificación (la palabra «Banca») y la relevancia."""
     if not summary:
         return None
-    s_ = FOOTER.sub("", summary).strip()
+    import html as _html
+    s_ = FOOTER.sub("", _html.unescape(summary).replace("\xa0", " ")).strip()
     if not s_ or (title and s_.startswith(title[:40])):
         return None
     return s_
@@ -97,7 +116,13 @@ def is_relevant(title: str, summary: str | None, strict: bool) -> bool:
     blob = f"{title} {summary or ''}"
     if NOISE.search(title) and not STRONG.search(title):
         return False
-    if not ECON.search(blob):
+    if re.fullmatch(r"[\w.]+(-[\w.]+)+", title.strip()):  # titulares rotos tipo «Maduro-Ley-Emprendimientos»
+        return False
+    if not ECON.search(title):  # el tema económico tiene que estar en el titular
+        return False
+    if TONE.search(title):  # conflicto o tono amarillista: fuera siempre
+        return False
+    if categorize(blob) == "politica" and not POL_OK.search(blob) and not ECON_POLICY.search(title):
         return False
     if RELEVANT.search(title):
         return True
