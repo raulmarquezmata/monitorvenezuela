@@ -636,6 +636,32 @@ def _at(series: list[tuple[str, float]], d: str) -> float | None:
     return v
 
 
+def fill_open(rows: list[dict], session: str, budget: float = 90.0) -> None:
+    """El resumen del día de la BVC no trae el precio de apertura: se toma del histórico de cada símbolo
+    (la misma fuente que el robot nocturno) y se guarda también en bvc_quotes."""
+    import time
+    from .bvc import history_for
+    from .common import upsert
+    t0, got = time.time(), []
+    for x in rows:
+        if x.get("open") or time.time() - t0 > budget:
+            continue
+        try:
+            _, hist = history_for(x["symbol"])
+            h = next((q for q in hist if q["date"] == session), None)
+            if h and h.get("open"):
+                x["open"] = h["open"]
+                got.append({k: h.get(k) for k in ("date", "symbol", "market", "open", "high", "low")})
+        except Exception:  # noqa: BLE001
+            pass
+        time.sleep(0.5)
+    if got:
+        try:
+            upsert("bvc_quotes", got, "date,symbol")
+        except Exception:  # noqa: BLE001
+            pass
+
+
 def daily_data(fx: dict) -> dict | None:
     rows = select("bvc_latest", {"select": "date,symbol,name,company,open,close,var_pct,volume,amount", "market": "eq.RV"})
     if not rows:
@@ -644,6 +670,7 @@ def daily_data(fx: dict) -> dict | None:
     rows = [x for x in rows if x["date"] == session and x.get("close")]
     if not rows:
         return None
+    fill_open(rows, session)
     d = dt.date.fromisoformat(session)
     monday = (d - dt.timedelta(days=d.weekday())).isoformat()
     prev = select("bvc_quotes", {"select": "symbol,date,close", "market": "eq.RV", "close": "gt.0",

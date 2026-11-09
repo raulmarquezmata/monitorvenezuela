@@ -112,7 +112,13 @@ def parse_resumen(rows: list[dict], session: str | None, market: str):
         if session and vol > 0:
             quotes.append({"date": session, "symbol": sym, "name": q.get("DESC_SIMB"), "market": market,
                            "close": jsnum(q.get("PRECIO")), "var_abs": jsnum(q.get("VAR_ABS")),
+                           # el resumen del día no siempre trae la apertura; si viene, se guarda
+                           **({"open": jsnum(q.get(k))} if (k := next((x for x in ("PRECIO_APERT", "PRECIO_APERTURA", "APERTURA", "PRECIO_APE")
+                                                                         if jsnum(q.get(x))), None)) else {}),
                            "var_pct": jsnum(q.get("VAR_REL")), "volume": vol, "amount": amt, "updated_at": now})
+    if any("open" in q for q in quotes):  # el upsert en lote exige las mismas columnas en todas las filas
+        for q in quotes:
+            q.setdefault("open", None)
     return quotes, metas, monto
 
 
