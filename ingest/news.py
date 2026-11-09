@@ -89,7 +89,12 @@ ECON_POLICY = re.compile(r"decreto|gaceta oficial|arancel|impuest|export|import|
 TONE = re.compile(r"\badmite\b|arremete|\bacusa|critica|cuestiona|pol[eé]mic|esc[aá]ndalo|responde a|amenaza|arremeti|lanza (dura|fuerte)|"
                   r"querell|demanda (contra|a)\b|se robaron|robaron|corrupci|a oscuras|opositor|oposici[oó]n|campamento|desmantel|denuncia|"
                   r"enfrentamiento|conflicto|tensi[oó]n|rechaza|condena|exige|"
-                  r"blasts|slams|lashes out|accuses|opposition|lawsuit|sues|corruption|condemn", re.I)
+                  r"blasts|slams|lashes out|accuses|opposition|lawsuit|sues|corruption|condemn|"
+                  # conflictos bélicos y operaciones militares: nunca
+                  r"bombarde|\bbomb|militar|military|operaci[oó]n(es)? (militar|armada|encubierta)|ataque|atac[oó]|atacan|misil|\bdron|drone|tropas|troops|"
+                  r"soldad|guerra\b|\bwar\b|b[eé]lic|invasi[oó]n|invasion|invadir|despliegue|deploy|buque de guerra|warship|portaaviones|aircraft carrier|"
+                  r"\bnavy\b|armada\b|fuerzas armadas|\bfanb\b|pent[aá]gono|pentagon|ofensiva|strikes? on|airstrike|intervenci[oó]n militar|"
+                  r"narcolancha|lanchas? (con droga|del narco)|drug boats?|cartel de los soles|terroris", re.I)
 STRONG = re.compile(r"petr[oó]le|crudo|oleoduct|gasoduct|pdvsa|chevron|econom|inversi|empresa|export|import|sanci[oó]n(es)?\b|bonos|deuda|\bbcv\b|\boil\b|pipeline|sanction|invest", re.I)
 
 
@@ -201,11 +206,21 @@ def cleanup() -> int:
     ve = {re.sub(r"\s*\((RSS|búsqueda|economía)\)$", "", f["name"]) for f in load_feeds() if not f.get("filter", True)}
     bad = [x["url"] for x in select("news", {"select": "url,title,summary,source,symbols", "published_at": f"gte.{since}"})
            if not x.get("symbols") and not is_relevant(x["title"], clean_summary(x.get("summary"), x["title"]), x.get("source") not in ve)]
-    for u in bad:
+    # se borran en lotes de 40 (antes era una por una y, con muchas, la corrida se hacía larga)
+    import time
+    t0 = time.time()
+    for i in range(0, len(bad), 40):
+        if time.time() - t0 > 60:
+            break  # el resto se borra en la próxima corrida
+        chunk = [u for u in bad[i:i + 40] if '"' not in u]
         try:
-            delete("news", {"url": f"eq.{u}"})
+            delete("news", {"url": "in.(" + ",".join(f'"{u}"' for u in chunk) + ")"})
         except Exception:  # noqa: BLE001
-            pass
+            for u in chunk:
+                try:
+                    delete("news", {"url": f"eq.{u}"})
+                except Exception:  # noqa: BLE001
+                    pass
     return len(bad)
 
 
