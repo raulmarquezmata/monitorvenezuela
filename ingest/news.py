@@ -72,7 +72,10 @@ NOISE = re.compile(r"\beln\b|guerrill|disidencias?\b|\bfarc\b|tren de aragua|hom
                    # sucesos, cárceles, premios y deportes que se colaban
                    r"incendio|cobr[oó] la vida|murieron|\bmuert[oe]s?\b|menores de edad|\bmenores\b|excarcel|\bpresos?\b|c[aá]rcel|el rodeo|tocor[oó]n|"
                    r"detenid|privad[oa] de libertad|liberar[aá]n?\b|premio|postulaci|concurso|certamen|festival|pitcheo|s[uú]per ronda|premier 12|"
-                   r"jonr[oó]n|\binning|cl[aá]sico mundial|serie del caribe|tragedia|v[ií]ctimas", re.I)
+                   r"jonr[oó]n|\binning|cl[aá]sico mundial|serie del caribe|tragedia|v[ií]ctimas|"
+                   # gestión pública que no es económica: tránsito, motorizados, educación, salud, seguridad ciudadana
+                   r"motorizad|tr[aá]nsito|seguridad vial|vialidad|ministerio (de|del poder popular para la) (educaci|salud|transporte)|"
+                   r"educaci[oó]n|\bsalud\b|vacun|hospital|seguridad ciudadana|operativo|patrullaje|jornada (de|m[eé]dica)|cuadrantes de paz", re.I)
 # tema económico, empresarial o de política pública (lo que interesa a un inversionista)
 ECON = re.compile(r"econom|crec|\bpib\b|inflaci|precio|d[oó]lar|bol[ií]vares\b|divisa|cambiari|petr[oó]le|crudo|barril|\bgas\b|oleoduct|gasoduct|refiner|pdvsa|"
                   r"chevron|repsol|\beni\b|maurel|ongc|reliance|citgo|opep|opec|miner|\boro\b|hierro|alumini|banc[oa]|cr[eé]dito|bolsa|acciones|bonos?\b|deuda|"
@@ -80,9 +83,9 @@ ECON = re.compile(r"econom|crec|\bpib\b|inflaci|precio|d[oó]lar|bol[ií]vares\b
                   r"negocio|mercado|salario|ingreso m[ií]nimo|impuest|seniat|recaudaci|presupuesto|fiscal|decreto|\bley\b|reforma|gaceta|"
                   r"consecomercio|fedec[aá]maras|conindustria|venamcham|cavecol|el[eé]ctric|medidas|corpoelec|megavatio|aerol[ií]nea|vuelos|turismo|agro|cosecha|"
                   r"alimento|industria|f[aá]brica|planta|producci[oó]n|construcci|vivienda|telecom|cantv|\bbcv\b|\bfmi\b|\bimf\b|\bbid\b|\bcaf\b|"
-                  r"gobierno|presiden|ministr|canciller|asamblea nacional|elecci|negociaci|acuerdo|diplom|embajad|trump|rubio|casa blanca|"
+                  r"acuerdo comercial|acuerdo energ|acuerdo petrol|acuerdo miner|negociaci[oó]n (comercial|petrolera|de deuda)|"
                   r"growth|\bgdp\b|\boil\b|barrel|sanction|license|invest|\bbank|\bbond|\bdebt|market|stock|compan|deal|acquisi|tariff|trade|"
-                  r"government|president|minister|election|policy|white house|energy|mining|gold|refin|shipping|tanker|cargo|\bfirms?\b|business", re.I)
+                  r"trade deal|energy|mining|gold|refin|shipping|tanker|cargo|\bfirms?\b|business", re.I)
 # Política: solo designaciones, eventos diplomáticos y sanciones/licencias. El resto de la política (declaraciones,
 # anuncios de dirigentes, polémicas) se descarta salvo que sea una medida económica concreta.
 POL_OK = re.compile(r"design|nombra|nombramiento|juramenta|nuev[oa] (ministr|president|canciller|embajador|director|gobernador|vicepresident)|"
@@ -130,7 +133,7 @@ def is_relevant(title: str, summary: str | None, strict: bool) -> bool:
         return False
     if re.fullmatch(r"[\w.]+(-[\w.]+)+", title.strip()):  # titulares rotos tipo «Maduro-Ley-Emprendimientos»
         return False
-    if not ECON.search(title):  # el tema económico tiene que estar en el titular
+    if not ECON.search(title) and not POL_OK.search(title):  # tema económico o político permitido, en el titular
         return False
     if TONE.search(title):  # conflicto o tono amarillista: fuera siempre
         return False
