@@ -31,7 +31,7 @@ GROUPS = {
     "daily": ["catalog", "fx", "bvc_full", "reportes", "emisores", "informes", "bcv_stats", "inflation", "press", "banking", "opec", "sunaval", "oil", "embi", "trade_mensual", "ipc", "agro_usda",
               "ofac", "events", "alerts_daily"],
     "weekly": ["catalog", "fx_hist", "trade", "agro", "agro_usda", "commodities", "sudeban"],
-    "files": ["catalog", "manual", "bonds", "events", "bancos_muestra", "opec_local", "sunaval", "emisores", "informes", "alerts"],
+    "files": ["catalog", "opec_local", "manual", "alerts", "bonds", "events", "bancos_muestra", "sunaval", "emisores", "informes", "alerts"],
     "acciones": ["reportes", "emisores"],  # manual: informes PDF por acción + noticias y asambleas
 }
 
