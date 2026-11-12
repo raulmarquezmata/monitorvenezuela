@@ -51,6 +51,7 @@ const NOTES: Record<string, { es: string; en: string }> = {
   inflacion_mensual: { es: "Cuando el BCV o la Presidencia anuncian la inflación del mes antes de que salga la cifra habitual, se muestra ese anuncio (octubre 2026: 6,2%, anunciado el 3 de noviembre) y se reemplaza solo al publicarse la cifra oficial.", en: "When the BCV or the Presidency announces the month's inflation before the usual release, that announcement is shown (October 2026: 6.2%, announced on November 3) and replaced automatically once the official figure is published." },
   pib_real_var: { es: "El BCV publica el PIB solo por trimestre: no existe una cifra oficial mensual. El III trimestre de 2026 (6,6%) es el anuncio preliminar de la Presidencia del 3 de noviembre; se reemplaza solo cuando el BCV publique su archivo.", en: "The BCV publishes GDP only quarterly: there is no official monthly figure. Q3 2026 (6.6%) is the preliminary figure announced by the Presidency on November 3; it is replaced automatically once the BCV publishes its file." },
 };
+const VISIBLE = 4; // tarjetas visibles antes del desplegable «Ver más»
 const HIDDEN = new Set(["taladros_venezuela", "petroleo_prod_opep_fs", "petroleo_prod_opep_cd", "petroleo_prod_eia", "intervencion_bcv", "inflacion_acumulada", "ipc_eeuu"]);
 /** Rango por tarjeta cuando el estándar (1M…Máx) no aplica. */
 const RANGES: Record<string, Range[]> = {
@@ -183,10 +184,21 @@ export default async function CategoryPage({ params }: { params: { lang: Lang; c
         </div>
       )}
 
+      {/* para no tener que bajar tanto: se ven 4 tarjetas y el resto queda en un desplegable */}
       <div className={`grid g2 ${cat === "cambiario" ? "section" : ""}`}>
-        {rest.map((s) => <SeriesCard key={s.code} s={s} points={hist[s.code] ?? []} lang={lang} bars={BARS.has(s.code)}
+        {rest.slice(0, VISIBLE).map((s) => <SeriesCard key={s.code} s={s} points={hist[s.code] ?? []} lang={lang} bars={BARS.has(s.code)}
           allowLog={LOG.has(s.code)} note={note(s.code)} ranges={RANGES[s.code]} initial={INITIAL[s.code]} hiLo={HILO.has(s.code)} />)}
       </div>
+      {rest.length > VISIBLE && (
+        <details className="card fold" style={{ marginTop: 20 }}>
+          <summary><h3 style={{ display: "inline" }}>{es ? `Ver ${rest.length - VISIBLE} indicadores más` : `Show ${rest.length - VISIBLE} more indicators`}</h3>
+            <span className="muted"> · {rest.slice(VISIBLE).map((x) => (es ? x.name_es : x.name_en)).slice(0, 4).join(", ")}{rest.length - VISIBLE > 4 ? "…" : ""}</span></summary>
+          <div className="grid g2">
+            {rest.slice(VISIBLE).map((s) => <SeriesCard key={s.code} s={s} points={hist[s.code] ?? []} lang={lang} bars={BARS.has(s.code)}
+              allowLog={LOG.has(s.code)} note={note(s.code)} ranges={RANGES[s.code]} initial={INITIAL[s.code]} hiLo={HILO.has(s.code)} />)}
+          </div>
+        </details>
+      )}
 
       {cat === "precios" && usInfl.length > 0 && (
         <div style={{ marginTop: 20 }}>

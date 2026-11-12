@@ -72,10 +72,10 @@ export default async function Home({ params }: { params: { lang: Lang } }) {
       {ticker.length > 0 && <NewsTicker items={ticker} label={es ? "Última hora" : "Latest"} />}
       {lines.length > 0 && (
         <section className="section">
-          <div className="card today">
-            <div className="card-top"><h3>{es ? "Qué pasó hoy" : "Today at a glance"}</h3><span className="date">{new Intl.DateTimeFormat(es ? "es-VE" : "en-US", { timeZone: "America/Caracas", weekday: "long", day: "numeric", month: "long" }).format(new Date())}</span></div>
+          <details className="card today fold">
+            <summary><h3 style={{ display: "inline" }}>{es ? "Qué pasó hoy" : "Today at a glance"}</h3> <span className="muted">· {lines[0]}</span></summary>
             <ul>{lines.map((l) => <li key={l}>{l}</li>)}</ul>
-          </div>
+          </details>
         </section>
       )}
 

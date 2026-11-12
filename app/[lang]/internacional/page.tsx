@@ -94,16 +94,16 @@ export default async function Internacional({ params }: { params: { lang: Lang }
         </section>
       )}
 
-      <section className="section">
-        <SectionHead label={es ? "Bolsas y activos" : "Equities and assets"} />
+      <details className="card fold section">
+        <summary><h3 style={{ display: "inline" }}>{es ? "Gráficos: bolsas y activos" : "Charts: equities and assets"}</h3> <span className="muted">· S&P 500, Nasdaq, Dow Jones, VIX, {es ? "dólar, oro" : "dollar, gold"}, bitcoin</span></summary>
         <div className="grid g2">{TOP.filter((c) => has(c) && c !== "ust_10a").map((c) => <SeriesCard key={c} s={by[c]} points={hist[c] ?? []} lang={lang} allowLog initial="1A" />)}</div>
-      </section>
+      </details>
 
       {REGION.some(has) && (
-        <section className="section">
-          <SectionHead label={es ? "Emergentes y región" : "Emerging markets and the region"} />
+        <details className="card fold" style={{ marginTop: 16 }}>
+          <summary><h3 style={{ display: "inline" }}>{es ? "Emergentes y región" : "Emerging markets and the region"}</h3> <span className="muted">· {es ? "EEM, Bovespa, Merval, IPC México, IPSA Chile" : "EEM, Bovespa, Merval, Mexico IPC, Chile IPSA"}</span></summary>
           <div className="grid g2">{REGION.filter(has).map((c) => <SeriesCard key={c} s={by[c]} points={hist[c] ?? []} lang={lang} allowLog initial="1A" />)}</div>
-        </section>
+        </details>
       )}
       {!series.length && <div className="empty">{es ? "Los datos internacionales aparecerán después de la primera corrida del robot." : "International data will appear after the robot's first run."}</div>}
     </>

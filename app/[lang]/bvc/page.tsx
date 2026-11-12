@@ -153,13 +153,15 @@ export default async function BVC({ params }: { params: { lang: Lang } }) {
         <Downloads lang={lang} />
       </section>
 
-      <h2 style={{ margin: "40px 0 16px" }}>{d.cat.mercados}</h2>
-      <div className="grid g2">
+      <details className="card fold" style={{ marginTop: 24 }}>
+        <summary><h3 style={{ display: "inline" }}>{d.cat.mercados}</h3> <span className="muted">· {es ? "índices sectoriales, renta fija, Mercado de Otros Bienes y BOLPRIAVEN" : "sector indices, fixed income, Other Goods Market and BOLPRIAVEN"}</span></summary>
+        <div className="grid g2">
         {idx.filter((s) => !HIDE.includes(s.code) && (hist[s.code] ?? []).length > 0).map((s) => (
           <SeriesCard key={s.code} s={s} points={hist[s.code] ?? []} lang={lang} allowLog={s.frequency === "D"}
             bars={s.frequency === "M"} ranges={s.code.startsWith("ibc") ? ["1M", "3M", "YTD", "1A"] : undefined} />
         ))}
-      </div>
+        </div>
+      </details>
     </>
   );
 }
