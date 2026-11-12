@@ -258,6 +258,58 @@ def parse_inflation(posts: list[dict], with_url: bool = False) -> list:
     return sorted((d, v, u) if with_url else (d, v) for d, (v, u) in pts.items())
 
 
+MESES_RX = "|".join(["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "setiembre", "octubre", "noviembre", "diciembre",
+                     r"ene\.", r"feb\.", r"abr\.", r"ago\.", r"sept?\.", r"oct\.", r"nov\.", r"dic\."])
+MES3 = {m: i for i, m in enumerate(["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"], 1)}
+OPEP_PROD = re.compile(r"(?:opep|opec)[^.]{0,160}?(\d[\d.,]*)\s*(millones? de |mill?\.? ?|mil |MM ?)?(?:bpd|b/d|barriles(?: de petr[oó]leo| de crudo)? (?:por d[ií]a|diarios))[^.]{0,80}?\ben (" + MESES_RX + r")"
+                       r"|(\d[\d.,]*)\s*(millones? de |mill?\.? ?|mil |MM ?)?(?:bpd|b/d|barriles(?: de petr[oó]leo| de crudo)? (?:por d[ií]a|diarios))[^.]{0,80}?\ben (" + MESES_RX + r")[^.]{0,120}?(?:opep|opec)", re.I)
+MEREY_RX = re.compile(r"(?:merey|cesta venezolana|cesta petrolera venezolana|crudo venezolano|petr[oó]leo venezolano)[^.]{0,120}?(?:us\$|\$|usd)\s?(\d{2,3}(?:[.,]\d{1,2})?)"
+                      r"[^.]{0,80}?\ben (" + MESES_RX + r")", re.I)
+RIGS_RX = re.compile(r"(\d{1,3})\s+taladros[^.]{0,80}?\ben (" + MESES_RX + r")|taladros[^.]{0,80}?(?:a|en|hasta)\s+(\d{1,3})\b[^.]{0,80}?\ben (" + MESES_RX + r")", re.I)
+
+
+def _ym(mon: str, pub: str) -> tuple[int, int]:
+    mo = mon.lower().rstrip(".")
+    mi = MONTHS.get(mo) or (9 if mo.startswith("set") else MES3.get(mo[:3], 0))
+    y = int(pub[:4]) - (1 if mi > int(pub[5:7]) else 0)
+    return y, mi
+
+
+def parse_opec_headlines(posts: list[dict]) -> dict[str, list]:
+    """Producción reportada a la OPEP, cesta Merey y taladros activos, desde titulares (por si opec.org bloquea al robot)."""
+    out: dict[str, dict] = {"petroleo_prod_opep_cd": {}, "petroleo_prod_opep_fs": {}, "merey": {}, "taladros_venezuela": {}}
+    for p in posts:
+        t = f"{p['title']}. {p.get('excerpt') or ''}"
+        m = OPEP_PROD.search(t)
+        if m:
+            num, mult, mon = (m.group(1), m.group(2), m.group(3)) if m.group(1) else (m.group(4), m.group(5), m.group(6))
+            mult = (mult or "").lower()
+            v = es_num(num) if ("," in num or re.fullmatch(r"\d{1,3}(\.\d{3})+", num)) else float(num)
+            if v is not None:
+                if "mill" in mult or mult.strip() in ("mm",):
+                    v *= 1000
+                elif v > 5000:
+                    v /= 1000
+                if 300 <= v <= 3500:
+                    y, mi = _ym(mon, p["date"])
+                    code = "petroleo_prod_opep_fs" if re.search(r"fuentes secundarias|secondary sources", t, re.I) else "petroleo_prod_opep_cd"
+                    out[code].setdefault(eom(y, mi), (round(v), p.get("url")))
+        m = MEREY_RX.search(t)
+        if m and re.search(r"opep|opec|promedi|mensual|ministerio|minpet", t, re.I):
+            v = es_num(m.group(1)) if "," in m.group(1) else float(m.group(1))
+            if v and 15 <= v <= 200:
+                y, mi = _ym(m.group(2), p["date"])
+                out["merey"].setdefault(eom(y, mi), (round(v, 2), p.get("url")))
+        m = RIGS_RX.search(t)
+        if m and re.search(r"venezuel", t, re.I):
+            n_, mon = (m.group(1), m.group(2)) if m.group(1) else (m.group(3), m.group(4))
+            v = int(n_)
+            if 0 <= v <= 150:
+                y, mi = _ym(mon, p["date"])
+                out["taladros_venezuela"].setdefault(eom(y, mi), (v, p.get("url")))
+    return {k: sorted((d, v, u) for d, (v, u) in d_.items()) for k, d_ in out.items()}
+
+
 def from_headlines(days: int = 4) -> int:
     """Datos oficiales anunciados en los titulares que ya captó el robot de noticias (PIB e inflación).
     Corre cada 20 minutos junto con las noticias: si llega la noticia, el dato entra a la página al mismo tiempo."""
@@ -283,7 +335,14 @@ def from_headlines(days: int = 4) -> int:
     if k:
         from .inflation import derive_missing
         k += derive_missing()
-    return n + k
+    # OPEP (producción, Merey, taladros): solo meses que el MOMR todavía no trajo
+    j = 0
+    for code, pts in parse_opec_headlines(posts).items():
+        have = {x["date"] for x in select("observations", {"select": "date", "series_code": f"eq.{code}", "source": "like.OPEP MOMR*"})}
+        for d, v, u in pts:
+            if d not in have:
+                j += save_obs(code, [(d, v)], f"Informe OPEP, vía prensa · {u}" if u else "Informe OPEP, vía prensa")
+    return n + k + j
 
 
 MON_EN = {m: i for i, m in enumerate(["january", "february", "march", "april", "may", "june", "july", "august",

@@ -1,4 +1,4 @@
-"""OPEP · Monthly Oil Market Report (MOMR): producción de Venezuela y precio de la cesta Merey.
+"""OPEP · Monthly Oil Market Report (MOMR): producción de Venezuela, precio de la cesta Merey y taladros activos.
 
 Calendario 2026 de publicación (mediodía de Viena): 14-ene, 11-feb, 11-mar, 13-abr, 13-may, 11-jun,
 13-jul, 12-ago, 10-sep, 13-oct, 11-nov, 14-dic. El robot diario revisa si hay informe nuevo.
@@ -75,7 +75,7 @@ def months_in(line: str) -> list[tuple[int, int]]:
 
 
 def parse_text(text: str) -> dict[str, list]:
-    out = {"petroleo_prod_opep_fs": [], "petroleo_prod_opep_cd": [], "merey": []}
+    out = {"petroleo_prod_opep_fs": [], "petroleo_prod_opep_cd": [], "merey": [], "taladros_venezuela": []}
     pages = text.split("\f")
     for page in pages:
         low = page.lower()
@@ -98,6 +98,21 @@ def parse_text(text: str) -> dict[str, list]:
                                 if v != "..":
                                     out[code].append((eom(y, m), float(v.replace(",", ""))))
                         break
+        if "rig count" in low and "venezuela" in low and not out["taladros_venezuela"]:
+            # tabla de taladros activos (Baker Hughes, en el MOMR): fila Venezuela, últimos 3 meses + variación
+            lines = page[low.index("rig count"):].splitlines()
+            for i, ln in enumerate(lines):
+                if ln.strip().lower().startswith("venezuela"):
+                    # la tabla trae 2 o 3 meses al final (p. ej. «Sep 26 Oct 26 Oct/Sep») y luego la variación
+                    header = next((h for h in reversed(lines[:i]) if len(months_in(h)) >= 2), "")
+                    mons = months_in(header)[-3:]
+                    nums = [n for n in NUM.findall(ln[len("venezuela"):]) if n != ".."]
+                    if len(mons) >= 2 and len(nums) >= len(mons) + 1:
+                        for (y, m), v in zip(mons, nums[-(len(mons) + 1):-1]):
+                            fv = float(v.replace(",", ""))
+                            if 0 <= fv <= 200:
+                                out["taladros_venezuela"].append((eom(y, m), fv))
+                    break
         if "reference basket" in low and "merey" in low and not out["merey"]:
             lines = page.splitlines()
             for i, ln in enumerate(lines):
@@ -130,9 +145,17 @@ def run(backfill: bool = False, local_only: bool = False):
             m = next((i for i, mm in enumerate(MONTHS_EN, 1) if mm.lower()[:3] in n), 0)
             return (int(y.group(0)) if y else 0, m)
         for pth in sorted(LOCAL.glob("*.pdf"), key=key):
-            data = parse_text(pdf_text(pth.read_bytes()))
+            try:
+                data = parse_text(pdf_text(pth.read_bytes()))
+            except Exception as e:  # noqa: BLE001
+                r.note(f"{pth.name}: no se pudo leer ({str(e)[:80]})")
+                continue
             for code, pts in data.items():
-                r.rows += save_obs(code, pts, f"OPEP MOMR ({pth.name})")
+                try:  # una serie que falle no impide guardar las demás
+                    r.rows += save_obs(code, pts, f"OPEP MOMR ({pth.name})")
+                except Exception as e:  # noqa: BLE001
+                    r.note(f"{pth.name} · {code}: {str(e)[:80]}")
+            r.log.info("%s: %s", pth.name, {k: v[-1] if v else None for k, v in data.items()})
         if local_only:
             return
         tried, got = [], False

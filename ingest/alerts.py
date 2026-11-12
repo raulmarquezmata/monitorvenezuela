@@ -10,6 +10,7 @@ from __future__ import annotations
 import datetime as dt
 import hashlib
 import json
+import re
 import os
 import pathlib
 import smtplib
@@ -155,6 +156,16 @@ def market_summary(title: str, hist: dict, today: dt.date) -> str:
         p = hist["merey"][-2] if len(hist["merey"]) > 1 else None
         out.append(f"🛢️ Merey ({MESES[int(x[0][5:7]) - 1]}): **US$ {fmt(x[1], 2)}**   mes {sg(pct(x[1], p[1]) if p else None)}")
     return "\n".join(out) + foot(lk("Abrir el Radar", site("/es")), lk("Tipo de cambio", site("/es/indicadores/cambiario")), lk("BVC", site("/es/bvc")))
+
+
+CORP_EVENT = re.compile(r"asamblea|accionista|dividend|aumento de capital|capital social|\bsplit\b|reverse split|emisi[oó]n de (acciones|papeles|obligaciones|bonos)|"
+                        r"papeles comerciales|obligaciones quirografarias|resultados|utilidad|ganancia|p[eé]rdida|balance|estados financieros|"
+                        r"ingresos|beneficio neto|patrimonio|\bopa\b|oferta p[uú]blica|fusi[oó]n|adquier|adquisici|venta de (acciones|su participaci)|"
+                        r"junta directiva|nuevo presidente|presidente ejecutivo|designa|nombra|cotiza|\bbvc\b|sunaval|calificaci[oó]n|rating|"
+                        r"nueva planta|expansi[oó]n|recompra|derechos de suscripci|sanci[oó]n(es)?\b|dividends?|earnings|capital increase|"
+                        r"shareholders?|merger|acquisi|stake|listing", re.I)
+CORP_SOFT = re.compile(r"navid|abrazo|donaci|dona\b|responsabilidad social|voluntari|jornada|concurso|premio|campa[nñ]a|aniversario|"
+                       r"celebra|festival|torneo|patrocin|talento|beca|charla|taller|feria", re.I)
 
 
 def gather_extra(rules: list[dict], daily: bool = False) -> dict:
@@ -361,6 +372,11 @@ def evaluate(rules: list[dict], meta: dict[str, dict], data: dict[str, list[dict
                         + foot(lk("Ver la acción", site(f"/es/bvc/{q['symbol']}")))))
         elif t == "bvc_noticia":
             for n in extra.get("bvc_news", []):
+                tt = f"{n.get('title_es') or ''} {n['title']}"
+                # a Telegram solo van hechos corporativos (capital, asambleas, resultados, emisiones, directiva, M&A...);
+                # campañas, navidad, donaciones o premios quedan solo en la ficha de la acción
+                if not CORP_EVENT.search(tt) or CORP_SOFT.search(tt):
+                    continue
                 syms = ", ".join(n.get("symbols") or [])
                 first = (n.get("symbols") or [""])[0]
                 out.append((f"{rule['id']}:{n['url'][-120:]}", rule["texto"].format(
