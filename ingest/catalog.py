@@ -60,6 +60,25 @@ _S = [
     ("tasa_ahorro", "banca", "Tasa de depósitos de ahorro", "Savings deposit rate", "%", "%", "M", "BCV", BCV, 2, 50),
     ("intermediacion", "banca", "Intermediación crediticia", "Loan-to-deposit ratio", "%", "%", "M", OWN, None, 1, 30),
 
+    # ---------------- Mercados internacionales
+    ("sp500", "internacional", "S&P 500", "S&P 500", "puntos", "points", "D", "Yahoo Finance", "https://finance.yahoo.com/", 2, 10),
+    ("nasdaq", "internacional", "Nasdaq Composite", "Nasdaq Composite", "puntos", "points", "D", "Yahoo Finance", "https://finance.yahoo.com/", 2, 11),
+    ("dow_jones", "internacional", "Dow Jones Industrial", "Dow Jones Industrial", "puntos", "points", "D", "Yahoo Finance", "https://finance.yahoo.com/", 2, 12),
+    ("vix", "internacional", "VIX (volatilidad del S&P 500)", "VIX (S&P 500 volatility)", "puntos", "points", "D", "Yahoo Finance", "https://finance.yahoo.com/", 2, 13),
+    ("dxy", "internacional", "Índice dólar (DXY)", "US Dollar Index (DXY)", "puntos", "points", "D", "Yahoo Finance", "https://finance.yahoo.com/", 2, 14),
+    ("oro_diario", "internacional", "Oro (futuro, diario)", "Gold (futures, daily)", "US$/oz", "US$/oz", "D", "Yahoo Finance", "https://finance.yahoo.com/", 2, 15),
+    ("bitcoin", "internacional", "Bitcoin", "Bitcoin", "US$", "US$", "D", "Yahoo Finance", "https://finance.yahoo.com/", 0, 16),
+    ("ust_2a", "internacional", "Tesoro EE.UU. 2 años", "US Treasury 2-year", "%", "%", "D", "Departamento del Tesoro", "https://home.treasury.gov/resource-center/data-chart-center/interest-rates", 2, 20),
+    ("ust_5a", "internacional", "Tesoro EE.UU. 5 años", "US Treasury 5-year", "%", "%", "D", "Departamento del Tesoro", "https://home.treasury.gov/resource-center/data-chart-center/interest-rates", 2, 21),
+    ("ust_10a", "internacional", "Tesoro EE.UU. 10 años", "US Treasury 10-year", "%", "%", "D", "Departamento del Tesoro", "https://home.treasury.gov/resource-center/data-chart-center/interest-rates", 2, 22),
+    ("ust_20a", "internacional", "Tesoro EE.UU. 20 años", "US Treasury 20-year", "%", "%", "D", "Departamento del Tesoro", "https://home.treasury.gov/resource-center/data-chart-center/interest-rates", 2, 23),
+    ("ust_30a", "internacional", "Tesoro EE.UU. 30 años", "US Treasury 30-year", "%", "%", "D", "Departamento del Tesoro", "https://home.treasury.gov/resource-center/data-chart-center/interest-rates", 2, 24),
+    ("eem", "internacional", "Emergentes (MSCI EM, fondo EEM)", "Emerging markets (MSCI EM, EEM fund)", "US$", "US$", "D", "Yahoo Finance", "https://finance.yahoo.com/", 2, 30),
+    ("bovespa", "internacional", "Bovespa (Brasil)", "Bovespa (Brazil)", "puntos", "points", "D", "Yahoo Finance", "https://finance.yahoo.com/", 0, 31),
+    ("merval", "internacional", "Merval (Argentina)", "Merval (Argentina)", "puntos", "points", "D", "Yahoo Finance", "https://finance.yahoo.com/", 0, 32),
+    ("ipc_mexico", "internacional", "IPC (México)", "IPC (Mexico)", "puntos", "points", "D", "Yahoo Finance", "https://finance.yahoo.com/", 0, 33),
+    ("ipsa_chile", "internacional", "IPSA (Chile)", "IPSA (Chile)", "puntos", "points", "D", "Yahoo Finance", "https://finance.yahoo.com/", 0, 34),
+
     # ---------------- Petróleo y gas
     ("petroleo_prod_opep_fs", "petroleo", "Producción de crudo · OPEP fuentes secundarias", "Crude output · OPEC secondary sources", "miles b/d", "kb/d", "M", "OPEP MOMR", OPEP, 0, 10),
     ("petroleo_prod_opep_cd", "petroleo", "Producción de crudo · comunicación directa", "Crude output · direct communication", "miles b/d", "kb/d", "M", "OPEP MOMR", OPEP, 0, 20),
@@ -194,6 +213,10 @@ for code in ("oro", "mineral_hierro", "aluminio", "cafe", "cacao", "azucar"):
     PLAN[code] = (A, 4, "Promedio mensual del Banco Mundial desde 1960 + cierre diario del futuro del primer mes (robot futuros, cada hora).")
 for code in ("plata", "cobre", "maiz_cbot", "trigo_kc", "soya_cbot"):
     PLAN[code] = (A, 4, "Robot futuros cada hora: cierre diario del contrato del primer mes (Yahoo Finance).")
+for code in ("sp500", "nasdaq", "dow_jones", "vix", "dxy", "oro_diario", "bitcoin", "eem", "bovespa", "merval", "ipc_mexico", "ipsa_chile"):
+    PLAN[code] = (A, 5, "Robot global cada 20 min (Yahoo Finance).")
+for code in ("ust_2a", "ust_5a", "ust_10a", "ust_20a", "ust_30a"):
+    PLAN[code] = (A, 5, "Robot global cada 20 min (curva diaria del Tesoro de EE.UU.; respaldo FRED/Yahoo).")
 PLAN["henry_hub"] = (A, 4, "Spot diario de la EIA desde 1997 + futuro del primer mes para los días más recientes.")
 
 _KEYS = ["code", "category", "name_es", "name_en", "unit_es", "unit_en", "frequency", "source", "source_url", "decimals", "sort"]

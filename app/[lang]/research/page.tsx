@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
-import type { Lang } from "@/lib/i18n";
 
-// «Research» ahora se llama «Informes»
-export default function ResearchIndex({ params }: { params: { lang: Lang } }) {
+/** Ruta antigua: los informes viven en /informes. */
+export default function Old({ params }: { params: { lang: string } }) {
   redirect(`/${params.lang}/informes`);
 }

@@ -1,5 +1,5 @@
 {
-  "_ayuda": "Fuentes de noticias. 'medio' = RSS propio; 'agregador' = búsqueda en Google News limitada a ese medio (para los que no tienen RSS o para filtrar solo Venezuela). filter=true guarda solo noticias que mencionan Venezuela/BCV/PDVSA. Para agregar una fuente copia un bloque. 'medio' con RSS internacional general usa filter=true (solo notas sobre Venezuela).",
+  "_ayuda": "Fuentes de noticias. 'medio' = RSS propio; 'agregador' = búsqueda en Google News limitada a ese medio (para los que no tienen RSS o para filtrar solo Venezuela). filter=true guarda solo noticias que mencionan Venezuela/BCV/PDVSA. Para agregar una fuente copia un bloque. 'medio' con RSS internacional general usa filter=true (solo notas sobre Venezuela). scope='global' = noticias de mercados internacionales: van a la pestaña «Mercados globales» con su propio filtro (mercados, tasas, Fed, petróleo, empresas; sin política ni conflictos).",
   "feeds": [
     {
       "name": "Banca y Negocios",
@@ -511,6 +511,78 @@
       "lang": "en",
       "filter": true,
       "kind": "agregador"
+    },
+    {
+      "name": "Yahoo Finance",
+      "url": "https://finance.yahoo.com/news/rssindex",
+      "lang": "en",
+      "kind": "medio",
+      "filter": false,
+      "scope": "global"
+    },
+    {
+      "name": "CNBC Mercados",
+      "url": "https://www.cnbc.com/id/10000664/device/rss/rss.html",
+      "lang": "en",
+      "kind": "medio",
+      "filter": false,
+      "scope": "global"
+    },
+    {
+      "name": "CNBC Economía",
+      "url": "https://www.cnbc.com/id/20910258/device/rss/rss.html",
+      "lang": "en",
+      "kind": "medio",
+      "filter": false,
+      "scope": "global"
+    },
+    {
+      "name": "MarketWatch",
+      "url": "https://feeds.content.dowjones.io/public/rss/mw_topstories",
+      "lang": "en",
+      "kind": "medio",
+      "filter": false,
+      "scope": "global"
+    },
+    {
+      "name": "MarketWatch Mercados",
+      "url": "https://feeds.content.dowjones.io/public/rss/mw_marketpulse",
+      "lang": "en",
+      "kind": "medio",
+      "filter": false,
+      "scope": "global"
+    },
+    {
+      "name": "Reuters Mercados",
+      "url": "https://news.google.com/rss/search?q=site%3Areuters.com%20markets%20when%3A1d&hl=en-US&gl=US&ceid=US:en",
+      "lang": "en",
+      "kind": "agregador",
+      "filter": false,
+      "scope": "global"
+    },
+    {
+      "name": "Investing.com",
+      "url": "https://www.investing.com/rss/news_25.rss",
+      "lang": "en",
+      "kind": "medio",
+      "filter": false,
+      "scope": "global"
+    },
+    {
+      "name": "Financial Times Mercados",
+      "url": "https://www.ft.com/markets?format=rss",
+      "lang": "en",
+      "kind": "medio",
+      "filter": false,
+      "scope": "global"
+    },
+    {
+      "name": "Bloomberg Línea Mercados",
+      "url": "https://news.google.com/rss/search?q=site%3Abloomberglinea.com%20mercados%20when%3A1d&hl=es-419&gl=US&ceid=US:es-419",
+      "lang": "es",
+      "kind": "agregador",
+      "filter": false,
+      "scope": "global"
     }
   ]
 }

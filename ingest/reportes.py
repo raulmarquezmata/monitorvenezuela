@@ -606,7 +606,7 @@ table.rk .cl { font-size: 7pt; color: #004aa1; }\ntable.rk td { vertical-align: 
 # ---------------------------------------------------------------- informe de cierre diario (renta variable) + aviso por Telegram
 TD = {
     "es": dict(kicker="RADAR · CIERRE BVC", title="Cierre de la Bolsa de Valores de Caracas · {d}",
-               sub="Renta variable: las {n} acciones que operaron en la sesión, con apertura, cierre en bolívares y en dólares, variación del día y rendimiento {wk}.",
+               sub="Renta variable: las {n} acciones que operaron en la sesión, con el cierre en bolívares y en dólares, variación del día y rendimiento {wk}.",
                wk_run="en lo que va de semana", wk_full="de la semana (lunes a viernes)",
                k_ibc="IBC", k_of="US$ OFICIAL BCV", k_par="US$ MERCADO ALTERNATIVO", k_monto="MONTO NEGOCIADO (US$ ALT.)",
                ibc_m="día {d} · semana {w}", h=["Símbolo", "Emisor", "Apertura<br>Bs.", "Cierre<br>Bs.", "Var. día<br>Bs.", "Cierre<br>US$ alt.",
@@ -615,7 +615,7 @@ TD = {
                "Columnas en US$ alt.: cada precio se convierte con la tasa del mercado alternativo de su fecha. Semana: cierre de hoy frente al último cierre de la semana anterior ({base}). Monto: monto negociado del día ÷ tasa alternativa de hoy. "
                "Informe generado automáticamente el {now} — no constituye recomendación de inversión.", nobase="—"),
     "en": dict(kicker="RADAR · BVC CLOSE", title="Caracas Stock Exchange close · {d}",
-               sub="Equities: the {n} stocks traded in the session, with open, close in bolivars and dollars, daily change and {wk} return.",
+               sub="Equities: the {n} stocks traded in the session, with the close in bolivars and dollars, daily change and {wk} return.",
                wk_run="week-to-date", wk_full="full-week (Monday to Friday)",
                k_ibc="IBC", k_of="US$ BCV OFFICIAL", k_par="US$ ALTERNATIVE MARKET", k_monto="TRADED AMOUNT (ALT. US$)",
                ibc_m="day {d} · week {w}", h=["Symbol", "Issuer", "Open<br>Bs.", "Close<br>Bs.", "Day chg.<br>Bs.", "Close<br>US$ alt.",
@@ -716,13 +716,17 @@ def build_daily_html(dd: dict, lang: str) -> str:
             (t["k_monto"], f"US$ {num(dd['monto'] / par / 1e3, 1, lang)} {'mil' if lang == 'es' else 'K'}" if par else "—",
              (f"Bs. {num(dd['monto'] / 1e6, 2, lang)} MM" if dd["monto"] >= 1e6 else f"Bs. {num(dd['monto'], 0, lang)}") + (" en bolívares" if lang == "es" else " in bolivars"))]
     kp = "".join(f"<td><div class='k'>{k}</div><div class='v'>{v}</div><div class='m'>{m or '&nbsp;'}</div></td>" for k, v, m in kpis)
+    # la apertura solo se muestra si la BVC la publicó para la mayoría de las acciones del día
+    show_open = sum(1 for x in dd["rows"] if x.get("open")) >= 0.8 * len(dd["rows"])
     body = "".join(
-        f"<tr><td><b>{x['symbol']}</b></td><td class='l'>{x['nombre']}</td><td>{num(x.get('open'), 2, lang) if x.get('open') else '—'}</td>"
+        f"<tr><td><b>{x['symbol']}</b></td><td class='l'>{x['nombre']}</td>{(f'<td>' + (num(x.get('open'), 2, lang) if x.get('open') else '—') + '</td>') if show_open else ''}"
         f"<td><b>{num(x['close'], 2, lang)}</b></td><td>{pc(x.get('var_pct'))}</td>"
         f"<td class='us'><b>{num(x['close_us'], 4, lang) if x['close_us'] else '—'}</b></td><td class='us'>{pc(x['d_us'])}</td><td class='us'>{pc(x['wk_us'])}</td>"
         f"<td class='us'>{num(x['amount_us'], 0, lang) if x['amount_us'] else '—'}</td></tr>"
         for x in dd["rows"])
-    head = "".join(f"<th{' class=l' if j == 1 else ' class=us' if j >= 5 else ''}>{h}</th>" for j, h in enumerate(t["h"]))
+    hs = [h for j, h in enumerate(t["h"]) if show_open or j != 2]
+    us0 = 4 if show_open else 3
+    head = "".join(f"<th{' class=l' if j == 1 else ' class=us' if j >= us0 + 1 else ''}>{h}</th>" for j, h in enumerate(hs))
     now = dt.datetime.now(dt.timezone(dt.timedelta(hours=-4)))
     src = t["src"].format(of=rd(of), par=rd(par), base=dshort(dd["base"], lang) if dd["base"] else t["nobase"],
                           now=f"{dshort(now.date().isoformat(), lang)} {now:%H:%M} VET")
@@ -815,3 +819,170 @@ def run_daily(force: bool = False):
         upsert("alerts_log", [{"key": key, "rule": "pdf_cierre", "message": text, "channels": ch,
                                "sent_at": dt.datetime.now(dt.timezone.utc).isoformat()}], "key")
         r.rows = len(rows)
+
+
+# ---------------------------------------------------------------- Radar semanal (viernes, tras el cierre)
+WEEKLY_SERIES = [("usd_bcv", "Dólar oficial BCV", "Official USD (BCV)", "Bs", 2, "pct"), ("usd_paralelo", "Dólar mercado alternativo", "Alternative-market USD", "Bs", 2, "pct"),
+                 ("brecha_cambiaria", "Brecha cambiaria", "FX gap", "%", 1, "pp"), ("ibc", "IBC (Bs)", "IBC (Bs)", "pts", 2, "pct"),
+                 ("ibc_usd_paralelo", "IBC en US$ alternativo", "IBC in alternative US$", "pts", 2, "pct"), ("brent", "Brent", "Brent", "US$/b", 2, "pct"),
+                 ("merey", "Cesta Merey (último mes)", "Merey basket (latest month)", "US$/b", 2, "none"), ("sp500", "S&P 500", "S&P 500", "pts", 2, "pct"),
+                 ("oro_diario", "Oro", "Gold", "US$/oz", 2, "pct"), ("bitcoin", "Bitcoin", "Bitcoin", "US$", 0, "pct"), ("ust_10a", "Tesoro EE.UU. 10 años", "US Treasury 10-year", "%", 2, "bp")]
+
+
+def weekly_data(friday: dt.date) -> dict:
+    monday = friday - dt.timedelta(days=friday.weekday())
+    prev_end = (monday - dt.timedelta(days=1)).isoformat()
+    codes = [c for c, *_ in WEEKLY_SERIES]
+    obs = select("observations", {"select": "series_code,date,value", "series_code": f"in.({','.join(codes)})",
+                                  "date": f"gte.{(monday - dt.timedelta(days=60)).isoformat()}", "order": "date"})
+    by: dict[str, list] = {}
+    for o in obs:
+        by.setdefault(o["series_code"], []).append((o["date"], o["value"]))
+    rows = []
+    for code, es_, en_, unit, dec, kind in WEEKLY_SERIES:
+        pts = [p for p in by.get(code, []) if p[0] <= friday.isoformat()]
+        if not pts:
+            continue
+        last = pts[-1][1]
+        base = next((v for d, v in reversed(pts) if d <= prev_end), None)
+        chg = None
+        if base is not None and kind == "pct" and base:
+            chg = (last / base - 1) * 100
+        elif base is not None and kind == "pp":
+            chg = last - base
+        elif base is not None and kind == "bp":
+            chg = (last - base) * 100
+        rows.append({"es": es_, "en": en_, "unit": unit, "dec": dec, "kind": kind, "last": last, "chg": chg, "date": pts[-1][0]})
+    # BVC: rendimiento de la semana por acción (en Bs y en US$ alternativo)
+    q = select("bvc_quotes", {"select": "symbol,date,close", "market": "eq.RV", "close": "gt.0",
+                              "date": f"gte.{(monday - dt.timedelta(days=21)).isoformat()}", "order": "date"})
+    par = [(d, v) for d, v in by.get("usd_paralelo", [])]
+    lastq, baseq = {}, {}
+    for x in q:
+        if x["date"] <= friday.isoformat():
+            (lastq if x["date"] >= monday.isoformat() else baseq)[x["symbol"]] = (x["date"], x["close"])
+    emp = company_names()
+    movers = []
+    for sym, (d1, c1) in lastq.items():
+        b = baseq.get(sym)
+        if not b:
+            continue
+        p1, p0 = _at(par, d1), _at(par, b[0])
+        movers.append({"symbol": sym, "nombre": (emp.get(sym) or {}).get("nombre") or sym, "bs": (c1 / b[1] - 1) * 100,
+                       "us": ((c1 / p1) / (b[1] / p0) - 1) * 100 if p1 and p0 else None})
+    movers.sort(key=lambda m: -(m["us"] if m["us"] is not None else m["bs"]))
+    # datos oficiales publicados en la semana (los mismos avisos que salieron por Telegram)
+    rules = json.loads((pathlib.Path(__file__).resolve().parent.parent / "config" / "alerts.json").read_text(encoding="utf-8"))["reglas"]
+    data_rules = {x["id"] for x in rules if x["tipo"] == "nuevo_dato"}
+    logs = select("alerts_log", {"select": "rule,message,sent_at", "sent_at": f"gte.{monday.isoformat()}", "order": "sent_at"})
+    from .alerts import plain
+    released = []
+    for x in logs:
+        if x["rule"] in data_rules and x.get("message"):
+            lines = [ln.strip() for ln in plain(x["message"]).splitlines() if ln.strip() and not ln.startswith("━") and not ln.startswith("🔗")]
+            txt = " · ".join(lines[:2])
+            if txt and txt not in released:
+                released.append(txt)
+    # titulares de la semana (Venezuela; los más citados primero)
+    news = select("news", {"select": "title,title_es,source,category,published_at", "published_at": f"gte.{monday.isoformat()}",
+                           "category": "in.(economia,petroleo,mercados,banca,deuda,mineria)", "order": "published_at.desc", "limit": 400})
+    from .alerts import same_story
+    groups: list[dict] = []
+    for n in news:
+        t = n.get("title_es") or n["title"]
+        g = next((g for g in groups if same_story(g["t"], t)), None)
+        if g:
+            g["n"] += 1
+        else:
+            groups.append({"t": t, "n": 1, "s": n.get("source") or ""})
+    groups.sort(key=lambda g: -g["n"])
+    return {"monday": monday.isoformat(), "friday": friday.isoformat(), "rows": rows, "movers": movers, "released": released[:10], "news": groups[:8]}
+
+
+def build_weekly_html(wd: dict, lang: str) -> str:
+    es = lang == "es"
+    def chg(r):
+        v = r["chg"]
+        if v is None or r["kind"] == "none":
+            return "—"
+        if r["kind"] == "bp":
+            s = f"{'+' if v > 0 else ''}{num(v, 0, lang)} pb" if es else f"{'+' if v > 0 else ''}{num(v, 0, lang)} bp"
+        elif r["kind"] == "pp":
+            s = f"{'+' if v > 0 else ''}{num(v, 1, lang)} pp"
+        else:
+            s = f"{'+' if v > 0 else ''}{num(v, 2, lang)}%"
+        return f"<span class='{'up' if v > 0 else 'dn' if v < 0 else ''}'>{s}</span>"
+    kr = "".join(f"<tr><td class='l'>{r['es'] if es else r['en']}</td><td><b>{num(r['last'], r['dec'], lang)}</b> <span class='u'>{r['unit']}</span></td><td>{chg(r)}</td></tr>" for r in wd["rows"])
+    pc = lambda v: "—" if v is None else f"<span class='{'up' if v > 0 else 'dn' if v < 0 else ''}'>{'+' if v > 0 else ''}{num(v, 2, lang)}%</span>"  # noqa: E731
+    mv = wd["movers"]
+    top = mv[:5]
+    bot = [m for m in reversed(mv[-5:]) if m not in top]
+    mrow = lambda m: f"<tr><td><b>{m['symbol']}</b></td><td class='l'>{m['nombre']}</td><td>{pc(m['bs'])}</td><td>{pc(m['us'])}</td></tr>"  # noqa: E731
+    mhead = f"<tr><th>{'Símbolo' if es else 'Symbol'}</th><th class='l'>{'Emisor' if es else 'Issuer'}</th><th>{'Semana Bs.' if es else 'Week Bs.'}</th><th class='us'>{'Semana US$ alt.' if es else 'Week alt. US$'}</th></tr>"
+    rel = "".join(f"<li>{x}</li>" for x in wd["released"]) or f"<li>{'Sin publicaciones oficiales nuevas esta semana.' if es else 'No new official releases this week.'}</li>"
+    nws = "".join(f"<li>{g['t']} <span class='u'>· {g['s']}{(' +' + str(g['n'] - 1)) if g['n'] > 1 else ''}</span></li>" for g in wd["news"])
+    d0, d1 = dlong(wd["monday"], lang), dlong(wd["friday"], lang)
+    now = dt.datetime.now(dt.timezone(dt.timedelta(hours=-4)))
+    extra = """
+table.w { width: 100%; border-collapse: collapse; font-size: 8.6pt; }
+table.w th { background: #121a30; color: #fff; text-align: right; padding: 5px 6px; font-size: 7.6pt; }
+table.w th.us { background: #004aa1; }
+table.w td { text-align: right; padding: 4px 6px; border-bottom: 0.5px solid #e4e5ea; }
+table.w .l { text-align: left; } table.w td:first-child { text-align: left; }
+table.w .u { color: #6e7486; font-size: 7pt; font-weight: 400; }
+.up { color: #1e7b45; font-weight: 700; } .dn { color: #b8322a; font-weight: 700; }
+.two { display: flex; gap: 10px; } .two > div { flex: 1; }
+ul.b { margin: 4px 0 0; padding-left: 14px; font-size: 8.2pt; line-height: 1.45; } ul.b .u { color: #6e7486; font-size: 7pt; }
+.card h2 { font-size: 11.5pt; } .src { font-size: 7pt; }
+"""
+    return f"""<!doctype html><html><head><meta charset="utf-8"><style>{CSS}{extra}</style></head><body>
+<div class="hero"><div class="top"><img src="{logo()}"><div class="brand">{'RADAR · RESUMEN SEMANAL' if es else 'RADAR · WEEKLY SUMMARY'}</div></div>
+<h1>{'Radar semanal' if es else 'Weekly Radar'}</h1><p>{(f'Semana del {d0} al {d1}: tipo de cambio, Bolsa de Caracas, datos publicados, petróleo y mercados internacionales.') if es else (f'Week of {d0} to {d1}: FX, Caracas Stock Exchange, data releases, oil and global markets.')}</p></div>
+<div class="two" style="margin-top:8px">
+<div class="card"><h2>{'Indicadores de la semana' if es else 'Key indicators this week'}</h2>
+<table class="w"><tr><th class="l">{'Indicador' if es else 'Indicator'}</th><th>{'Cierre' if es else 'Close'}</th><th>{'Var. semana' if es else 'Weekly chg.'}</th></tr>{kr}</table></div>
+<div class="card"><h2>{'Datos oficiales publicados' if es else 'Official data released'}</h2><ul class="b">{rel}</ul></div>
+</div>
+<div class="two">
+<div class="card"><h2>{'BVC · mayores alzas de la semana' if es else 'BVC · top weekly gainers'}</h2><table class="w">{mhead}{''.join(mrow(m) for m in top)}</table></div>
+<div class="card"><h2>{'BVC · mayores bajas de la semana' if es else 'BVC · top weekly losers'}</h2><table class="w">{mhead}{''.join(mrow(m) for m in bot)}</table></div>
+</div>
+<div class="card"><h2>{'Lo más comentado de la semana' if es else 'Most-covered stories this week'}</h2><ul class="b">{nws}</ul></div>
+<div class="src">{'Fuentes: BCV, Bolsa de Valores de Caracas, OPEP, EIA, Yahoo Finance, Departamento del Tesoro de EE.UU. y medios citados. Variación semanal: cierre del viernes frente al último dato de la semana anterior; en US$ alternativo cada precio se convierte con la tasa de su fecha. ' if es else 'Sources: BCV, Caracas Stock Exchange, OPEC, EIA, Yahoo Finance, US Treasury and the outlets cited. Weekly change: Friday close vs. the previous week’s last print; in alternative US$ each price is converted at its own date’s rate. '}{'Informe generado automáticamente el' if es else 'Report generated automatically on'} {dshort(now.date().isoformat(), lang)} {now:%H:%M} VET — {'no constituye recomendación de inversión.' if es else 'not investment advice.'}</div>
+</body></html>"""
+
+
+def run_weekly(force: bool = False):
+    """Viernes desde las 2:00 pm (o el fin de semana si no salió): PDF del Radar semanal + aviso por Telegram, una vez por semana."""
+    from .alerts import send_telegram, site
+    from .common import upsert
+    with Run("semanal") as r:
+        now = dt.datetime.now(dt.timezone(dt.timedelta(hours=-4)))
+        if not force and not (now.weekday() == 4 and now.hour >= 14 or now.weekday() >= 5):
+            return
+        friday = now.date() - dt.timedelta(days=(now.weekday() - 4) % 7)
+        key = f"pdf_semanal:{friday.isoformat()}"
+        if not force and select("alerts_log", {"select": "key", "key": f"eq.{key}"}):
+            return
+        wd = weekly_data(friday)
+        ensure_bucket(BUCKET)
+        urls = {}
+        for lang in ("es", "en"):
+            pdf = render_pdf(build_weekly_html(wd, lang))
+            urls[lang] = storage_upload(BUCKET, f"semanal/radar_semanal_{lang}.pdf", pdf, max_age=60)
+            storage_upload(BUCKET, f"semanal/{friday.isoformat()}_{lang}.pdf", pdf)
+        byc = {x["es"]: x for x in wd["rows"]}
+        def p(name):
+            x = byc.get(name)
+            return "—" if not x or x["chg"] is None else f"{'+' if x['chg'] > 0 else ''}{num(x['chg'], 2)}%"
+        text = (f"🗞️ **Radar semanal · {friday.day} {['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sept', 'oct', 'nov', 'dic'][friday.month - 1]}**\n"
+                f"Dólar alternativo {p('Dólar mercado alternativo')} · IBC {p('IBC (Bs)')} · S&P 500 {p('S&P 500')}\n"
+                f"{len(wd['released'])} datos oficiales publicados en la semana"
+                + "\n\n🔗 " + "  ·  ".join(x for x in [f"[PDF del Radar semanal]({urls['es']}?v={friday.isoformat()})", f"[Ver en el Radar]({site('/es')})" if site() else ""] if x))
+        ch = None
+        try:
+            ch = "telegram" if send_telegram(text) else None
+        except Exception as e:  # noqa: BLE001
+            r.note(f"Telegram: {e}")
+        upsert("alerts_log", [{"key": key, "rule": "pdf_semanal", "message": text, "channels": ch, "sent_at": dt.datetime.now(dt.timezone.utc).isoformat()}], "key")
+        r.rows = 1

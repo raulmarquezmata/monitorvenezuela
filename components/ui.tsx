@@ -1,3 +1,4 @@
+import ShareWA from "./ShareWA";
 import Link from "next/link";
 import type { Latest, Point } from "@/lib/data";
 import { num, fmtDateFor } from "@/lib/format";
@@ -63,7 +64,9 @@ export function SeriesCard({ s, points, lang, allowLog = false, bars = false, ar
         <span>{d.source}: {s.source_url ? <a href={s.source_url} target="_blank" rel="noreferrer">{s.source}</a> : s.source}
           {points.length > 0 && <> · {lang === "es" ? "serie" : "series"} {fmtDateFor(points[0][0], s.frequency, lang)} – {fmtDateFor(points[points.length - 1][0], s.frequency, lang)}</>}</span>
         {s.method !== "auto" && <span className={`method ${s.method}`}>{d.method[s.method]}</span>}
-        {points.length > 0 && <a className="dl" href={`/api/export?codes=${s.code}&format=xlsx&lang=${lang}`}>⬇ Excel</a>}
+        {points.length > 0 && <span style={{ display: "inline-flex", gap: 10, alignItems: "center" }}>
+          <ShareWA text={`${lang === "es" ? s.name_es : s.name_en}${s.last_value != null ? `: ${num(s.last_value, lang, s.decimals)} ${(lang === "es" ? s.unit_es : s.unit_en) ?? ""}` : ""} · Radar Grupo Solfin`} hash={s.code} />
+          <a className="dl" href={`/api/export?codes=${s.code}&format=xlsx&lang=${lang}`}>⬇ Excel</a></span>}
       </div>
     </div>
   );

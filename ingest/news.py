@@ -152,6 +152,21 @@ def is_relevant(title: str, summary: str | None, strict: bool) -> bool:
     return True
 
 
+# ---- Mercados globales (Yahoo Finance, CNBC, MarketWatch, Reuters...): pestaña aparte con su propio filtro
+GLOBAL_OK = re.compile(r"stock|shares|equit|wall street|s&p|nasdaq|dow\b|index|futures|market|rally|sell-?off|bond|treasur|yield|\bfed\b|federal reserve|powell|"
+                       r"rate (cut|hike)|interest rate|inflation|\bcpi\b|\bpce\b|jobs report|payroll|unemployment|gdp|recession|economy|earnings|revenue|profit|"
+                       r"guidance|forecast|ipo|merger|acquisi|deal|buyback|dividend|oil|crude|brent|opec|gold|silver|copper|commodit|bitcoin|crypto|dollar|"
+                       r"currency|euro\b|yen|ecb|bank of (japan|england)|tariff|trade|investor|analyst|upgrade|downgrade|etf|fund|"
+                       r"bolsa|acciones|mercado|bonos|tasas|inflaci|reserva federal|petr[oó]leo|d[oó]lar|econom|empresa|resultados|ganancias", re.I)
+GLOBAL_NOISE = re.compile(r"celebrit|royal|murder|shooting|killed|dies at|obituar|recipe|travel tips|horoscope|lottery|football|soccer|nba|nfl|mlb|"
+                          r"election (results|poll)|campaign trail|ukraine war|missile|drone strike|airstrike|troops|military|gaza|hamas|hezbollah|"
+                          r"best credit card|mortgage rates today|savings rates today|cd rates|personal finance|how to|you should|ways to", re.I)
+
+
+def is_global_relevant(title: str) -> bool:
+    return bool(GLOBAL_OK.search(title)) and not GLOBAL_NOISE.search(title) and not TONE.search(title)
+
+
 def categorize(text: str) -> str:
     t = text.lower()
     for cat, rx in CATEGORIES:
@@ -160,7 +175,7 @@ def categorize(text: str) -> str:
     return "economia"
 
 
-def parse_feed(content: bytes, default_source: str | None, lang: str, require_relevance: bool) -> list[dict]:
+def parse_feed(content: bytes, default_source: str | None, lang: str, require_relevance: bool, scope: str = "ve") -> list[dict]:
     feed = feedparser.parse(content)
     out = []
     cutoff = dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=10)
@@ -182,6 +197,12 @@ def parse_feed(content: bytes, default_source: str | None, lang: str, require_re
         # Google News no trae resumen propio (repite titulares de otras notas): se ignora
         summary = None if not default_source else clean_summary(clean_text(e.get("summary"), 400), title)
         blob = f"{title} {summary or ''}"
+        if scope == "global":
+            if not is_global_relevant(title):
+                continue
+            out.append({"url": link, "title": title, "source": source or "—", "published_at": published.isoformat(),
+                        "summary": summary, "category": "global", "lang": lang})
+            continue
         if not is_relevant(title, summary, require_relevance):
             continue
         out.append({"url": link, "title": title, "source": source or "—", "published_at": published.isoformat(),
@@ -200,7 +221,7 @@ def google_fallback(f: dict) -> list[dict] | None:
     url = (f"https://news.google.com/rss/search?q={q}&hl=es-419&gl=VE&ceid=VE:es-419" if es
            else f"https://news.google.com/rss/search?q={q}&hl=en-US&gl=US&ceid=US:en")
     try:
-        got = parse_feed(fetch(url, timeout=30, retries=2).content, f["name"], f.get("lang", "es"), f.get("filter", True))
+        got = parse_feed(fetch(url, timeout=30, retries=2).content, f["name"], f.get("lang", "es"), f.get("filter", True), f.get("scope", "ve"))
     except Exception:  # noqa: BLE001
         return None
     for it in got:  # Google añade " - Medio" al titular
@@ -216,7 +237,9 @@ def cleanup() -> int:
     from .common import delete, select
     since = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=45)).isoformat()
     ve = {re.sub(r"\s*\((RSS|búsqueda|economía)\)$", "", f["name"]) for f in load_feeds() if not f.get("filter", True)}
-    bad = [x["url"] for x in select("news", {"select": "url,title,summary,source,symbols", "published_at": f"gte.{since}"})
+    bad = [x["url"] for x in select("news", {"select": "url,title,summary,source,symbols,category", "published_at": f"gte.{since}"})
+           if x.get("category") == "global" and not is_global_relevant(x["title"])]
+    bad += [x["url"] for x in select("news", {"select": "url,title,summary,source,symbols,category", "published_at": f"gte.{since}", "category": "neq.global"})
            if not x.get("symbols") and not is_relevant(x["title"], clean_summary(x.get("summary"), x["title"]), x.get("source") not in ve)]
     # se borran en lotes de 40 (antes era una por una y, con muchas, la corrida se hacía larga)
     import time
@@ -243,6 +266,8 @@ def recategorize() -> int:
     rows = select("news", {"select": "url,title,summary,source,published_at,category,lang", "published_at": f"gte.{since}"})
     changed = []
     for x in rows:
+        if x.get("category") == "global":
+            continue
         c = categorize(f"{x['title']} {clean_summary(x.get('summary'), x['title']) or ''}")
         if c != x.get("category"):
             x["category"] = c

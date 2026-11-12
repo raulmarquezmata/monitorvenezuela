@@ -7,11 +7,12 @@ type Props = {
   fx: { usd_bcv: Point[]; usd_paralelo: Point[]; eur_bcv: Point[] };
   inflation: Point[]; // inflación mensual %
   usCpi: Point[];     // IPC de EE.UU. (índice mensual)
+  only?: "fx";        // solo el conversor (en Inicio)
 };
 
 const at = (pts: Point[], d: string) => { let v: number | null = null; for (const p of pts) { if (p[0] <= d) v = p[1]; else break; } return v; };
 
-export default function Calculator({ lang, fx, inflation, usCpi }: Props) {
+export default function Calculator({ lang, fx, inflation, usCpi, only }: Props) {
   const es = lang === "es";
   const loc = es ? "es-VE" : "en-US";
   const f = (v: number | null | undefined, dec = 2) => v == null || !isFinite(v) ? "—" : new Intl.NumberFormat(loc, { minimumFractionDigits: dec, maximumFractionDigits: dec }).format(v);
@@ -57,7 +58,7 @@ export default function Calculator({ lang, fx, inflation, usCpi }: Props) {
   }, [usCpi, usFrom]);
 
   return (
-    <div className="grid cards">
+    <div className={only ? "calc-only" : "grid cards"}>
       <div className="card">
         <h3>{es ? "Conversor Bs / US$ / €" : "Bs / US$ / € converter"}</h3>
         <p className="muted">{es ? "Con la tasa vigente en la fecha elegida." : "Using the rate in force on the chosen date."}</p>
@@ -78,6 +79,7 @@ export default function Calculator({ lang, fx, inflation, usCpi }: Props) {
           {rates.of && rates.pa ? ` · ${es ? "brecha" : "gap"} ${f((rates.pa / rates.of - 1) * 100, 1)}%` : ""}
         </p>
       </div>
+      {!only && <>
       <div className="card">
         <h3>{es ? "Inflación en dólares" : "Dollar inflation"}</h3>
         <p className="muted">{es ? "Cuánto poder de compra pierde un monto en US$ con la inflación de EE.UU. (IPC)." : "How much purchasing power a US$ amount loses to US inflation (CPI)."}</p>
@@ -121,6 +123,7 @@ export default function Calculator({ lang, fx, inflation, usCpi }: Props) {
           </>
         ) : <div className="empty">{es ? "Sin datos de inflación" : "No inflation data"}</div>}
       </div>
+      </>}
     </div>
   );
 }

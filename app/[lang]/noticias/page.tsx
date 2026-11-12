@@ -9,7 +9,7 @@ import { balanced, groupNews, isVenezuelan } from "@/lib/newsgroup";
 // los filtros llegan por la URL (?cat=, ?m=…): se renderiza en cada visita
 export const dynamic = "force-dynamic";
 
-const CATS = ["economia", "politica", "petroleo", "mercados", "banca", "deuda", "mineria", "agro"];
+const CATS = ["economia", "politica", "petroleo", "mercados", "banca", "deuda", "mineria", "agro", "global"];
 
 export default async function Noticias({ params, searchParams }: { params: { lang: Lang }; searchParams: { cat?: string; o?: string } }) {
   const { lang } = params;
@@ -25,7 +25,9 @@ export default async function Noticias({ params, searchParams }: { params: { lan
     <>
       <NewsNav lang={lang} />
       <h1>{d.nav.news}</h1>
-      <p className="sub">{lang === "es" ? "Titulares de medios venezolanos e internacionales, clasificados automáticamente por tema." : "Headlines from Venezuelan and international media, auto-tagged by topic."}</p>
+      <p className="sub">{cat === "global"
+        ? (lang === "es" ? "Mercados internacionales: Wall Street, tasas, la Fed, petróleo y grandes empresas, de Yahoo Finance, CNBC, MarketWatch, Reuters, Financial Times, Investing.com y Bloomberg Línea." : "Global markets: Wall Street, rates, the Fed, oil and large companies, from Yahoo Finance, CNBC, MarketWatch, Reuters, Financial Times, Investing.com and Bloomberg Línea.")
+        : (lang === "es" ? "Titulares de medios venezolanos e internacionales, clasificados automáticamente por tema." : "Headlines from Venezuelan and international media, auto-tagged by topic.")}</p>
       <div className="chips">
         <Link href={q({ cat: undefined })} className={!cat ? "on" : ""}>{d.all}</Link>
         {CATS.map((c) => <Link key={c} href={q({ cat: c })} className={cat === c ? "on" : ""}>{d.cats[c]}</Link>)}

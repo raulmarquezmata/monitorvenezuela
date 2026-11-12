@@ -133,6 +133,28 @@ export function mktcapReportUrl(lang: "es" | "en", version?: string | null): str
   return `${url.replace(/\/$/, "")}/storage/v1/object/public/reportes/mercado/mktcap_${lang}.pdf${version ? `?v=${version}` : ""}`;
 }
 
+/** Mapa del S&P 500 (lo genera el robot «global» en Storage). */
+export async function sp500Map(): Promise<{ updated: string; rows: import("@/components/MarketMap").MapRow[] } | null> {
+  if (!url) return null;
+  try {
+    const r = await fetch(`${url.replace(/\/$/, "")}/storage/v1/object/public/reportes/mercado/sp500.json`, { next: { revalidate: 300 } });
+    return r.ok ? await r.json() : null;
+  } catch { return null; }
+}
+
+/** Asambleas y eventos de emisores entre dos fechas (para la agenda). */
+export async function upcomingEvents(from: string, to: string): Promise<{ symbol: string; date: string; kind: string | null }[]> {
+  if (!sb) return [];
+  const { data, error } = await sb.from("bvc_events").select("symbol,date,kind").gte("date", from).lte("date", to).order("date").limit(10);
+  return error ? [] : (data ?? []);
+}
+
+/** URL pública del Radar semanal en PDF (lo genera el robot cada viernes). */
+export function weeklyReportUrl(lang: "es" | "en", version?: string | null): string | null {
+  if (!url) return null;
+  return `${url.replace(/\/$/, "")}/storage/v1/object/public/reportes/semanal/radar_semanal_${lang}.pdf${version ? `?v=${version}` : ""}`;
+}
+
 /** URL pública del informe PDF de cierre diario de la BVC (renta variable). */
 export function dailyReportUrl(lang: "es" | "en", version?: string | null): string | null {
   if (!url) return null;
@@ -142,7 +164,7 @@ export function dailyReportUrl(lang: "es" | "en", version?: string | null): stri
 /** Todas las noticias recientes que capta el robot (todos los medios y temas) para la hemeroteca automática. */
 async function hemerotecaAuto_(since = "2026-10-01"): Promise<News[]> {
   if (!sb) return [];
-  const { data, error } = await sb.from("news").select("url,title,title_es,title_en,source,published_at,summary,category")
+  const { data, error } = await sb.from("news").select("url,title,title_es,title_en,source,published_at,summary,category").or("category.is.null,category.neq.global")
     .gte("published_at", since).order("published_at", { ascending: false }).limit(4000);
   return error ? [] : ((data as News[]) ?? []);
 }
@@ -153,6 +175,7 @@ async function news_(limit = 60, category?: string, lang?: "es" | "en"): Promise
   // categorías unificadas: cambiario y precios → economía; sanciones → política
   const ALIAS: Record<string, string[]> = { economia: ["economia", "cambiario", "precios"], politica: ["politica", "sanciones"] };
   if (category) q = q.in("category", ALIAS[category] ?? [category]);
+  else q = q.or("category.is.null,category.neq.global"); // los mercados globales van en su propia pestaña
   const { data } = await q;
   const rows = (data as News[]) ?? [];
   return lang ? rows.map((n) => localizeNews(n, lang)) : rows;

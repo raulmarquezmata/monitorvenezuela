@@ -1,8 +1,9 @@
 import Link from "next/link";
 import QuoteTable from "@/components/QuoteTable";
+import Downloads from "@/components/Downloads";
 import ChartCard from "@/components/ChartCard";
 import { CardControls, CardScope } from "@/components/CardScope";
-import { chartLabels, NotConfigured, SeriesCard } from "@/components/ui";
+import { chartLabels, NotConfigured, SectionHead, SeriesCard } from "@/components/ui";
 import { change, PERIOD_LABEL, valueAt, type Period, type Point } from "@/lib/stats";
 import { bvcLatest, configured, dailyReportUrl, history, latest, mktcapReportUrl } from "@/lib/data";
 import { date, num } from "@/lib/format";
@@ -146,6 +147,11 @@ export default async function BVC({ params }: { params: { lang: Lang } }) {
             : <div className="empty">{d.noData}</div>}
         </CardScope>
       </details>
+
+      <section className="section">
+        <SectionHead label={es ? "Informes para descargar" : "Reports to download"} />
+        <Downloads lang={lang} />
+      </section>
 
       <h2 style={{ margin: "40px 0 16px" }}>{d.cat.mercados}</h2>
       <div className="grid g2">

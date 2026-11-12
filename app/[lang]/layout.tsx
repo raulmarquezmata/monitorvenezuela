@@ -43,11 +43,10 @@ export default async function LangLayout({ children, params }: { children: React
   const items = [
     { href: L, label: d.nav.home, match: [L] },
     { href: `${L}/bvc`, label: d.nav.bvc, match: [`${L}/bvc`] },
-    { href: `${L}/indicadores/cambiario`, label: d.nav.macro, match: [`${L}/indicadores`, `${L}/comercio`, `${L}/agro` ] },
-    { href: `${L}/noticias`, label: d.nav.news, match: [`${L}/noticias`] },
+    { href: `${L}/internacional`, label: d.nav.intl, match: [`${L}/internacional`] },
+    { href: `${L}/indicadores/cambiario`, label: d.nav.macro, match: [`${L}/indicadores`, `${L}/comercio`, `${L}/agro`] },
     { href: `${L}/informes`, label: d.nav.research, match: [`${L}/informes`, `${L}/research`] },
-    { href: `${L}/herramientas`, label: d.nav.tools, match: [`${L}/herramientas`] },
-    { href: `${L}/datos`, label: d.nav.data, match: [`${L}/datos`] },
+    { href: `${L}/noticias`, label: d.nav.news, match: [`${L}/noticias`] },
   ];
   const [updated, fx] = await Promise.all([lastRun(), fxForCurrency()]);
   return (
@@ -72,7 +71,14 @@ export default async function LangLayout({ children, params }: { children: React
         </div>
       </div>
       <main><div className="wrap">{children}</div></main>
-      <footer><div className="wrap">{d.disclaimer} · <Link href={`${L}/datos`}>{d.nav.data}</Link> · © {new Date().getFullYear()} {d.site}</div></footer>
+      <footer><div className="wrap">
+        <div className="foot-links">
+          <Link href={`${L}/herramientas`}>{d.nav.tools}</Link>
+          <Link href={`${L}/datos`}>{lang === "es" ? "Fuentes y metodología" : "Sources & methodology"}</Link>
+          <Link href={`${L}/noticias/linea-de-tiempo`}>{d.nav.timeline}</Link>
+        </div>
+        {d.disclaimer} · © {new Date().getFullYear()} {d.site}
+      </div></footer>
     </RangeProvider>
     </CurrencyProvider>
   );

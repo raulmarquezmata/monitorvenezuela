@@ -5,6 +5,7 @@ import MacroNav from "@/components/MacroNav";
 import { BarList, chartLabels, Kpi, NotConfigured, SectionHead, SeriesCard } from "@/components/ui";
 import { bankRanking, bankSample, bankSystem, bonds, configured, history, latest } from "@/lib/data";
 import BankExplorer from "@/components/BankExplorer";
+import AgroBody from "@/components/AgroBody";
 import { num } from "@/lib/format";
 import { cumulative, valueAt } from "@/lib/stats";
 import type { Range } from "@/components/Range";
@@ -50,7 +51,7 @@ const NOTES: Record<string, { es: string; en: string }> = {
   inflacion_mensual: { es: "Cuando el BCV o la Presidencia anuncian la inflación del mes antes de que salga la cifra habitual, se muestra ese anuncio (octubre 2026: 6,2%, anunciado el 3 de noviembre) y se reemplaza solo al publicarse la cifra oficial.", en: "When the BCV or the Presidency announces the month's inflation before the usual release, that announcement is shown (October 2026: 6.2%, announced on November 3) and replaced automatically once the official figure is published." },
   pib_real_var: { es: "El BCV publica el PIB solo por trimestre: no existe una cifra oficial mensual. El III trimestre de 2026 (6,6%) es el anuncio preliminar de la Presidencia del 3 de noviembre; se reemplaza solo cuando el BCV publique su archivo.", en: "The BCV publishes GDP only quarterly: there is no official monthly figure. Q3 2026 (6.6%) is the preliminary figure announced by the Presidency on November 3; it is replaced automatically once the BCV publishes its file." },
 };
-const HIDDEN = new Set(["petroleo_prod_opep_fs", "petroleo_prod_opep_cd", "petroleo_prod_eia", "intervencion_bcv", "inflacion_acumulada", "ipc_eeuu"]);
+const HIDDEN = new Set(["taladros_venezuela", "petroleo_prod_opep_fs", "petroleo_prod_opep_cd", "petroleo_prod_eia", "intervencion_bcv", "inflacion_acumulada", "ipc_eeuu"]);
 /** Rango por tarjeta cuando el estándar (1M…Máx) no aplica. */
 const RANGES: Record<string, Range[]> = {
   inflacion_mensual: ["YTD", "1A", "MAX"], inflacion_interanual: ["1A"], merey: [], intervencion_bcv_mensual: ["1A", "MAX"],
@@ -84,6 +85,9 @@ export default async function CategoryPage({ params }: { params: { lang: Lang; c
   const hist = await history([...series.map((s) => s.code), ...(cat === "precios" ? [] : [])], 45);
   const [bnd, ranking, sample, system, fxb] = await Promise.all([cat === "deuda" ? bonds() : null, cat === "banca" ? bankRanking() : [], cat === "banca" ? bankSample() : [],
     cat === "banca" ? bankSystem() : [], cat === "banca" ? history(["usd_bcv"], 5) : Promise.resolve({} as Record<string, [string, number][]>)]);
+  // Petróleo y materias primas: materias primas y agro van como desplegables debajo del petróleo
+  const comm = cat === "petroleo" ? await latest("commodities") : [];
+  const commHist = comm.length ? await history(comm.map((s) => s.code), 45) : {};
   const by = Object.fromEntries(series.map((s) => [s.code, s]));
   const featured = cat === "cambiario" ? ["usd_bcv", "usd_paralelo", "brecha_cambiaria"] : [];
   // destacados de cada página (gráfico grande arriba de la cuadrícula)
@@ -210,6 +214,21 @@ export default async function CategoryPage({ params }: { params: { lang: Lang; c
             ))}
           </div>
         </section>
+      )}
+      {cat === "petroleo" && (
+        <>
+          <details className="card fold" style={{ marginTop: 24 }}>
+            <summary><h3 style={{ display: "inline" }}>{es ? "Materias primas" : "Commodities"}</h3> <span className="muted">· {es ? "oro, hierro, aluminio, granos, café, cacao, fertilizantes" : "gold, iron ore, aluminum, grains, coffee, cocoa, fertilizers"}</span></summary>
+            <div className="grid g2">
+              {comm.filter((s) => (commHist[s.code] ?? []).length > 0).map((s) => <SeriesCard key={s.code} s={s} points={commHist[s.code] ?? []} lang={lang}
+                allowLog={LOG.has(s.code)} note={note(s.code)} hiLo={HILO.has(s.code)} bars={BARS.has(s.code)} />)}
+            </div>
+          </details>
+          <details className="card fold" style={{ marginTop: 16 }}>
+            <summary><h3 style={{ display: "inline" }}>Agro</h3> <span className="muted">· {es ? "producción, importaciones y consumo por campaña (USDA)" : "production, imports and consumption by season (USDA)"}</span></summary>
+            <AgroBody lang={lang} embed />
+          </details>
+        </>
       )}
     </>
   );

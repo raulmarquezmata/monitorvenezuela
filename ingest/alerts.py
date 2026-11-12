@@ -186,7 +186,7 @@ def gather_extra(rules: list[dict], daily: bool = False) -> dict:
         ex["monto"] = select("observations", {"select": "date,value", "series_code": "eq.bvc_monto",
                                               "date": f"gte.{today_caracas().year - 1}-10-01", "order": "date"})
     if "noticia" in tipos:
-        ex["news"] = select("news", {"select": "title,url,source,published_at", "published_at": f"gte.{since}", "order": "published_at.desc", "limit": 80})
+        ex["news"] = select("news", {"select": "title,url,source,published_at", "published_at": f"gte.{since}", "category": "neq.global", "order": "published_at.desc", "limit": 80})
     if "bvc_noticia" in tipos:  # noticias de emisores (las etiqueta el robot «emisores»)
         try:
             ex["bvc_news"] = select("news", {"select": "title,title_es,url,source,published_at,symbols", "published_at": f"gte.{since}",

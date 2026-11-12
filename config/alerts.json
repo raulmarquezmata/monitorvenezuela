@@ -144,8 +144,7 @@
       "series": [
         "petroleo_prod_opep_cd",
         "petroleo_prod_opep_fs",
-        "merey",
-        "taladros_venezuela"
+        "merey"
       ],
       "texto": "🛢️ **Salió el informe de la OPEP (MOMR)**\n{nombre}: **{valor} {unidad}** · {fecha}"
     },
