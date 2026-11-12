@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-export type MapRow = { t: string; n: string; s: string; se: string; w: number; p: number; d: number | null; wk: number | null; m: number | null; y: number | null };
+export type MapRow = { t: string; n: string; s: string; se: string; i?: string; w: number; p: number; d: number | null; wk: number | null; m: number | null; y: number | null; sp?: number[] };
 type Per = "d" | "wk" | "m" | "y";
 type Box = { x: number; y: number; w: number; h: number };
 
@@ -40,21 +40,32 @@ function squarify<T extends { v: number }>(items: T[], box: Box): (T & Box)[] {
 }
 
 const LIM: Record<Per, number> = { d: 3, wk: 6, m: 10, y: 30 };
+// escala de 7 colores al estilo de los mapas de mercado (rojo intenso ← gris → verde intenso)
+const STOPS = ["#f63538", "#bf4045", "#8b444e", "#414554", "#35764e", "#2f9e4f", "#30cc5a"];
 function color(v: number | null, per: Per) {
-  if (v == null) return "#3a3f4b";
-  const k = Math.max(-1, Math.min(1, v / LIM[per]));
-  // rojo (#b8322a) ← gris (#414554) → verde (#2f9e5b), como los mapas de mercado
-  const mix = (a: number[], b: number[], t: number) => a.map((c, i) => Math.round(c + (b[i] - c) * t));
-  const g = [65, 69, 84];
-  const c = k < 0 ? mix(g, [184, 50, 42], -k) : mix(g, [47, 158, 91], k);
-  return `rgb(${c.join(",")})`;
+  if (v == null) return "#414554";
+  const k = Math.max(-1, Math.min(1, v / LIM[per])) * 3 + 3; // 0..6
+  const a = Math.floor(k), b = Math.min(6, a + 1), t = k - a;
+  const hex = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+  const [x, y] = [hex(STOPS[a]), hex(STOPS[b])];
+  return `rgb(${x.map((c, i) => Math.round(c + (y[i] - c) * t)).join(",")})`;
 }
 
-/** Mapa del S&P 500 por sector (tamaño = peso en el índice; color = rendimiento del período). */
+type Tile = MapRow & Box & { v: number };
+type Ind = { name: string; sector: string; x: number; y: number; w: number; h: number; head: number; tiles: Tile[] };
+
+function Spark({ pts, up }: { pts?: number[]; up: boolean }) {
+  if (!pts || pts.length < 2) return <span style={{ width: 70 }} />;
+  const lo = Math.min(...pts), hi = Math.max(...pts), W = 70, H = 20;
+  const d = pts.map((v, i) => `${i ? "L" : "M"}${((i / (pts.length - 1)) * W).toFixed(1)},${(H - ((v - lo) / (hi - lo || 1)) * H).toFixed(1)}`).join("");
+  return <svg width={W} height={H}><path d={d} fill="none" stroke={up ? "#30cc5a" : "#f63538"} strokeWidth={1.3} /></svg>;
+}
+
+/** Mapa del S&P 500 por sector e industria (tamaño = peso en el índice; color = rendimiento del período), al estilo de Finviz. */
 export default function MarketMap({ rows, lang }: { rows: MapRow[]; lang: "es" | "en" }) {
   const es = lang === "es";
   const [per, setPer] = useState<Per>("d");
-  const [hover, setHover] = useState<(MapRow & Box) | null>(null);
+  const [hover, setHover] = useState<{ t: Tile; ind: Ind; mx: number; my: number } | null>(null);
   const ref = useRef<HTMLDivElement>(null);
   const [W, setW] = useState(1100);
   useEffect(() => {
@@ -63,20 +74,33 @@ export default function MarketMap({ rows, lang }: { rows: MapRow[]; lang: "es" |
     ro.observe(ref.current);
     return () => ro.disconnect();
   }, []);
-  const H = Math.round(W < 700 ? W * 1.3 : W * 0.55);
+  const H = Math.round(W < 700 ? W * 1.4 : W * 0.6);
   const loc = es ? "es-VE" : "en-US";
   const pct = (v: number | null) => (v == null ? "—" : `${v > 0 ? "+" : ""}${new Intl.NumberFormat(loc, { maximumFractionDigits: 2, minimumFractionDigits: 2 }).format(v)}%`);
+  const money = (v: number) => new Intl.NumberFormat(loc, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v);
   const layout = useMemo(() => {
+    const secName = (r: MapRow) => (es ? r.se : r.s);
     const bySec = new Map<string, MapRow[]>();
-    for (const r of rows) bySec.set(es ? r.se : r.s, [...(bySec.get(es ? r.se : r.s) ?? []), r]);
+    for (const r of rows) bySec.set(secName(r), [...(bySec.get(secName(r)) ?? []), r]);
     const secs = squarify([...bySec.entries()].map(([name, rs]) => ({ name, rs, v: rs.reduce((a, r) => a + r.w, 0) })), { x: 0, y: 0, w: W, h: H });
     return secs.map((s) => {
-      const pad = 1, top = s.h > 40 && s.w > 60 ? 16 : 0;
-      const tiles = squarify(s.rs.map((r) => ({ ...r, v: r.w })), { x: s.x + pad, y: s.y + top + pad, w: s.w - 2 * pad, h: s.h - top - 2 * pad });
-      return { ...s, top, tiles };
+      const sh = s.h > 30 && s.w > 50 ? 17 : 0; // franja con el nombre del sector
+      const byInd = new Map<string, MapRow[]>();
+      for (const r of s.rs) byInd.set(r.i || r.s, [...(byInd.get(r.i || r.s) ?? []), r]);
+      const inds = squarify([...byInd.entries()].map(([name, rs]) => ({ name, rs, v: rs.reduce((a, r) => a + r.w, 0) })),
+        { x: s.x + 1, y: s.y + sh, w: s.w - 2, h: s.h - sh - 1 }).map((g) => {
+        const head = g.h > 46 && g.w > 70 ? 13 : 0; // franja con el nombre de la industria
+        const tiles = squarify(g.rs.map((r) => ({ ...r, v: r.w })), { x: g.x + 1, y: g.y + head + 1, w: g.w - 2, h: g.h - head - 2 }) as Tile[];
+        return { name: g.name, sector: s.name, x: g.x, y: g.y, w: g.w, h: g.h, head, tiles } as Ind;
+      });
+      return { ...s, sh, inds };
     });
   }, [rows, W, H, es]);
   const P: [Per, string][] = [["d", es ? "Día" : "Day"], ["wk", es ? "Semana" : "Week"], ["m", es ? "Mes" : "Month"], ["y", es ? "Año" : "YTD"]];
+  // panel lateral: a la derecha del cursor si hay espacio, si no a la izquierda
+  const PW = Math.min(380, W - 20);
+  const panelLeft = hover ? (hover.mx + 20 + PW < W ? hover.mx + 20 : Math.max(0, hover.mx - PW - 20)) : 0;
+  const peers = hover ? [...hover.ind.tiles].sort((a, b) => b.w - a.w).filter((t) => t.t !== hover.t.t).slice(0, 14) : [];
   return (
     <div>
       <div className="card-controls" style={{ justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
@@ -84,30 +108,50 @@ export default function MarketMap({ rows, lang }: { rows: MapRow[]; lang: "es" |
         <div className="map-legend">{[-1, -0.66, -0.33, 0, 0.33, 0.66, 1].map((k) => <span key={k} style={{ background: color(k * LIM[per], per) }}>{k === 0 ? "0%" : `${k > 0 ? "+" : ""}${Math.round(k * LIM[per])}%`}</span>)}</div>
       </div>
       <div ref={ref} className="market-map" style={{ position: "relative", marginTop: 10 }} onMouseLeave={() => setHover(null)}>
-        <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} role="img" aria-label={es ? "Mapa del S&P 500" : "S&P 500 map"}>
+        <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} role="img" aria-label={es ? "Mapa del S&P 500" : "S&P 500 map"}
+          onMouseMove={(e) => { if (!hover) return; const b = (e.currentTarget as SVGSVGElement).getBoundingClientRect(); setHover({ ...hover, mx: e.clientX - b.left, my: e.clientY - b.top }); }}>
+          <rect width={W} height={H} fill="#262931" />
           {layout.map((s) => (
             <g key={s.name}>
-              <rect x={s.x} y={s.y} width={s.w} height={s.h} fill="#1b1f2a" />
-              {s.top > 0 && <text x={s.x + 4} y={s.y + 12} fontSize={11} fontWeight={700} fill="#d7dae3">{s.name.toUpperCase()}</text>}
-              {s.tiles.map((r) => {
-                const v = r[per];
-                const big = r.w > 34 && r.h > 22;
-                const fs = Math.max(9, Math.min(22, Math.sqrt(r.w * r.h) / 5));
-                return (
-                  <g key={r.t} onMouseEnter={() => setHover(r)}>
-                    <rect x={r.x} y={r.y} width={Math.max(0, r.w - 1)} height={Math.max(0, r.h - 1)} fill={color(v, per)} />
-                    {big && <text x={r.x + r.w / 2} y={r.y + r.h / 2 - (r.h > fs * 2.4 ? fs * 0.25 : -fs * 0.35)} textAnchor="middle" fontSize={fs} fontWeight={700} fill="#fff">{r.t}</text>}
-                    {big && r.h > fs * 2.4 && <text x={r.x + r.w / 2} y={r.y + r.h / 2 + fs * 0.85} textAnchor="middle" fontSize={fs * 0.7} fill="#fff">{pct(v)}</text>}
-                  </g>
-                );
-              })}
+              {s.sh > 0 && <text x={s.x + 4} y={s.y + 13} fontSize={12.5} fontWeight={700} fill="#ffffff" letterSpacing={0.3}>{s.name.toUpperCase()}</text>}
+              {s.inds.map((g) => (
+                <g key={g.name}>
+                  {g.head > 0 && <><rect x={g.x} y={g.y} width={g.w} height={g.head} fill="#3a3e48" />
+                    <text x={g.x + 3} y={g.y + 10} fontSize={9} fontWeight={600} fill="#c9ccd4">{(g.name.length * 5.2 > g.w ? g.name.slice(0, Math.max(3, Math.floor(g.w / 5.4))) : g.name).toUpperCase()}</text></>}
+                  {g.tiles.map((t) => {
+                    const v = t[per];
+                    const fs = Math.min(44, t.h / 2.3, (t.w - 4) / (t.t.length * 0.62));
+                    const show = fs >= 7.5;
+                    const two = show && t.h > fs * 2.3;
+                    return (
+                      <g key={t.t} onMouseEnter={(e) => { const b = (e.currentTarget.ownerSVGElement as SVGSVGElement).getBoundingClientRect(); setHover({ t, ind: g, mx: e.clientX - b.left, my: e.clientY - b.top }); }}>
+                        <rect x={t.x} y={t.y} width={Math.max(0, t.w - 1)} height={Math.max(0, t.h - 1)} fill={color(v, per)} />
+                        {show && <text x={t.x + t.w / 2} y={t.y + t.h / 2 + (two ? -fs * 0.05 : fs * 0.35)} textAnchor="middle" fontSize={fs} fontWeight={600} fill="#fff">{t.t}</text>}
+                        {two && <text x={t.x + t.w / 2} y={t.y + t.h / 2 + fs * 0.75} textAnchor="middle" fontSize={Math.max(7, fs * 0.5)} fill="#fff">{pct(v)}</text>}
+                      </g>
+                    );
+                  })}
+                </g>
+              ))}
             </g>
           ))}
+          {hover && <rect x={hover.ind.x} y={hover.ind.y} width={hover.ind.w} height={hover.ind.h} fill="none" stroke="#ffd400" strokeWidth={2.5} pointerEvents="none" />}
         </svg>
         {hover && (
-          <div className="tip" style={{ left: Math.min(Math.max(hover.x + hover.w / 2 - 110, 0), W - 230), top: Math.min(hover.y + hover.h, H - 90) }}>
-            <b>{hover.t}</b> · {hover.n}<div className="muted" style={{ fontSize: 12 }}>{es ? hover.se : hover.s} · {es ? "peso" : "weight"} {new Intl.NumberFormat(loc, { maximumFractionDigits: 2 }).format(hover.w)}%</div>
-            <div>US$ {new Intl.NumberFormat(loc, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(hover.p)} · <b>{pct(hover[per])}</b></div>
+          <div className="map-panel" style={{ left: panelLeft, top: Math.min(Math.max(0, hover.my - 60), Math.max(0, H - 360)), width: PW }}>
+            <div className="mp-head">{hover.ind.sector} · {hover.ind.name}</div>
+            <div className="mp-main">
+              <div><b>{hover.t.t}</b><div className="mp-name">{hover.t.n}</div></div>
+              <Spark pts={hover.t.sp} up={(hover.t[per] ?? 0) >= 0} />
+              <span className="mp-price">{money(hover.t.p)}</span>
+              <span className={(hover.t[per] ?? 0) >= 0 ? "mp-up" : "mp-dn"}>{pct(hover.t[per])}</span>
+            </div>
+            {peers.map((t) => (
+              <div key={t.t} className="mp-row">
+                <b>{t.t}</b><Spark pts={t.sp} up={(t[per] ?? 0) >= 0} /><span className="mp-price">{money(t.p)}</span>
+                <span className={(t[per] ?? 0) >= 0 ? "mp-up" : "mp-dn"}>{pct(t[per])}</span>
+              </div>
+            ))}
           </div>
         )}
       </div>

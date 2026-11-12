@@ -112,6 +112,22 @@ def spy_holdings() -> list[dict]:
     return rows
 
 
+WIKI_SP500 = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
+
+
+def industries() -> dict[str, str]:
+    """Industria (GICS sub-industry) de cada empresa del S&P 500, desde la lista pública de Wikipedia."""
+    from bs4 import BeautifulSoup
+    html = fetch(WIKI_SP500, timeout=40, retries=2).text
+    tbl = BeautifulSoup(html, "html.parser").find("table", {"id": "constituents"})
+    out = {}
+    for tr in tbl.find_all("tr")[1:]:
+        td = [c.get_text(strip=True) for c in tr.find_all(["td", "th"])]
+        if len(td) >= 4:
+            out[td[0].replace(".", "-")] = td[3]
+    return out
+
+
 def spark(symbols: list[str]) -> dict[str, list[float]]:
     """Cierres diarios del último año para hasta 20 símbolos por consulta."""
     out = {}
@@ -154,7 +170,7 @@ def sp500_map(r: Run, budget: float = 150.0) -> None:
         return  # fuera de horario y ya actualizado hoy
     comp = None
     if prev and prev.get("holdings_date") and (now.date() - dt.date.fromisoformat(prev["holdings_date"])).days < 7:
-        comp = [{k: x[k] for k in ("t", "n", "s", "w")} for x in prev["rows"]]
+        comp = [{k: x.get(k) for k in ("t", "n", "s", "w", "i")} for x in prev["rows"]]
     if not comp:
         try:
             comp = spy_holdings()
@@ -162,10 +178,25 @@ def sp500_map(r: Run, budget: float = 150.0) -> None:
             r.note(f"Composición del S&P 500 (SPY): {str(e)[:80]}")
             if not prev:
                 return
-            comp = [{k: x[k] for k in ("t", "n", "s", "w")} for x in prev["rows"]]
+            comp = [{k: x.get(k) for k in ("t", "n", "s", "w", "i")} for x in prev["rows"]]
+        try:
+            ind = industries()
+            for c in comp:
+                c["i"] = ind.get(c["t"]) or c.get("i") or c["s"]
+        except Exception as e:  # noqa: BLE001
+            r.note(f"Industrias (Wikipedia): {str(e)[:80]}")
+            for c in comp:
+                c["i"] = c.get("i") or c["s"]
         holdings_date = now.date().isoformat()
     else:
         holdings_date = prev["holdings_date"]
+        if any(not c.get("i") for c in comp):  # mapas anteriores sin industria: se completan ya
+            try:
+                ind = industries()
+                for c in comp:
+                    c["i"] = ind.get(c["t"]) or c["s"]
+            except Exception as e:  # noqa: BLE001
+                r.note(f"Industrias (Wikipedia): {str(e)[:80]}")
     t0, data = time.time(), {}
     syms = [c["t"] for c in comp]
     for i in range(0, len(syms), 20):
@@ -183,7 +214,8 @@ def sp500_map(r: Run, budget: float = 150.0) -> None:
         pts = data.get(c["t"])
         if pts:
             rows.append({**c, "se": SECTOR_ES.get(c["s"], c["s"]), "p": round(pts[-1][1], 2), "d": ret(pts, back=1),
-                         "wk": ret(pts, back=5), "m": ret(pts, back=21), "y": ret(pts, since=y0)})
+                         "wk": ret(pts, back=5), "m": ret(pts, back=21), "y": ret(pts, since=y0),
+                         "sp": [round(v, 2) for _, v in pts[-22:]]})  # último mes, para la minigráfica
         elif c["t"] in old:
             rows.append(old[c["t"]])
     if len(rows) < 100:

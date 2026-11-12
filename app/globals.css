@@ -425,3 +425,13 @@ ul.agenda .d { min-width: 92px; color: var(--text-3); text-transform: capitalize
 .dl-item > div:first-child { flex: 1 1 auto; min-width: 0; }
 .dl-item > span, .dl-item > .btn { flex: 0 0 auto; }
 .dl-item .btn { white-space: nowrap; }
+/* mapa del S&P 500 */
+.market-map { background: #262931; border-radius: 8px; overflow: hidden; }
+.map-panel { position: absolute; z-index: 5; background: #1b1e25; border: 1px solid #3a3e48; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,.45); color: #e6e8ee; pointer-events: none; padding-bottom: 4px; }
+.map-panel .mp-head { font-size: 12px; color: #aab0bd; padding: 9px 12px; border-bottom: 1px solid #2e323b; }
+.map-panel .mp-main, .map-panel .mp-row { display: grid; grid-template-columns: 1fr 74px 72px 64px; align-items: center; gap: 6px; padding: 5px 12px; font-variant-numeric: tabular-nums; }
+.map-panel .mp-main { padding: 10px 12px; background: #23262e; border-bottom: 1px solid #2e323b; }
+.map-panel .mp-main b { font-size: 17px; } .map-panel .mp-name { font-size: 11px; color: #9aa1af; }
+.map-panel .mp-row { font-size: 13px; border-bottom: 1px solid #262a32; }
+.map-panel .mp-price { text-align: right; }
+.map-panel .mp-up { text-align: right; color: #30cc5a; font-weight: 600; } .map-panel .mp-dn { text-align: right; color: #f63538; font-weight: 600; }
