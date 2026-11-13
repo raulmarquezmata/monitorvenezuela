@@ -386,7 +386,20 @@ SIGLAS = {"BBVA", "CANTV", "EFE", "BVC", "BNC", "FVI", "SIBE", "BOD", "BFC", "II
 LEGAL = re.compile(r"(^|\s|,)(C\.?\s?A\.?|S\.?\s?A\.?(\s?C\.?\s?A\.?)?|S\.?\s?A\.?\s?I\.?\s?C\.?\s?A\.?|S\.?\s?A\.?\s?C\.?\s?A\.?\s?S\.?\s?A\.?\s?I\.?\s?C\.?\s?A\.?)(?=\s|,|$)", re.I)
 
 
+# abreviaturas que la BVC publica ya en minúsculas (misma lista que lib/names.ts)
+NAME_FIXES = [(r'\bInm\.\s?val\.?\s?"?a"?', "Inmuebles y Valores"), (r"\bBco\.\s?univ\.?", "Banco Universal"), (r"^C\.\s?a\.\s?", ""), (r"\(sivensa\)", "(SIVENSA)")]
+
+
 def pretty_name(name: str) -> str:
+    """Nombre legible del emisor, con las abreviaturas de la BVC corregidas."""
+    n = _pretty_name(name)
+    for rx, t in NAME_FIXES:
+        n = re.sub(rx, t, n, flags=re.I)
+    n = re.sub(r"\s+", " ", n).strip()
+    return n[:1].upper() + n[1:]
+
+
+def _pretty_name(name: str) -> str:
     """«C.A. FABRICA NACIONAL DE VIDRIO» → «Fábrica Nacional de Vidrio»: sin forma jurídica y con mayúsculas normales."""
     n = LEGAL.sub(" ", name or "").replace(",", " ").strip()
     n = re.sub(r"\s+", " ", n)
