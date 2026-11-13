@@ -56,6 +56,9 @@ SECURITY = re.compile(r"seguridad|frontera|fronteriz|polic[ií]a|militar|fuerza 
 NOT_SHARES = re.compile(r"acciones (de|para|conjuntas|contra|coordinadas)\s+(seguridad|coordinaci|frente|lucha|combat|prevenci|gobierno|protecci)|"
                         r"acciones (conjuntas|coordinadas|contra)", re.I)
 
+# términos de negocio que contienen palabras de la lista de ruido
+BUSINESS_OK = re.compile(r"pre-?concurso|concurso de acreedores|concurso p[uú]blico|licitaci[oó]n", re.I)
+
 _q: dict | None = None
 
 
@@ -86,6 +89,7 @@ def evaluate(title: str, summary: str | None, source: str | None, *, ve_outlet: 
 
     score, why = 0, []
     t_econ = NOT_SHARES.sub(" ", t)
+    t_noise = BUSINESS_OK.sub(" ", t)  # «preconcurso de acreedores» no es un concurso de belleza
     anchor_title = bool(N.RELEVANT.search(t) or VE_SPECIFIC.search(t))
     abroad = bool(ABROAD.search(t))
     if anchor_title:
@@ -117,8 +121,8 @@ def evaluate(title: str, summary: str | None, source: str | None, *, ve_outlet: 
 
     for rx, pen, label, softens in ((CRIME, 6, "suceso o crimen", True), (PERSONAL, 3, "historia personal", False),
                                      (SECURITY, 3, "seguridad", True), (N.NOISE, 4, "ruido", True), (N.TONE, 3, "tono", False)):
-        if rx.search(t):
-            p = 1 if (softens and strong) else pen
+        if rx.search(t_noise if rx is N.NOISE else t):
+            p = 1 if (softens and (strong or (rx is SECURITY and (econ or pol)))) else pen
             score -= p; why.append(f"{label} −{p}")
 
     if _in(source or "", q.get("nivel1", [])):
