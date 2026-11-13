@@ -104,6 +104,21 @@ def main(argv: list[str]):
                 log.error("%s: %s", job, e)
             finally:
                 signal.alarm(0)
+    refresh_site()
+
+
+def refresh_site() -> None:
+    """Avisa a la web que hay datos nuevos: todas las páginas se rehacen a la vez (ver app/api/refresh)."""
+    import os
+    site = os.environ.get("SITE_URL", "").rstrip("/")
+    if DRY_RUN or not site:
+        return
+    try:
+        from .common import http
+        r = http.post(f"{site}/api/refresh", timeout=20)
+        log.info("Web actualizada: %s", r.status_code)
+    except Exception as e:  # noqa: BLE001
+        log.info("No se pudo avisar a la web: %s", e)
 
 
 if __name__ == "__main__":
