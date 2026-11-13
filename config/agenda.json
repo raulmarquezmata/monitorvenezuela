@@ -1,7 +1,6 @@
 {
   "_ayuda": "Agenda de publicaciones que se muestra en Inicio. Agrega o corrige fechas copiando un bloque. tipo: opep, fed, bcv, bvc, otro. Las asambleas de la BVC se agregan solas desde la base de datos.",
   "fechas": [
-    { "fecha": "2026-11-14", "tipo": "otro", "es": "Radar semanal (PDF)", "en": "Weekly Radar (PDF)" },
     { "fecha": "2026-12-09", "tipo": "fed", "es": "Fed: decisión de tasas (FOMC)", "en": "Fed: rate decision (FOMC)" },
     { "fecha": "2026-12-14", "tipo": "opep", "es": "OPEP: informe mensual (producción y Merey de noviembre)", "en": "OPEC: monthly report (November output and Merey)" }
   ]
