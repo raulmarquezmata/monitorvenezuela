@@ -13,7 +13,9 @@ const GROUPS = (L: string, es: boolean) => [
   ] },
   { key: "petroleo", label: es ? "Petróleo y materias primas" : "Oil & commodities", items: [
     { href: `${L}/indicadores/petroleo`, label: es ? "Petróleo y gas" : "Oil & gas" },
-  ], extra: [`${L}/indicadores/commodities`, `${L}/agro`] },
+    { href: `${L}/indicadores/commodities`, label: es ? "Materias primas" : "Commodities" },
+    { href: `${L}/agro`, label: "Agro" },
+  ] },
   { key: "externo", label: es ? "Sector externo" : "External sector", items: [
     { href: `${L}/indicadores/externo`, label: es ? "Balanza de pagos" : "Balance of payments" },
     { href: `${L}/comercio`, label: es ? "Comercio exterior" : "Foreign trade" },
