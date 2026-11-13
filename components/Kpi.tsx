@@ -63,7 +63,7 @@ function KpiBody({ m, points: points0, lang, noData, periods, extra, sparkDays }
   return (
     <>
       <div className="big">{last ? nf(last[1], money.converted ? 1 : m.decimals) : "—"}<small>{money.unit}</small></div>
-      {last ? <Stats points={points} periods={periods} pctUnit={m.pctUnit} lang={lang} extra={extra} /> : <div className="muted">{noData}</div>}
+      {last ? <Stats points={points} periods={periods} pctUnit={m.pctUnit} lang={lang} extra={extra} bps={m.code.startsWith("ust_")} /> : <div className="muted">{noData}</div>}
       <div className="kpi-foot"><span /><Sparkline points={spark} /></div>
     </>
   );
