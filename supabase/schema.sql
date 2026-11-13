@@ -315,3 +315,20 @@ begin
   end loop;
 end $$;
 grant select on public.bvc_events, public.informes to anon, authenticated;
+-- Noticias descartadas por el filtro v2 (ingest/news_filter.py), con su motivo: se ven en /noticias/descartadas y se guardan 21 días
+create table if not exists public.news_rejects (
+  url          text primary key,
+  title        text not null,
+  source       text,
+  published_at timestamptz,
+  summary      text,
+  lang         text,
+  reason       text,
+  score        int,
+  seen_at      timestamptz default now()
+);
+create index if not exists news_rejects_seen_idx on public.news_rejects (seen_at desc);
+alter table public.news_rejects enable row level security;
+drop policy if exists "lectura publica" on public.news_rejects;
+create policy "lectura publica" on public.news_rejects for select to anon, authenticated using (true);
+grant select on public.news_rejects to anon, authenticated;
