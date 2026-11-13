@@ -5,7 +5,15 @@ const MENORES = new Set(["de", "del", "la", "las", "el", "los", "y", "e", "en", 
 const SIGLAS = new Set(["BBVA", "CANTV", "EFE", "BVC", "BNC", "FVI", "SIBE", "BOD", "BFC", "II", "III"]);
 const LEGAL = /(^|\s|,)(C\.?\s?A\.?|S\.?\s?A\.?(\s?C\.?\s?A\.?)?|S\.?\s?A\.?\s?I\.?\s?C\.?\s?A\.?)(?=\s|,|$)/gi;
 
+// abreviaturas que la BVC publica ya en minúsculas (no pasan por la regla de mayúsculas de abajo)
+const FIXES: [RegExp, string][] = [[/\bInm\.\s?val\.?\s?"?a"?/i, "Inmuebles y Valores"], [/\bBco\.\s?univ\.?/i, "Banco Universal"], [/^C\.\s?a\.\s?/i, ""], [/\(sivensa\)/i, "(SIVENSA)"]];
+const fix = (s: string) => { const n = FIXES.reduce((a, [r, t]) => a.replace(r, t), s).replace(/\s+/g, " ").trim(); return n.charAt(0).toUpperCase() + n.slice(1); };
+
 export function prettyName(name: string | null | undefined): string {
+  return fix(prettyName0(name));
+}
+
+function prettyName0(name: string | null | undefined): string {
   const raw = name ?? "";
   const n = raw.replace(LEGAL, " ").replace(/,/g, " ").replace(/\s+/g, " ").trim();
   if (!n || !(n === n.toUpperCase() || n === n.toLowerCase())) return n || raw;
