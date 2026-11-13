@@ -30,7 +30,7 @@ TREASURY = ("https://home.treasury.gov/resource-center/data-chart-center/interes
 SPY_HOLDINGS = "https://www.ssga.com/us/en/intermediary/library-content/products/fund-data/etfs/us/holdings-daily-us-en-spy.xlsx"
 SECTOR_ES = {"Information Technology": "Tecnología", "Financials": "Financiero", "Health Care": "Salud", "Consumer Discretionary": "Consumo discrecional",
              "Communication Services": "Comunicaciones", "Industrials": "Industrial", "Consumer Staples": "Consumo básico", "Energy": "Energía",
-             "Utilities": "Servicios públicos", "Real Estate": "Inmobiliario", "Materials": "Materiales"}
+             "Utilities": "Servicios públicos", "Real Estate": "Inmobiliario", "Materials": "Materiales", "Other": "Otros"}
 BUCKET = "reportes"
 
 
@@ -115,8 +115,8 @@ def spy_holdings() -> list[dict]:
 WIKI_SP500 = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
 
 
-def industries() -> dict[str, str]:
-    """Industria (GICS sub-industry) de cada empresa del S&P 500, desde la lista pública de Wikipedia."""
+def industries() -> dict[str, tuple[str, str]]:
+    """Sector e industria (GICS) de cada empresa del S&P 500, desde la lista pública de Wikipedia."""
     from bs4 import BeautifulSoup
     html = fetch(WIKI_SP500, timeout=40, retries=2).text
     tbl = BeautifulSoup(html, "html.parser").find("table", {"id": "constituents"})
@@ -124,7 +124,7 @@ def industries() -> dict[str, str]:
     for tr in tbl.find_all("tr")[1:]:
         td = [c.get_text(strip=True) for c in tr.find_all(["td", "th"])]
         if len(td) >= 4:
-            out[td[0].replace(".", "-")] = td[3]
+            out[td[0].replace(".", "-")] = (td[2], td[3])
     return out
 
 
@@ -166,8 +166,9 @@ def sp500_map(r: Run, budget: float = 150.0) -> None:
         prev = json.loads(fetch(f"{__import__('os').environ.get('SUPABASE_URL', '').rstrip('/')}/storage/v1/object/public/{BUCKET}/mercado/sp500.json", timeout=20, retries=1).text)
     except Exception:  # noqa: BLE001
         pass
-    if prev and not us_hours and prev.get("updated", "")[:10] == now.date().isoformat():
-        return  # fuera de horario y ya actualizado hoy
+    incomplete = bool(prev) and (len({x.get("s") for x in prev["rows"]}) < 5 or any(not x.get("i") for x in prev["rows"]))
+    if prev and not us_hours and prev.get("updated", "")[:10] == now.date().isoformat() and not incomplete:
+        return  # fuera de horario y ya actualizado hoy (salvo que le falten sectores o industrias)
     comp = None
     if prev and prev.get("holdings_date") and (now.date() - dt.date.fromisoformat(prev["holdings_date"])).days < 7:
         comp = [{k: x.get(k) for k in ("t", "n", "s", "w", "i")} for x in prev["rows"]]
@@ -182,19 +183,24 @@ def sp500_map(r: Run, budget: float = 150.0) -> None:
         try:
             ind = industries()
             for c in comp:
-                c["i"] = ind.get(c["t"]) or c.get("i") or c["s"]
+                sec, sub = ind.get(c["t"], (None, None))
+                c["s"] = sec or c.get("s") or "Other"
+                c["i"] = sub or c.get("i") or c["s"]
         except Exception as e:  # noqa: BLE001
             r.note(f"Industrias (Wikipedia): {str(e)[:80]}")
             for c in comp:
+                c["s"] = c.get("s") or "Other"
                 c["i"] = c.get("i") or c["s"]
         holdings_date = now.date().isoformat()
     else:
         holdings_date = prev["holdings_date"]
-        if any(not c.get("i") for c in comp):  # mapas anteriores sin industria: se completan ya
+        if any(not c.get("i") or not c.get("s") or c.get("i") == c.get("s") for c in comp):  # sin sector o industria: se completan ya
             try:
                 ind = industries()
                 for c in comp:
-                    c["i"] = ind.get(c["t"]) or c["s"]
+                    sec, sub = ind.get(c["t"], (None, None))
+                    c["s"] = sec or c.get("s") or "Other"
+                    c["i"] = sub or c.get("i") or c["s"]
             except Exception as e:  # noqa: BLE001
                 r.note(f"Industrias (Wikipedia): {str(e)[:80]}")
     t0, data = time.time(), {}

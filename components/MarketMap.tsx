@@ -99,7 +99,7 @@ export default function MarketMap({ rows, lang }: { rows: MapRow[]; lang: "es" |
   const P: [Per, string][] = [["d", es ? "Día" : "Day"], ["wk", es ? "Semana" : "Week"], ["m", es ? "Mes" : "Month"], ["y", es ? "Año" : "YTD"]];
   // panel lateral: a la derecha del cursor si hay espacio, si no a la izquierda
   const PW = Math.min(380, W - 20);
-  const panelLeft = hover ? (hover.mx + 20 + PW < W ? hover.mx + 20 : Math.max(0, hover.mx - PW - 20)) : 0;
+  const panelLeft = hover ? (hover.mx + 24 + PW < W ? hover.mx + 24 : Math.max(0, hover.mx - PW - 24)) : 0;
   const peers = hover ? [...hover.ind.tiles].sort((a, b) => b.w - a.w).filter((t) => t.t !== hover.t.t).slice(0, 14) : [];
   return (
     <div>
@@ -109,10 +109,24 @@ export default function MarketMap({ rows, lang }: { rows: MapRow[]; lang: "es" |
       </div>
       <div ref={ref} className="market-map" style={{ position: "relative", marginTop: 10 }} onMouseLeave={() => setHover(null)}>
         <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} role="img" aria-label={es ? "Mapa del S&P 500" : "S&P 500 map"}
-          onMouseMove={(e) => { if (!hover) return; const b = (e.currentTarget as SVGSVGElement).getBoundingClientRect(); setHover({ ...hover, mx: e.clientX - b.left, my: e.clientY - b.top }); }}>
+          onMouseMove={(e) => {
+            const b = (e.currentTarget as SVGSVGElement).getBoundingClientRect();
+            const mx = ((e.clientX - b.left) * W) / b.width, my = ((e.clientY - b.top) * H) / b.height;
+            for (const s of layout) {
+              if (mx < s.x || mx > s.x + s.w || my < s.y || my > s.y + s.h) continue;
+              for (const g of s.inds) {
+                if (mx < g.x || mx > g.x + g.w || my < g.y || my > g.y + g.h) continue;
+                const t = g.tiles.find((t) => mx >= t.x && mx <= t.x + t.w && my >= t.y && my <= t.y + t.h)
+                  ?? g.tiles.reduce((a, t) => (a && a.w * a.h > t.w * t.h ? a : t), null as Tile | null);
+                if (t) { setHover({ t, ind: g, mx, my }); return; }
+              }
+            }
+            setHover(null);
+          }}>
           <rect width={W} height={H} fill="#262931" />
           {layout.map((s) => (
             <g key={s.name}>
+              <rect x={s.x} y={s.y} width={s.w} height={s.h} fill="#262931" stroke="#1b1d23" strokeWidth={2} />
               {s.sh > 0 && <text x={s.x + 4} y={s.y + 13} fontSize={12.5} fontWeight={700} fill="#ffffff" letterSpacing={0.3}>{s.name.toUpperCase()}</text>}
               {s.inds.map((g) => (
                 <g key={g.name}>
@@ -124,7 +138,7 @@ export default function MarketMap({ rows, lang }: { rows: MapRow[]; lang: "es" |
                     const show = fs >= 7.5;
                     const two = show && t.h > fs * 2.3;
                     return (
-                      <g key={t.t} onMouseEnter={(e) => { const b = (e.currentTarget.ownerSVGElement as SVGSVGElement).getBoundingClientRect(); setHover({ t, ind: g, mx: e.clientX - b.left, my: e.clientY - b.top }); }}>
+                      <g key={t.t}>
                         <rect x={t.x} y={t.y} width={Math.max(0, t.w - 1)} height={Math.max(0, t.h - 1)} fill={color(v, per)} />
                         {show && <text x={t.x + t.w / 2} y={t.y + t.h / 2 + (two ? -fs * 0.05 : fs * 0.35)} textAnchor="middle" fontSize={fs} fontWeight={600} fill="#fff">{t.t}</text>}
                         {two && <text x={t.x + t.w / 2} y={t.y + t.h / 2 + fs * 0.75} textAnchor="middle" fontSize={Math.max(7, fs * 0.5)} fill="#fff">{pct(v)}</text>}
@@ -136,9 +150,10 @@ export default function MarketMap({ rows, lang }: { rows: MapRow[]; lang: "es" |
             </g>
           ))}
           {hover && <rect x={hover.ind.x} y={hover.ind.y} width={hover.ind.w} height={hover.ind.h} fill="none" stroke="#ffd400" strokeWidth={2.5} pointerEvents="none" />}
+          {hover && <rect x={hover.t.x} y={hover.t.y} width={Math.max(0, hover.t.w - 1)} height={Math.max(0, hover.t.h - 1)} fill="none" stroke="#ffffff" strokeWidth={1.5} pointerEvents="none" />}
         </svg>
         {hover && (
-          <div className="map-panel" style={{ left: panelLeft, top: Math.min(Math.max(0, hover.my - 60), Math.max(0, H - 360)), width: PW }}>
+          <div className="map-panel" style={{ left: panelLeft, top: Math.min(Math.max(0, hover.my - 40), Math.max(0, H - 60 - 34 * Math.min(15, hover.ind.tiles.length))), width: PW }}>
             <div className="mp-head">{hover.ind.sector} · {hover.ind.name}</div>
             <div className="mp-main">
               <div><b>{hover.t.t}</b><div className="mp-name">{hover.t.n}</div></div>
