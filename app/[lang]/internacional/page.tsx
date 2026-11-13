@@ -55,7 +55,7 @@ export default async function Internacional({ params }: { params: { lang: Lang }
           <SectionHead label={es ? "Mapa del S&P 500 por sector" : "S&P 500 map by sector"} />
           <div className="card">
             <p className="muted" style={{ fontSize: 13, margin: "0 0 10px" }}>{es
-              ? `Cada cuadro es una empresa: el tamaño es su peso en el índice y el color, su rendimiento en el período. Pase el cursor para ver el detalle. Actualizado ${dateTime(map.updated, lang)}.`
+              ? `Cada cuadro es una empresa: el tamaño es su peso en el índice y el color, su rendimiento en el período. Pase el cursor para ver el detalle. Actualizado ${dateTime(map.updated, lang).replace(/\.$/, "")}.`
               : `Each tile is a company: size is its index weight and color its return over the period. Hover for details. Updated ${dateTime(map.updated, lang)}.`}</p>
             <MarketMap rows={map.rows} lang={lang} />
           </div>
