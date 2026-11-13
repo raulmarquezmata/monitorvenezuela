@@ -1,0 +1,24 @@
+{
+  "_ayuda": "Calidad de las fuentes de noticias (filtro v2, ingest/news_filter.py). nivel1: medios especializados o de referencia, suman puntos. conocidas: medios generales aceptables que llegan por Google News (no restan). bloqueadas: nunca entran (granjas de contenido, agregadores, sitios de traducción automática). Se compara por nombre del medio, sin importar mayúsculas; basta con una parte del nombre.",
+  "nivel1": [
+    "Banca y Negocios", "Finanzas Digital", "Bloomberg", "Reuters", "Financial Times", "The Wall Street Journal", "The Economist",
+    "Associated Press", "AP News", "EFE", "Petroguía", "PETROGUIA", "Descifrado", "Prodavinci", "Efecto Cocuyo", "Crónica Uno",
+    "El Universal", "Últimas Noticias", "Tal Cual", "El Estímulo", "Caracas Chronicles", "Argus", "S&P Global", "OilPrice",
+    "Energy Intelligence", "Upstream", "TradeWinds", "Lloyd's List", "Kpler", "Latinvex", "Americas Quarterly", "Semafor", "Axios",
+    "CNBC", "Bitácora Económica", "Ecosistema", "El País", "BBC", "DW", "France 24", "Infobae", "La República", "Portafolio",
+    "Valora Analitik", "El Tiempo", "Expansión", "El Economista"
+  ],
+  "conocidas": [
+    "El Nacional", "2001", "El Pitazo", "Runrunes", "Globovisión", "Venevisión", "Noticias Venevision", "Unión Radio", "Diario La Calle",
+    "El Periodiquito", "La Patilla", "Panorama", "El Carabobeño", "Notitarde", "NTN24", "CNN", "Fox News", "The Guardian",
+    "The New York Times", "The Washington Post", "Politico", "Al Jazeera", "Yahoo", "Caracol", "Semana", "La FM", "El Colombiano",
+    "Clarín", "La Nación", "El Comercio", "Milenio", "El Universo", "Primicias", "Telesur", "VTV", "Aporrea", "Bloomberg Línea",
+    "Diario Las Américas", "El Nuevo Herald", "Swissinfo", "Europa Press", "20minutos", "ABC", "El Mundo", "La Razón", "Radio America",
+    "Curaçao Chronicle", "Newsday", "Stabroek", "Kaieteur", "Demerara"
+  ],
+  "bloqueadas": [
+    "NewzTodays", "inkl", "NewsCord", "Sandesh", "Kalkine", "Reddenoticias", "Flipr", "NewsBreak", "Head Topics", "Latest News Post",
+    "MENAFN", "Devdiscourse", "Big News Network", "Emisora Costa", "Extra News", "Noticias De Bu", "Tenemos Noticias", "El Heraldo de San Luis Potosí",
+    "Breitbart"
+  ]
+}
