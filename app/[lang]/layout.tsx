@@ -27,7 +27,7 @@ function thin(pts: Pt[]): Pt[] {
 const fxForCurrency = unstable_cache(async () => {
   const h = await history(["usd_bcv", "usd_paralelo"], 30);
   return { bcv: thin((h.usd_bcv ?? []) as Pt[]), par: thin((h.usd_paralelo ?? []) as Pt[]) };
-}, ["fx-currency-v1"], { revalidate: 300 });
+}, ["fx-currency-v1"], { revalidate: 300, tags: ["datos"] });
 
 export const revalidate = 300;
 
