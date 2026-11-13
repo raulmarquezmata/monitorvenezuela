@@ -2,9 +2,9 @@ import { createClient } from "@supabase/supabase-js";
 import { unstable_cache } from "next/cache";
 
 /** Cada consulta se guarda unos minutos en la caché de Vercel: las páginas abren al instante y los
- *  robots (cada 20 min) siguen viéndose casi de inmediato. */
+ *  robots (cada 10–20 min) avisan al terminar (/api/refresh) y todas las páginas se rehacen a la vez. */
 function cached<A extends unknown[], R>(fn: (...a: A) => Promise<R>, key: string, ttl: number) {
-  return unstable_cache(fn, ["data", key], { revalidate: ttl });
+  return unstable_cache(fn, ["data", key], { revalidate: ttl, tags: ["datos"] });
 }
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -137,7 +137,7 @@ export function mktcapReportUrl(lang: "es" | "en", version?: string | null): str
 export async function sp500Map(): Promise<{ updated: string; rows: import("@/components/MarketMap").MapRow[] } | null> {
   if (!url) return null;
   try {
-    const r = await fetch(`${url.replace(/\/$/, "")}/storage/v1/object/public/reportes/mercado/sp500.json`, { next: { revalidate: 300 } });
+    const r = await fetch(`${url.replace(/\/$/, "")}/storage/v1/object/public/reportes/mercado/sp500.json`, { next: { revalidate: 300, tags: ["datos"] } });
     return r.ok ? await r.json() : null;
   } catch { return null; }
 }
