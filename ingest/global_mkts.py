@@ -108,7 +108,8 @@ def spy_holdings() -> list[dict]:
             w = float(rec["Weight"])
         except ValueError:
             continue
-        rows.append({"t": t.replace(".", "-"), "n": rec.get("Name", "").title(), "s": rec.get("Sector", ""), "w": w})
+        sec = rec.get("Sector", "").strip()
+        rows.append({"t": t.replace(".", "-"), "n": rec.get("Name", "").title(), "s": "" if sec in ("-", "") else sec, "w": w})
     return rows
 
 
@@ -184,7 +185,7 @@ def sp500_map(r: Run, budget: float = 150.0) -> None:
             ind = industries()
             for c in comp:
                 sec, sub = ind.get(c["t"], (None, None))
-                c["s"] = sec or c.get("s") or "Other"
+                c["s"] = sec or (c.get("s") if (c.get("s") or "").strip() not in ("", "-") else "Other")
                 c["i"] = sub or c.get("i") or c["s"]
         except Exception as e:  # noqa: BLE001
             r.note(f"Industrias (Wikipedia): {str(e)[:80]}")
@@ -194,12 +195,13 @@ def sp500_map(r: Run, budget: float = 150.0) -> None:
         holdings_date = now.date().isoformat()
     else:
         holdings_date = prev["holdings_date"]
-        if any(not c.get("i") or not c.get("s") or c.get("i") == c.get("s") for c in comp):  # sin sector o industria: se completan ya
+        bad_sector = lambda c: (c.get("s") or "").strip() in ("", "-", "Other")  # noqa: E731
+        if len({c.get("s") for c in comp}) < 5 or any(not c.get("i") or bad_sector(c) or c.get("i") == c.get("s") for c in comp):  # sin sector o industria: se completan ya
             try:
                 ind = industries()
                 for c in comp:
                     sec, sub = ind.get(c["t"], (None, None))
-                    c["s"] = sec or c.get("s") or "Other"
+                    c["s"] = sec or (c.get("s") if (c.get("s") or "").strip() not in ("", "-") else "Other")
                     c["i"] = sub or c.get("i") or c["s"]
             except Exception as e:  # noqa: BLE001
                 r.note(f"Industrias (Wikipedia): {str(e)[:80]}")

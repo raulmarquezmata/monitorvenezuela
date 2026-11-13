@@ -89,7 +89,7 @@ export default function MarketMap({ rows, lang }: { rows: MapRow[]; lang: "es" |
       for (const r of s.rs) byInd.set(r.i || r.s, [...(byInd.get(r.i || r.s) ?? []), r]);
       const inds = squarify([...byInd.entries()].map(([name, rs]) => ({ name, rs, v: rs.reduce((a, r) => a + r.w, 0) })),
         { x: s.x + 1, y: s.y + sh, w: s.w - 2, h: s.h - sh - 1 }).map((g) => {
-        const head = g.h > 46 && g.w > 70 ? 13 : 0; // franja con el nombre de la industria
+        const head = g.h > 30 && g.w > 34 ? 12 : 0; // franja con el nombre de la industria
         const tiles = squarify(g.rs.map((r) => ({ ...r, v: r.w })), { x: g.x + 1, y: g.y + head + 1, w: g.w - 2, h: g.h - head - 2 }) as Tile[];
         return { name: g.name, sector: s.name, x: g.x, y: g.y, w: g.w, h: g.h, head, tiles } as Ind;
       });
@@ -127,11 +127,11 @@ export default function MarketMap({ rows, lang }: { rows: MapRow[]; lang: "es" |
           {layout.map((s) => (
             <g key={s.name}>
               <rect x={s.x} y={s.y} width={s.w} height={s.h} fill="#262931" stroke="#1b1d23" strokeWidth={2} />
-              {s.sh > 0 && <text x={s.x + 4} y={s.y + 13} fontSize={12.5} fontWeight={700} fill="#ffffff" letterSpacing={0.3}>{s.name.toUpperCase()}</text>}
+              {s.sh > 0 && !["-", "", "Otros", "Other"].includes(s.name) && <text x={s.x + 4} y={s.y + 13} fontSize={12.5} fontWeight={700} fill="#ffffff" letterSpacing={0.3}>{s.name.toUpperCase()}</text>}
               {s.inds.map((g) => (
                 <g key={g.name}>
                   {g.head > 0 && <><rect x={g.x} y={g.y} width={g.w} height={g.head} fill="#3a3e48" />
-                    <text x={g.x + 3} y={g.y + 10} fontSize={9} fontWeight={600} fill="#c9ccd4">{(g.name.length * 5.2 > g.w ? g.name.slice(0, Math.max(3, Math.floor(g.w / 5.4))) : g.name).toUpperCase()}</text></>}
+                    <text x={g.x + 3} y={g.y + 9} fontSize={8.5} fontWeight={600} fill="#c9ccd4">{(g.name.length * 5 > g.w - 6 ? g.name.slice(0, Math.max(2, Math.floor((g.w - 10) / 5))) + "…" : g.name).toUpperCase()}</text></>}
                   {g.tiles.map((t) => {
                     const v = t[per];
                     const fs = Math.min(44, t.h / 2.3, (t.w - 4) / (t.t.length * 0.62));
