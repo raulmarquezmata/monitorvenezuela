@@ -102,6 +102,8 @@ export default async function Datos({ params }: { params: { lang: Lang } }) {
       <p className="muted" style={{ marginTop: 8 }}>
         {es ? "Para agregar o quitar medios edite " : "To add or remove outlets edit "}
         <a href={`${REPO}/edit/main/config/news_feeds.json`} target="_blank" rel="noreferrer">config/news_feeds.json</a>.
+        {es ? " Lo que el filtro deja fuera, con su motivo: " : " What the filter leaves out, with the reason: "}
+        <a href={`/${lang}/noticias/descartadas`}>{es ? "noticias descartadas" : "discarded headlines"}</a>.
       </p>
 
       <h2 style={{ marginTop: 40 }}>{es ? "Descargas" : "Downloads"}</h2>
