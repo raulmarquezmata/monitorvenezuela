@@ -264,9 +264,15 @@ def recategorize() -> int:
     from .common import select
     since = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=30)).isoformat()
     rows = select("news", {"select": "url,title,summary,source,published_at,category,lang", "published_at": f"gte.{since}"})
+    # fuentes de mercados globales: siempre a su pestaña (antes se colaban en Inicio como noticias de Venezuela)
+    glob = {re.sub(r"\s*\((RSS|búsqueda)\)$", "", f["name"]) for f in load_feeds() if f.get("scope") == "global"}
     changed = []
     for x in rows:
         if x.get("category") == "global":
+            continue
+        if x.get("source") in glob:
+            x["category"] = "global"
+            changed.append(x)
             continue
         c = categorize(f"{x['title']} {clean_summary(x.get('summary'), x['title']) or ''}")
         if c != x.get("category"):
@@ -287,7 +293,8 @@ def run():
                   "last_ok": None, "last_items": 0, "last_error": None}
             try:
                 content = fetch(f["url"], timeout=30, retries=2).content
-                got = parse_feed(content, None if agg else re.sub(r"\s*\((RSS|búsqueda)\)$", "", f["name"]), f.get("lang", "es"), f.get("filter", True))
+                got = parse_feed(content, None if agg else re.sub(r"\s*\((RSS|búsqueda)\)$", "", f["name"]), f.get("lang", "es"), f.get("filter", True),
+                                 f.get("scope", "ve"))  # medios de mercados globales: pestaña aparte
                 for it in got:
                     # títulos repetidos en varios medios se guardan todos: la web los agrupa y ofrece cada enlace
                     if it["url"] not in seen_titles:
