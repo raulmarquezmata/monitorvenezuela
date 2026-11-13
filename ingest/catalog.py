@@ -142,8 +142,8 @@ _S = [
 # stale: días sin dato nuevo a partir de los cuales la serie se marca "atrasada"
 A, C, M = "auto", "calibrar", "manual"
 PLAN = {
-    "usd_bcv": (A, 5, "Robot fx cada 30 min (portal BCV por fecha valor). Histórico diario desde la reconversión de oct-2021."),
-    "usd_paralelo": (A, 4, "Robot fx cada 30 min: mediana de los mejores anuncios de compra y venta USDT/VES en Binance P2P."),
+    "usd_bcv": (A, 5, "Robot fx cada 10 min en horario de mercado (20 min el resto) (portal BCV por fecha valor). Histórico diario desde la reconversión de oct-2021."),
+    "usd_paralelo": (A, 4, "Robot fx cada 10 min en horario de mercado (20 min el resto): mediana de los mejores anuncios de compra y venta USDT/VES en Binance P2P."),
     "brecha_cambiaria": (A, 5, "Se calcula sola: mercado alternativo ÷ oficial − 1."),
     "eur_bcv": (A, 5, "Robot fx (portal BCV)."),
     "intervencion_bcv_mensual": (A, 40, "Robot de prensa diario: suma de las ventas del BCV a la banca reportadas, o la asignación mensual anunciada."),
@@ -178,7 +178,7 @@ PLAN = {
     "taladros_venezuela": (A, 45, "Robot opec diario (MOMR, tabla de taladros) y titulares de prensa."),
     "brent": (A, 10, "Robot oil (EIA)."), "wti": (A, 10, "Robot oil (EIA)."),
     "henry_hub": (A, 45, "Robot commodities (Banco Mundial)."),
-    "ibc": (A, 5, "Robot bvc cada 30 min en horario de mercado."),
+    "ibc": (A, 5, "Robot bvc cada 10 min en horario de mercado."),
     "ibc_usd_paralelo": (A, 5, "Se calcula solo (IBC ÷ paralelo)."),
     "ibc_usd": (A, 5, "Se calcula solo (IBC ÷ oficial)."),
     "ibc_financiero": (A, 5, "Robot bvc."), "ibc_industrial": (A, 5, "Robot bvc."),
@@ -214,9 +214,9 @@ for code in ("oro", "mineral_hierro", "aluminio", "cafe", "cacao", "azucar"):
 for code in ("plata", "cobre", "maiz_cbot", "trigo_kc", "soya_cbot"):
     PLAN[code] = (A, 4, "Robot futuros cada hora: cierre diario del contrato del primer mes (Yahoo Finance).")
 for code in ("sp500", "nasdaq", "dow_jones", "vix", "dxy", "oro_diario", "bitcoin", "eem", "bovespa", "merval", "ipc_mexico", "ipsa_chile"):
-    PLAN[code] = (A, 5, "Robot global cada 20 min (Yahoo Finance).")
+    PLAN[code] = (A, 5, "Robot global cada 10 min en horario de mercado (Yahoo Finance).")
 for code in ("ust_2a", "ust_5a", "ust_10a", "ust_20a", "ust_30a"):
-    PLAN[code] = (A, 5, "Robot global cada 20 min (curva diaria del Tesoro de EE.UU.; respaldo FRED/Yahoo).")
+    PLAN[code] = (A, 5, "Robot global cada 10 min en horario de mercado (curva diaria del Tesoro de EE.UU.; respaldo FRED/Yahoo).")
 PLAN["henry_hub"] = (A, 4, "Spot diario de la EIA desde 1997 + futuro del primer mes para los días más recientes.")
 
 _KEYS = ["code", "category", "name_es", "name_en", "unit_es", "unit_en", "frequency", "source", "source_url", "decimals", "sort"]
