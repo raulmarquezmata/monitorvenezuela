@@ -26,7 +26,7 @@ export default function MacroNav({ lang }: { lang: Lang }) {
   const path = usePathname();
   const L = `/${lang}`;
   const groups = GROUPS(L, lang === "es");
-  const active = groups.find((g) => [...g.items.map((i) => i.href), ...(g.extra ?? [])].some((h) => path.startsWith(h))) ?? groups[0];
+  const active = groups.find((g) => g.items.map((i) => i.href).some((h) => path.startsWith(h))) ?? groups[0];
   return (
     <div className="macronav">
       <nav className="subnav groups">
