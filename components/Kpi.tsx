@@ -28,10 +28,15 @@ export function Sparkline({ points, w = 180, h = 54, area = false }: { points: P
 
 
 /** Fila de variaciones: día, semana, mes, en el año, interanual… (en % o en puntos para series en %). */
-export function Stats({ points, periods, pctUnit, lang, extra }: { points: Point[]; periods: Period[]; pctUnit: boolean; lang: "es" | "en"; extra?: Extra[] }) {
+export function Stats({ points, periods, pctUnit, lang, extra, bps }: { points: Point[]; periods: Period[]; pctUnit: boolean; lang: "es" | "en"; extra?: Extra[]; bps?: boolean }) {
   const loc = lang === "es" ? "es-VE" : "en-US";
   const nf = (v: number, d: number) => new Intl.NumberFormat(loc, { minimumFractionDigits: d, maximumFractionDigits: d }).format(v);
-  const items = extra ?? periods.map((p) => ({ label: PERIOD_LABEL[p][lang], value: change(points, p, pctUnit), unit: pctUnit ? " pp" : "%", decimals: pctUnit ? 1 : 2, signed: true }));
+  // tasas del Tesoro: en puntos básicos, igual que la tabla de la curva
+  const items = extra ?? periods.map((p) => {
+    const v = change(points, p, pctUnit);
+    return bps ? { label: PERIOD_LABEL[p][lang], value: v == null ? null : Math.round(v * 100), unit: lang === "es" ? " pb" : " bp", decimals: 0, signed: true }
+      : { label: PERIOD_LABEL[p][lang], value: v, unit: pctUnit ? " pp" : "%", decimals: pctUnit ? 1 : 2, signed: true };
+  });
   return (
     <div className="stats">
       {items.map((it) => {
