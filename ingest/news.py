@@ -11,6 +11,15 @@ import time
 import feedparser
 
 from .common import Run, clean_text, fetch, upsert
+from .news_filter import VE_OUTLETS, evaluate
+from .news_filter import category as nf_category
+
+REJECTS: list[dict] = []  # titulares descartados en esta corrida (se guardan en news_rejects)
+
+
+def is_ve_outlet(source: str | None, require_relevance: bool) -> bool:
+    """Medio venezolano (o página de un medio dedicada a Venezuela): sus titulares sin otro país se toman como locales."""
+    return not require_relevance or any(v.lower() in (source or "").lower() for v in VE_OUTLETS)
 
 
 CONFIG = pathlib.Path(__file__).resolve().parent.parent / "config" / "news_feeds.json"
@@ -203,10 +212,13 @@ def parse_feed(content: bytes, default_source: str | None, lang: str, require_re
             out.append({"url": link, "title": title, "source": source or "—", "published_at": published.isoformat(),
                         "summary": summary, "category": "global", "lang": lang})
             continue
-        if not is_relevant(title, summary, require_relevance):
+        # filtro v2 por puntaje (ingest/news_filter.py): lo descartado se guarda con su motivo en news_rejects
+        v = evaluate(title, summary, source, ve_outlet=is_ve_outlet(source, require_relevance), aggregator=default_source is None)
+        row = {"url": link, "title": title, "source": source or "—", "published_at": published.isoformat(), "summary": summary, "lang": lang}
+        if not v["ok"]:
+            REJECTS.append({**row, "reason": v["reason"][:300], "score": v["score"]})
             continue
-        out.append({"url": link, "title": title, "source": source or "—", "published_at": published.isoformat(),
-                    "summary": summary, "category": categorize(blob), "lang": lang})
+        out.append({**row, "category": "global" if v["scope"] == "global" else nf_category(blob)})
     return out
 
 
@@ -236,11 +248,32 @@ def cleanup() -> int:
     """Quita de la base las noticias recientes que no son sobre Venezuela (reglas actuales)."""
     from .common import delete, select
     since = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=45)).isoformat()
-    ve = {re.sub(r"\s*\((RSS|búsqueda|economía)\)$", "", f["name"]) for f in load_feeds() if not f.get("filter", True)}
-    bad = [x["url"] for x in select("news", {"select": "url,title,summary,source,symbols,category", "published_at": f"gte.{since}"})
+    feeds = load_feeds()
+    ve = {re.sub(r"\s*\((RSS|búsqueda|economía)\)$", "", f["name"]) for f in feeds if not f.get("filter", True)}
+    own = {re.sub(r"\s*\((RSS|búsqueda|economía)\)$", "", f["name"]) for f in feeds if f.get("kind") != "agregador"}
+    cols = "url,title,summary,source,symbols,category,published_at,lang"
+    bad = [x["url"] for x in select("news", {"select": cols, "published_at": f"gte.{since}"})
            if x.get("category") == "global" and not is_global_relevant(x["title"])]
-    bad += [x["url"] for x in select("news", {"select": "url,title,summary,source,symbols,category", "published_at": f"gte.{since}", "category": "neq.global"})
-           if not x.get("symbols") and not is_relevant(x["title"], clean_summary(x.get("summary"), x["title"]), x.get("source") not in ve)]
+    # filtro v2 también sobre lo ya guardado: lo que no pasa se mueve a news_rejects (se puede recuperar) y lo que es
+    # de mercados internacionales pasa a su pestaña
+    moved, to_global = [], []
+    for x in select("news", {"select": cols, "published_at": f"gte.{since}", "category": "neq.global"}):
+        if x.get("symbols"):
+            continue
+        v = evaluate(x["title"], clean_summary(x.get("summary"), x["title"]), x.get("source"),
+                     ve_outlet=is_ve_outlet(x.get("source"), x.get("source") not in ve), aggregator=x.get("source") not in own)
+        if v["ok"] and v["scope"] == "global":
+            to_global.append({k: x[k] for k in ("url", "title", "source", "published_at", "summary", "lang")} | {"category": "global"})
+        elif not v["ok"]:
+            bad.append(x["url"])
+            moved.append({k: x.get(k) for k in ("url", "title", "source", "published_at", "summary", "lang")} | {"reason": v["reason"][:300], "score": v["score"]})
+    if to_global:
+        upsert("news", to_global, "url")
+    if moved:
+        try:
+            upsert("news_rejects", moved, "url")
+        except Exception:  # noqa: BLE001
+            pass
     # se borran en lotes de 40 (antes era una por una y, con muchas, la corrida se hacía larga)
     import time
     t0 = time.time()
@@ -314,6 +347,13 @@ def run():
                     r.note(f"{f['name']}: sin respuesta")
             health.append(st)
         r.rows = upsert("news", items, "url")
+        if REJECTS:
+            try:  # tabla de descartadas (Noticias → Descartadas): para revisar qué deja fuera el filtro
+                upsert("news_rejects", list({x["url"]: x for x in REJECTS}.values()), "url")
+                from .common import delete
+                delete("news_rejects", {"seen_at": "lt." + (dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=21)).isoformat()})
+            except Exception as e:  # noqa: BLE001
+                r.note(f"news_rejects: {str(e)[:120]}")
         try:
             n = cleanup()
             if n:
