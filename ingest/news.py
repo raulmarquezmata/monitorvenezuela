@@ -314,6 +314,41 @@ def recategorize() -> int:
     return upsert("news", changed, "url") if changed else 0
 
 
+def keep_first_seen(items: list[dict]) -> list[dict]:
+    """Noticias recicladas: algunos medios (y Google News) vuelven a fechar notas viejas. Sin esto, la nota
+    «renacía» con fecha de hoy, subía en la web y salía otra vez por Telegram.
+    - Enlace ya guardado → no se vuelve a escribir (conserva su fecha original).
+    - Enlace nuevo que cuenta una historia ya guardada hace más de 3 días → se guarda con la fecha de la primera."""
+    from .common import select
+    from .alerts import same_story
+    if not items:
+        return items
+    known: set[str] = set()
+    urls = [it["url"] for it in items]
+    for i in range(0, len(urls), 30):
+        try:
+            got = select("news", {"select": "url", "url": "in.(" + ",".join('"' + u.replace('"', '') + '"' for u in urls[i:i + 30]) + ")"})
+            known |= {x["url"] for x in got}
+        except Exception:  # noqa: BLE001
+            pass
+    fresh = [it for it in items if it["url"] not in known]
+    now = dt.datetime.now(dt.timezone.utc)
+    try:
+        old = select("news", {"select": "title,published_at", "published_at": f"gte.{(now - dt.timedelta(days=120)).isoformat()}",
+                              "created_at": f"lt.{(now - dt.timedelta(days=3)).isoformat()}", "category": "neq.global"})
+    except Exception:  # noqa: BLE001
+        old = []
+    for it in fresh:
+        if it.get("category") == "global":
+            continue
+        prev = [o for o in old if same_story(it["title"], o["title"])]
+        if prev:
+            first = min(o["published_at"] for o in prev)
+            if first < it["published_at"]:
+                it["published_at"] = first
+    return fresh
+
+
 def run():
     with Run("news") as r:
         seen_titles: set[str] = set()
@@ -346,6 +381,7 @@ def run():
                     st["last_error"] = str(e)[:300]
                     r.note(f"{f['name']}: sin respuesta")
             health.append(st)
+        items = keep_first_seen(items)
         r.rows = upsert("news", items, "url")
         if REJECTS:
             try:  # tabla de descartadas (Noticias → Descartadas): para revisar qué deja fuera el filtro
