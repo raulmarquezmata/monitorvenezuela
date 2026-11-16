@@ -57,13 +57,35 @@ async function latest_(category?: string): Promise<Latest[]> {
   return (data as Latest[]) ?? [];
 }
 
-async function history_(codes: string[], sinceYears = 12): Promise<Record<string, Point[]>> {
-  const since = new Date(Date.now() - sinceYears * 365.25 * 864e5).toISOString().slice(0, 10);
-  const rows = await all<{ series_code: string; date: string; value: number }>((a, b) =>
-    sb!.from("observations").select("series_code,date,value").in("series_code", codes).gte("date", since)
-      .order("series_code").order("date").range(a, b));
+async function historyRange_(codes: string[], since: string, until?: string): Promise<Record<string, Point[]>> {
+  const rows = await all<{ series_code: string; date: string; value: number }>((a, b) => {
+    let q = sb!.from("observations").select("series_code,date,value").in("series_code", codes).gte("date", since);
+    if (until) q = q.lt("date", until);
+    return q.order("series_code").order("date").range(a, b);
+  });
   const out: Record<string, Point[]> = Object.fromEntries(codes.map((c) => [c, []]));
   for (const r of rows) out[r.series_code]?.push([r.date, r.value]);
+  return out;
+}
+// Ahorro de tráfico (Supabase cobra lo que sale de la base): la historia vieja no cambia, así que se guarda
+// 6 horas en la caché de Vercel (en grupos de 3 series para no pasar de 2 MB por entrada); solo los últimos
+// 10 días se piden de nuevo cada vez que corren los robots.
+const histLong = unstable_cache(historyRange_, ["data", "histLong"], { revalidate: 21600, tags: ["hist"] });
+const histTail = unstable_cache(historyRange_, ["data", "histTail"], { revalidate: 300, tags: ["datos"] });
+
+async function history_(codes: string[], sinceYears = 12): Promise<Record<string, Point[]>> {
+  if (!sb) return Object.fromEntries(codes.map((c) => [c, []]));
+  const since = new Date(Date.now() - sinceYears * 365.25 * 864e5).toISOString().slice(0, 10);
+  const cut = new Date(Date.now() - 10 * 864e5).toISOString().slice(0, 10);
+  const uniq = Array.from(new Set(codes)).sort();
+  const groups: string[][] = [];
+  for (let i = 0; i < uniq.length; i += 3) groups.push(uniq.slice(i, i + 3));
+  const [longs, tail] = await Promise.all([
+    Promise.all(groups.map((g) => histLong(g, since, cut))),
+    histTail(uniq, since > cut ? since : cut),
+  ]);
+  const out: Record<string, Point[]> = Object.fromEntries(codes.map((c) => [c, []]));
+  for (const part of [...longs, tail]) for (const [c, pts] of Object.entries(part)) out[c]?.push(...pts);
   return out;
 }
 
@@ -73,13 +95,24 @@ async function bvcLatest_(market: "RV" | "RF" = "RV"): Promise<Quote[]> {
   return (data as Quote[]) ?? [];
 }
 
+async function bvcQuotes_(symbol: string, until?: string, since?: string): Promise<Quote[]> {
+  return all<Quote>((a, b) => {
+    let q = sb!.from("bvc_quotes").select("*").eq("symbol", symbol);
+    if (until) q = q.lt("date", until);
+    if (since) q = q.gte("date", since);
+    return q.order("date").range(a, b);
+  });
+}
+const quotesLong = unstable_cache(bvcQuotes_, ["data", "quotesLong"], { revalidate: 21600, tags: ["hist"] });
+const quotesTail = unstable_cache(bvcQuotes_, ["data", "quotesTail"], { revalidate: 120, tags: ["datos"] });
+const symbolMeta = unstable_cache(async (symbol: string) => (await sb!.from("bvc_symbols").select("*").eq("symbol", symbol).maybeSingle()).data,
+  ["data", "symbolMeta"], { revalidate: 1800, tags: ["datos"] });
+
 async function bvcSymbol_(symbol: string) {
   if (!sb) return { meta: null, quotes: [] as Quote[] };
-  const [{ data: meta }, quotes] = await Promise.all([
-    sb.from("bvc_symbols").select("*").eq("symbol", symbol).maybeSingle(),
-    all<Quote>((a, b) => sb!.from("bvc_quotes").select("*").eq("symbol", symbol).order("date").range(a, b)),
-  ]);
-  return { meta, quotes };
+  const cut = new Date(Date.now() - 10 * 864e5).toISOString().slice(0, 10);
+  const [meta, old, recent] = await Promise.all([symbolMeta(symbol), quotesLong(symbol, cut), quotesTail(symbol, undefined, cut)]);
+  return { meta, quotes: [...old, ...recent] };
 }
 
 export type BvcEvent = { id: string; symbol: string; date: string; kind: string | null; title: string | null; url: string | null; source: string | null };
@@ -162,11 +195,23 @@ export function dailyReportUrl(lang: "es" | "en", version?: string | null): stri
 }
 
 /** Todas las noticias recientes que capta el robot (todos los medios y temas) para la hemeroteca automática. */
+async function hemerotecaMonth_(from: string, to: string): Promise<News[]> {
+  const { data, error } = await sb!.from("news").select("url,title,title_es,title_en,source,published_at,summary,category").or("category.is.null,category.neq.global")
+    .gte("published_at", from).lt("published_at", to).order("published_at", { ascending: false }).limit(4000);
+  return error ? [] : ((data as News[]) ?? []);
+}
+const hemeroPast = unstable_cache(hemerotecaMonth_, ["data", "hemeroPast"], { revalidate: 21600, tags: ["hist"] });
+const hemeroNow = unstable_cache(hemerotecaMonth_, ["data", "hemeroNow"], { revalidate: 300, tags: ["datos"] });
+
 async function hemerotecaAuto_(since = "2026-10-01"): Promise<News[]> {
   if (!sb) return [];
-  const { data, error } = await sb.from("news").select("url,title,title_es,title_en,source,published_at,summary,category").or("category.is.null,category.neq.global")
-    .gte("published_at", since).order("published_at", { ascending: false }).limit(4000);
-  return error ? [] : ((data as News[]) ?? []);
+  const now = new Date();
+  const cur = `${now.toISOString().slice(0, 7)}-01`;
+  const months: string[] = [];
+  for (let d = new Date(`${since.slice(0, 7)}-01T00:00:00Z`); d.toISOString().slice(0, 10) <= cur; d.setUTCMonth(d.getUTCMonth() + 1)) months.push(d.toISOString().slice(0, 10));
+  const next = (m: string) => { const d = new Date(`${m}T00:00:00Z`); d.setUTCMonth(d.getUTCMonth() + 1); return d.toISOString().slice(0, 10); };
+  const parts = await Promise.all(months.map((m) => (m === cur ? hemeroNow(m, "2100-01-01") : hemeroPast(m, next(m)))));
+  return parts.reverse().flat();
 }
 
 async function news_(limit = 60, category?: string, lang?: "es" | "en"): Promise<News[]> {
@@ -272,9 +317,9 @@ async function bankSample_(): Promise<BankRow[]> {
 
 // ---------------------------------------------------------------- versiones con caché
 export const latest = cached(latest_, "latest", 300);
-export const history = history_; // sin caché propia: la respuesta puede pasar de 2 MB (límite de la caché de Vercel)
+export const history = history_; // caché por tramos (histLong/histTail): ninguna entrada pasa de 2 MB
 export const bvcLatest = cached(bvcLatest_, "bvcLatest", 120);
-export const bvcSymbol = bvcSymbol_; // sin caché propia: la respuesta puede pasar de 2 MB (límite de la caché de Vercel)
+export const bvcSymbol = bvcSymbol_; // caché por tramos (quotesLong/quotesTail)
 export const news = cached(news_, "news", 120);
 export const trade = cached(trade_, "trade", 3600);
 export const agro = cached(agro_, "agro", 3600);
@@ -286,7 +331,7 @@ export const bankRanking = cached(bankRanking_, "bankRanking", 1800);
 export const bankSystem = cached(bankSystem_, "bankSystem", 1800);
 export const bankSample = cached(bankSample_, "bankSample", 1800);
 export const informes = cached(informes_, "informes", 300);
-export const hemerotecaAuto = hemerotecaAuto_; // sin caché propia: la respuesta puede pasar de 2 MB (límite de la caché de Vercel)
+export const hemerotecaAuto = hemerotecaAuto_; // caché por mes (hemeroPast/hemeroNow)
 export const ofacActions = cached(ofacActions_, "ofacActions", 600);
 export const newsSources = cached(newsSources_, "newsSources", 300);
 export const status = cached(status_, "status", 120);
