@@ -317,6 +317,20 @@
       "kind": "agregador"
     },
     {
+      "name": "Petroleras internacionales (búsqueda)",
+      "url": "https://news.google.com/rss/search?q=Venezuela%20%28Chevron%20OR%20Shell%20OR%20Repsol%20OR%20Eni%20OR%20%22Maurel%22%20OR%20ExxonMobil%20OR%20ConocoPhillips%20OR%20BP%29%20%28deal%20OR%20contract%20OR%20license%20OR%20production%20OR%20stake%20OR%20investment%29%20when%3A2d&hl=en-US&gl=US&ceid=US:en",
+      "lang": "en",
+      "filter": true,
+      "kind": "agregador"
+    },
+    {
+      "name": "Acuerdos petroleros (búsqueda)",
+      "url": "https://news.google.com/rss/search?q=Venezuela%20%28Chevron%20OR%20Shell%20OR%20Repsol%20OR%20Eni%20OR%20%22Maurel%20%26%20Prom%22%20OR%20%22empresa%20mixta%22%29%20%28acuerdo%20OR%20contrato%20OR%20licencia%20OR%20producci%C3%B3n%20OR%20inversi%C3%B3n%20OR%20firma%29%20when%3A2d&hl=es-419&gl=VE&ceid=VE:es-419",
+      "lang": "es",
+      "filter": true,
+      "kind": "agregador"
+    },
+    {
       "name": "Empresas e inversión (búsqueda)",
       "url": "https://news.google.com/rss/search?q=Venezuela%20%28adquiere%20OR%20adquisici%C3%B3n%20OR%20invertir%C3%A1%20OR%20inversi%C3%B3n%20OR%20expansi%C3%B3n%20OR%20%22nueva%20planta%22%29%20empresa%20when%3A3d&hl=es-419&gl=VE&ceid=VE:es-419",
       "lang": "es",
