@@ -75,9 +75,9 @@ _S = [
     ("ust_30a", "internacional", "Tesoro EE.UU. 30 años", "US Treasury 30-year", "%", "%", "D", "Departamento del Tesoro", "https://home.treasury.gov/resource-center/data-chart-center/interest-rates", 2, 24),
     ("eem", "internacional", "Emergentes (MSCI EM, fondo EEM)", "Emerging markets (MSCI EM, EEM fund)", "US$", "US$", "D", "Yahoo Finance", "https://finance.yahoo.com/", 2, 30),
     ("bovespa", "internacional", "Bovespa (Brasil)", "Bovespa (Brazil)", "puntos", "points", "D", "Yahoo Finance", "https://finance.yahoo.com/", 0, 31),
-    ("merval", "internacional", "Merval (Argentina)", "Merval (Argentina)", "puntos", "points", "D", "Yahoo Finance", "https://finance.yahoo.com/", 0, 32),
+    ("argentina_argt", "internacional", "Acciones Argentina (ETF ARGT)", "Argentina equities (ARGT ETF)", "US$", "US$", "D", "Yahoo Finance", "https://finance.yahoo.com/quote/ARGT", 2, 32),
     ("ipc_mexico", "internacional", "IPC (México)", "IPC (Mexico)", "puntos", "points", "D", "Yahoo Finance", "https://finance.yahoo.com/", 0, 33),
-    ("ipsa_chile", "internacional", "IPSA (Chile)", "IPSA (Chile)", "puntos", "points", "D", "Yahoo Finance", "https://finance.yahoo.com/", 0, 34),
+    ("chile_ech", "internacional", "Acciones Chile (ETF ECH)", "Chile equities (ECH ETF)", "US$", "US$", "D", "Yahoo Finance", "https://finance.yahoo.com/quote/ECH", 2, 34),
 
     # ---------------- Petróleo y gas
     ("petroleo_prod_opep_fs", "petroleo", "Producción de crudo · OPEP fuentes secundarias", "Crude output · OPEC secondary sources", "miles b/d", "kb/d", "M", "OPEP MOMR", OPEP, 0, 10),
@@ -213,7 +213,7 @@ for code in ("oro", "mineral_hierro", "aluminio", "cafe", "cacao", "azucar"):
     PLAN[code] = (A, 4, "Promedio mensual del Banco Mundial desde 1960 + cierre diario del futuro del primer mes (robot futuros, cada hora).")
 for code in ("plata", "cobre", "maiz_cbot", "trigo_kc", "soya_cbot"):
     PLAN[code] = (A, 4, "Robot futuros cada hora: cierre diario del contrato del primer mes (Yahoo Finance).")
-for code in ("sp500", "nasdaq", "dow_jones", "vix", "dxy", "oro_diario", "bitcoin", "eem", "bovespa", "merval", "ipc_mexico", "ipsa_chile"):
+for code in ("sp500", "nasdaq", "dow_jones", "vix", "dxy", "oro_diario", "bitcoin", "eem", "bovespa", "argentina_argt", "ipc_mexico", "chile_ech"):
     PLAN[code] = (A, 5, "Robot global cada 10 min en horario de mercado (Yahoo Finance).")
 for code in ("ust_2a", "ust_5a", "ust_10a", "ust_20a", "ust_30a"):
     PLAN[code] = (A, 5, "Robot global cada 10 min en horario de mercado (curva diaria del Tesoro de EE.UU.; respaldo FRED/Yahoo).")
