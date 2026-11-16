@@ -12,7 +12,8 @@ Pasos (en orden):
      Guyana, Trinidad, Aruba, Curazao, Caribe) cuenta aunque no nombre a Venezuela (+2).
   4. Sin ancla y con otro país o un tema de Wall Street: si es de mercados va a «Mercados globales»; si no, fuera.
   5. Tema: económico (+2, +1 por cada término extra, máx. +4) o político permitido (+1). Ninguno → fuera.
-  6. Restas: sucesos y crimen (−6), historias personales (−3), seguridad (−3), ruido (−4), tono (−3);
+  6. Deportes → fuera. Petrolera internacional + acuerdo/inversión (+2).
+     Restas: sucesos y crimen (−6), salud o promoción de marcas (−5), historias personales (−3), seguridad (−3), ruido (−4), tono (−3);
      las de sucesos, seguridad y ruido se reducen a −1 si el titular trae un tema económico fuerte.
   7. Calidad de la fuente: nivel 1 (+2), medio con RSS propio (+1), desconocido que llega por Google News (−1).
   Umbral: 3 puntos.
@@ -56,6 +57,21 @@ SECURITY = re.compile(r"seguridad|frontera|fronteriz|polic[ií]a|militar|fuerza 
 NOT_SHARES = re.compile(r"acciones (de|para|conjuntas|contra|coordinadas)\s+(seguridad|coordinaci|frente|lucha|combat|prevenci|gobierno|protecci)|"
                         r"acciones (conjuntas|coordinadas|contra)", re.I)
 
+# deportes: fuera siempre («Venezuela se trajo el oro del Mundial de Béisbol» no es minería)
+SPORTS = re.compile(r"b[eé]isbol|f[uú]tbol|baloncesto|voleibol|softbol|atletismo|nataci[oó]n|boxeo|ciclismo|tenis\b|"
+                    r"mundial (de|sub)|sub-?\d{2}\b|campe[oó]n|campeones|campeonato|medalla|medallista|podio|selecci[oó]n (nacional|venezolana|vinotinto)|"
+                    r"juegos (ol[ií]mpicos|panamericanos|centroamericanos|bolivarianos|suramericanos)|vinotinto|pelotero|grandes ligas|\blvbp\b|"
+                    r"se (trajo|llev[oó]|colg[oó]) (el|la) (oro|plata|bronce)|\b(oro|plata|bronce) (en|del|de la) (mundial|copa|torneo|juegos|campeonato)", re.I)
+# salud y notas de aniversario/promoción de clínicas, tiendas o marcas: no son noticias para un inversionista
+HEALTH_PR = re.compile(r"urol[oó]g|cl[ií]nica|hospital|centro m[eé]dico|tom[oó]grafo|resonador|paciente|cirug[ií]a|m[eé]dicos?\b|odontol|oftalm|"
+                       r"pediatr|cardiolog|oncolog|aniversario|celebra (sus|su)|nueva sede|inaugura (su|una nueva) (tienda|sucursal|sede)|"
+                       r"promoci[oó]n|descuentos?|black friday|navidad|sorteo|rifa", re.I)
+# grandes acuerdos de petroleras internacionales: lo que más interesa (Chevron, Shell, Repsol… firmando, invirtiendo, produciendo)
+MAJORS = re.compile(r"chevron|shell|repsol|\beni\b|maurel|exxon|conocophillips|\bbp\b|totalenergies|equinor|ongc|reliance|cnpc|rosneft|"
+                    r"harbour|vitol|trafigura|gunvor|glencore", re.I)
+DEALS = re.compile(r"acuerdo|contrato|pacto|firma|licencia|empresa mixta|joint venture|participaci[oó]n|invert|inversi[oó]n|producci[oó]n|"
+                   r"bloque|campo|deal|contract|license|stake|invest|production|output|agreement|sign", re.I)
+
 # términos de negocio que contienen palabras de la lista de ruido
 BUSINESS_OK = re.compile(r"pre-?concurso|concurso de acreedores|concurso p[uú]blico|licitaci[oó]n", re.I)
 
@@ -86,6 +102,9 @@ def evaluate(title: str, summary: str | None, source: str | None, *, ve_outlet: 
         return {"ok": False, "scope": "ve", "score": 0, "reason": "titular de sección o sin contenido"}
     if _in(source or "", q.get("bloqueadas", [])):
         return {"ok": False, "scope": "ve", "score": 0, "reason": "fuente bloqueada"}
+
+    if SPORTS.search(t):
+        return {"ok": False, "scope": "ve", "score": 0, "reason": "deportes"}
 
     score, why = 0, []
     t_econ = NOT_SHARES.sub(" ", t)
@@ -119,7 +138,9 @@ def evaluate(title: str, summary: str | None, source: str | None, *, ve_outlet: 
     if N.categorize(f"{t} {summary or ''}") == "politica" and not pol and not N.ECON_POLICY.search(t):
         return {"ok": False, "scope": "ve", "score": score, "reason": "política sin medida económica"}
 
-    for rx, pen, label, softens in ((CRIME, 6, "suceso o crimen", True), (PERSONAL, 3, "historia personal", False),
+    if MAJORS.search(t) and DEALS.search(t):
+        score += 2; why.append("petrolera internacional con acuerdo o inversión +2")
+    for rx, pen, label, softens in ((CRIME, 6, "suceso o crimen", True), (PERSONAL, 3, "historia personal", False), (HEALTH_PR, 5, "salud o promoción", False),
                                      (SECURITY, 3, "seguridad", True), (N.NOISE, 4, "ruido", True), (N.TONE, 3, "tono", False)):
         if rx.search(t_noise if rx is N.NOISE else t):
             p = 1 if (softens and (strong or (rx is SECURITY and (econ or pol)))) else pen
