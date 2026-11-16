@@ -1,4 +1,4 @@
-import { revalidatePath, revalidateTag } from "next/cache";
+import { revalidateTag } from "next/cache";
 import { lastRunFresh } from "@/lib/data";
 
 export const dynamic = "force-dynamic";
@@ -10,7 +10,9 @@ export async function POST() {
   const finished = await lastRunFresh();
   const age = finished ? Date.now() - new Date(finished).getTime() : Infinity;
   if (age > 10 * 60_000) return Response.json({ ok: false, reason: "sin corrida reciente" }, { status: 409 });
+  // solo la etiqueta «datos»: las páginas que la usan se rehacen solas. Antes también se llamaba
+  // revalidatePath("/", "layout"), que borraba TODA la caché (incluida la historia vieja) en cada corrida
+  // y multiplicaba el tráfico de salida de Supabase.
   revalidateTag("datos");
-  revalidatePath("/", "layout");
   return Response.json({ ok: true, finished_at: finished });
 }
