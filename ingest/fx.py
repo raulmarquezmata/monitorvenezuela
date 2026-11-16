@@ -297,7 +297,10 @@ def run(backfill: bool = False):
                 except Exception as e:  # noqa: BLE001
                     r.note(f"Histórico {kind}: {e}")
 
-        fixed = sanitize()
+        # revisar TODA la historia (3 series desde 2000) es lo que más tráfico de Supabase consume:
+        # se hace solo en la corrida de las 7 p. m. (23 UTC) y en las cargas completas; el resto, últimos 45 días
+        deep = backfill or dt.datetime.now(dt.timezone.utc).hour == 23
+        fixed = sanitize() if deep else 0
         r.rows += fixed
         r.rows += gap_from_db(2000 if (backfill or fixed) else 45)
 
