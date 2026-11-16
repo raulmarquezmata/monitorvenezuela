@@ -35,7 +35,9 @@ ABROAD = re.compile(r"\b(argentin|milei|chile|chilen|per[uú]\b|peruan|ecuador|b
                     r"espa[nñ]a|francia|alemania|italia|reino unido|portugal|china|jap[oó]n|india|rusia|ucrania|turqu[ií]a|canad[aá]|"
                     r"panam[aá]|costa rica|dominicana|cuba|uruguay|paraguay|guatemala|honduras|nicaragua|el salvador|"
                     r"buenos aires|bogot[aá]|madrid|lima\b|ciudad de m[eé]xico|s[aã]o paulo|"
-                    r"france|spain|germany|italy|united kingdom|britain|japan|russia|canada|europe|u\.s\.|united states)", re.I)
+                    r"france|spain|germany|italy|united kingdom|britain|japan|russia|canada|europe|u\.s\.|united states|"
+                    r"espa[nñ]ol(a|es)?|estadounidense|mexican[oa]s?|colombian[oa]s?|brasile[nñ][oa]s?|"
+                    r"naciones unidas|\bonu\b|\d+ pa[ií]ses|econom[ií]a mundial|aviaci[oó]n mundial)", re.I)
 # noticias de mercados internacionales (van a su pestaña si no nombran a Venezuela)
 GLOBAL_LEAD = re.compile(r"s&p\s?500|wall street|nasdaq|dow jones|goldman|jp\s?morgan|morgan stanley|\bfed\b|reserva federal|tesoro de ee|"
                          r"bonos del tesoro|bitcoin|cripto|\boro\b|\bgold\b|brent|\bwti\b|petr[oó]leo|crudo|\boil\b|bolsas? (de|europe|asi)|"
@@ -49,7 +51,9 @@ VE_SPECIFIC = re.compile(r"\bbcv\b|seniat|sudeban|sunaval|\bbvc\b|bolpriaven|pdv
                          r"banesco|bancaribe|mercantil|provincial|\bbnc\b|banplus|delcy|cabello|maduro|machado|asamblea nacional|\btsj\b|"
                          r"caracas|maracaibo|zulia|carabobo|anzo[aá]tegui|monagas|bol[ií]var\b|guayana|orinoco|\bfaja\b|esequibo", re.I)
 CRIME = re.compile(r"magnicidio|atentado|asesin|homicid|crimen|criminal|narco|sicari|secuestr|extorsi|lavado de|capturad|detenid|detien|arrest|"
-                   r"tiroteo|balacera|fallec|muert|cad[aá]ver|v[ií]ctima|violaci|abuso|kidnap|murder|killed", re.I)
+                   r"tiroteo|balacera|fallec|muert|cad[aá]ver|v[ií]ctima|violaci|abuso|kidnap|murder|killed|"
+                   r"hurt[oó]|hurtaron|\brob[oó]\b|robaron|asalt|estaf|caen? (dos|tres|cuatro|empleada|sujetos?|banda|hombre|mujer|pareja|integrantes)\b|"
+                   r"incendio|consumi[oó] (en su totalidad|la vivienda)", re.I)
 PERSONAL = re.compile(r"\(\d{1,2} a[nñ]os\)|\b\d{1,2} a[nñ]os,|cuenta c[oó]mo|su historia|lloraba|hallar a|paradero|desaparecid|"
                       r"de polic[ií]a (en|a)|emigr[oó]|migrante|reencuentro|conmovedor|viral|tiktok|influencer", re.I)
 SECURITY = re.compile(r"seguridad|frontera|fronteriz|polic[ií]a|militar|fuerza armada|\bfanb\b|narcotr|contrabando|guerrilla|\beln\b", re.I)
