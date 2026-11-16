@@ -10,7 +10,7 @@ export const revalidate = 300;
 
 const TOP = ["sp500", "nasdaq", "dow_jones", "vix", "dxy", "oro_diario", "bitcoin", "ust_10a"];
 const RATES = ["ust_2a", "ust_5a", "ust_10a", "ust_20a", "ust_30a"];
-const REGION = ["eem", "bovespa", "merval", "ipc_mexico", "ipsa_chile"];
+const REGION = ["eem", "bovespa", "argentina_argt", "ipc_mexico", "chile_ech"];
 
 export default async function Internacional({ params }: { params: { lang: Lang } }) {
   const { lang } = params;
