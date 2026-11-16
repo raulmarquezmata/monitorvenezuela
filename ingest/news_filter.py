@@ -65,7 +65,7 @@ SPORTS = re.compile(r"b[eé]isbol|f[uú]tbol|baloncesto|voleibol|softbol|atletis
 # salud y notas de aniversario/promoción de clínicas, tiendas o marcas: no son noticias para un inversionista
 HEALTH_PR = re.compile(r"urol[oó]g|cl[ií]nica|hospital|centro m[eé]dico|tom[oó]grafo|resonador|paciente|cirug[ií]a|m[eé]dicos?\b|odontol|oftalm|"
                        r"pediatr|cardiolog|oncolog|aniversario|celebra (sus|su)|nueva sede|inaugura (su|una nueva) (tienda|sucursal|sede)|"
-                       r"promoci[oó]n|descuentos?|black friday|navidad|sorteo|rifa", re.I)
+                       r"promoci[oó]n (especial|navide)|descuentos? de hasta|\bsorteos?\b|\brifas?\b|feliz navidad|en esta navidad", re.I)
 # grandes acuerdos de petroleras internacionales: lo que más interesa (Chevron, Shell, Repsol… firmando, invirtiendo, produciendo)
 MAJORS = re.compile(r"chevron|shell|repsol|\beni\b|maurel|exxon|conocophillips|\bbp\b|totalenergies|equinor|ongc|reliance|cnpc|rosneft|"
                     r"harbour|vitol|trafigura|gunvor|glencore", re.I)
