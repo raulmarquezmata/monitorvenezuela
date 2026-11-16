@@ -32,7 +32,11 @@ export default function BankExplorer({ rows: sampleRows, system: system0 = [], f
 }) {
   const system = useMemo(() => system0.filter((r) => !r.metric.startsWith("muestra_")), [system0]);
   const es = lang === "es";
-  const [universe, setUniverse] = useState<"sample" | "system">("sample");
+  // si la muestra (archivo propio) va atrasada respecto al sistema (SUDEBAN), se abre en «Todo el sistema»
+  const lastS = sampleRows.reduce((m, r) => (r.period > m ? r.period : m), "").slice(0, 7);
+  const lastSys = system.reduce((m, r) => (r.period > m ? r.period : m), "").slice(0, 7);
+  const sampleBehind = !!lastSys && lastSys > lastS;
+  const [universe, setUniverse] = useState<"sample" | "system">(sampleBehind ? "system" : "sample");
   // todo el sistema → mismo formato que la muestra (millones Bs y millones US$ al oficial del cierre de mes)
   const rows = useMemo(() => {
     if (universe === "sample") return sampleRows;
@@ -106,6 +110,10 @@ export default function BankExplorer({ rows: sampleRows, system: system0 = [], f
           <button className={universe === "sample" ? "on" : ""} onClick={() => setUniverse("sample")}>{es ? "Muestra (6 bancos, 7 indicadores)" : "Sample (6 banks)"}</button>
           <button className={universe === "system" ? "on" : ""} onClick={() => setUniverse("system")}>{es ? `Todo el sistema (${new Set(system.filter((r) => !/^total/i.test(r.bank.replace(/\s/g, ""))).map((r) => r.bank)).size} bancos)` : "Whole system"}</button>
         </div>
+      )}
+      {sampleBehind && universe === "sample" && lastS && (
+        <p className="muted" style={{ marginTop: 8, fontSize: 13 }}>{es ? `La muestra llega a ${mName(lastS + "-01")}; el sistema ya tiene ${mName(lastSys + "-01")}. Se actualiza al subir data/bancos/Bancos.xlsx.`
+          : `The sample runs to ${mName(lastS + "-01")}; the system already has ${mName(lastSys + "-01")}.`}</p>
       )}
       <div className="form" style={{ marginTop: 12 }}>
         <label>{es ? "Indicador" : "Indicator"}<select value={ind} onChange={(e) => setInd(e.target.value)}>{inds.map((x) => <option key={x.k} value={x.k}>{x[lang]}</option>)}</select></label>
