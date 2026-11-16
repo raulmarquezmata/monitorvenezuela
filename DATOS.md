@@ -20,8 +20,8 @@ Qué se actualiza solo, de dónde sale y cada cuánto. Generado desde `ingest/ca
 
 | Sección | Serie | Método | Frecuencia | Fuente | Cómo se actualiza |
 |---|---|---|---|---|---|
-| Cambiario | Dólar oficial BCV | Automática | Diaria | BCV | Robot fx cada 30 min (portal BCV por fecha valor). Histórico diario desde la reconversión de oct-2021. |
-| Cambiario | Dólar paralelo (Binance P2P) | Automática | Diaria | Binance P2P | Robot fx cada 30 min: mediana de los mejores anuncios de compra y venta USDT/VES en Binance P2P. |
+| Cambiario | Dólar oficial BCV | Automática | Diaria | BCV | Robot fx cada 10 min en horario de mercado, 20 min el resto (portal BCV por fecha valor). Histórico diario desde la reconversión de oct-2021. |
+| Cambiario | Dólar paralelo (Binance P2P) | Automática | Diaria | Binance P2P | Robot fx cada 10 min en horario de mercado, 20 min el resto: mediana de los mejores anuncios de compra y venta USDT/VES en Binance P2P. |
 | Cambiario | Brecha cambiaria | Automática | Diaria | Cálculo propio | Se calcula sola: paralelo ÷ oficial − 1. |
 | Cambiario | Euro oficial BCV | Automática | Diaria | BCV | Robot fx (portal BCV). |
 | Cambiario | Intervención cambiaria (mensual) | Automática | Mensual | BCV · prensa (Banca y Negocios) | Robot de prensa diario: suma de las ventas del BCV a la banca reportadas, o la asignación mensual anunciada. |
@@ -57,7 +57,7 @@ Qué se actualiza solo, de dónde sale y cada cuánto. Generado desde `ingest/ca
 | Petróleo y gas | Brent | Automática | Diaria | EIA | Robot oil (EIA). |
 | Petróleo y gas | WTI | Automática | Diaria | EIA | Robot oil (EIA). |
 | Petróleo y gas | Gas natural Henry Hub | Automática | Mensual | Banco Mundial | Robot commodities (Banco Mundial). |
-| Mercados | Índice Bursátil Caracas (IBC) | Automática | Diaria | BVC | Robot bvc cada 30 min en horario de mercado. |
+| Mercados | Índice Bursátil Caracas (IBC) | Automática | Diaria | BVC | Robot bvc cada 10 min en horario de mercado. |
 | Mercados | IBC en dólares (paralelo) | Automática | Diaria | Cálculo propio | Se calcula solo (IBC ÷ paralelo). |
 | Mercados | IBC en dólares (oficial) | Automática | Diaria | Cálculo propio | Se calcula solo (IBC ÷ oficial). |
 | Mercados | Índice Financiero | Automática | Diaria | BVC | Robot bvc. |
