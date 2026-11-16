@@ -21,7 +21,7 @@ SPARK = "https://query1.finance.yahoo.com/v7/finance/spark"
 INDICES = {  # serie -> símbolo de Yahoo
     "sp500": "^GSPC", "nasdaq": "^IXIC", "dow_jones": "^DJI", "vix": "^VIX", "dxy": "DX-Y.NYB",
     "oro_diario": "GC=F", "bitcoin": "BTC-USD", "eem": "EEM",
-    "bovespa": "^BVSP", "merval": "^MERV", "ipc_mexico": "^MXX", "ipsa_chile": "^IPSA",
+    "bovespa": "^BVSP", "argentina_argt": "ARGT", "ipc_mexico": "^MXX", "chile_ech": "ECH",
 }
 RATES = {"ust_2a": ("2 Yr", "DGS2", None), "ust_5a": ("5 Yr", "DGS5", "^FVX"), "ust_10a": ("10 Yr", "DGS10", "^TNX"),
          "ust_20a": ("20 Yr", "DGS20", None), "ust_30a": ("30 Yr", "DGS30", "^TYX")}
@@ -36,8 +36,10 @@ BUCKET = "reportes"
 
 def closes(sym: str, rng: str = "1mo") -> list[tuple[str, float]]:
     j = fetch(YF.format(sym=sym), params={"range": rng, "interval": "1d"}, timeout=30, retries=2).json()
-    res = j["chart"]["result"][0]
-    q = res["indicators"]["quote"][0]["close"]
+    res = ((j.get("chart") or {}).get("result") or [None])[0]
+    if not res:
+        raise ValueError("Yahoo sin datos")
+    q = ((res.get("indicators") or {}).get("quote") or [{}])[0].get("close") or []
     out = [(dt.datetime.utcfromtimestamp(t).date().isoformat(), c) for t, c in zip(res.get("timestamp") or [], q) if c]
     # último precio del día (en horario de mercado el cierre todavía no existe)
     m = res.get("meta") or {}
