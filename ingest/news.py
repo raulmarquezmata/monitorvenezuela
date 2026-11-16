@@ -244,10 +244,10 @@ def google_fallback(f: dict) -> list[dict] | None:
 OLD_CATS = ("cambiario", "precios", "sanciones")
 
 
-def cleanup() -> int:
+def cleanup(days: int = 45) -> int:
     """Quita de la base las noticias recientes que no son sobre Venezuela (reglas actuales)."""
     from .common import delete, select
-    since = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=45)).isoformat()
+    since = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=days)).isoformat()
     feeds = load_feeds()
     ve = {re.sub(r"\s*\((RSS|búsqueda|economía)\)$", "", f["name"]) for f in feeds if not f.get("filter", True)}
     own = {re.sub(r"\s*\((RSS|búsqueda|economía)\)$", "", f["name"]) for f in feeds if f.get("kind") != "agregador"}
@@ -292,10 +292,10 @@ def cleanup() -> int:
     return len(bad)
 
 
-def recategorize() -> int:
-    """Vuelve a clasificar las noticias de los últimos 30 días con las reglas actuales (solo guarda las que cambian)."""
+def recategorize(days: int = 30) -> int:
+    """Vuelve a clasificar las noticias de los últimos días con las reglas actuales (solo guarda las que cambian)."""
     from .common import select
-    since = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=30)).isoformat()
+    since = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=days)).isoformat()
     rows = select("news", {"select": "url,title,summary,source,published_at,category,lang", "published_at": f"gte.{since}"})
     # fuentes de mercados globales: siempre a su pestaña (antes se colaban en Inicio como noticias de Venezuela)
     glob = {re.sub(r"\s*\((RSS|búsqueda)\)$", "", f["name"]) for f in load_feeds() if f.get("scope") == "global"}
@@ -332,9 +332,11 @@ def keep_first_seen(items: list[dict]) -> list[dict]:
         except Exception:  # noqa: BLE001
             pass
     fresh = [it for it in items if it["url"] not in known]
+    if not any(it.get("category") != "global" for it in fresh):
+        return fresh
     now = dt.datetime.now(dt.timezone.utc)
     try:
-        old = select("news", {"select": "title,published_at", "published_at": f"gte.{(now - dt.timedelta(days=120)).isoformat()}",
+        old = select("news", {"select": "title,published_at", "published_at": f"gte.{(now - dt.timedelta(days=30)).isoformat()}",
                               "created_at": f"lt.{(now - dt.timedelta(days=3)).isoformat()}", "category": "neq.global"})
     except Exception:  # noqa: BLE001
         old = []
@@ -391,10 +393,13 @@ def run():
             except Exception as e:  # noqa: BLE001
                 r.note(f"news_rejects: {str(e)[:120]}")
         try:
-            n = cleanup()
+            # repaso de lo ya guardado con las reglas actuales: completo (45 y 30 días) una vez al día, a las
+            # 5 a. m. (9 UTC); en las demás corridas solo los últimos 2 días (ahorra tráfico de Supabase)
+            deep = dt.datetime.now(dt.timezone.utc).hour == 9
+            n = cleanup(45 if deep else 2)
             if n:
                 r.log.info("Noticias fuera de tema retiradas: %d", n)
-            r.rows += recategorize()
+            r.rows += recategorize(30 if deep else 2)
         except Exception as e:  # noqa: BLE001
             r.log.info("recategorizar: %s", e)
         try:  # titulares en español e inglés para la web
@@ -405,7 +410,7 @@ def run():
             r.note(f"Traducción: {str(e)[:120]}")
         try:  # cifras oficiales anunciadas en los titulares (PIB, inflación): entran a la página enseguida
             from .press import from_headlines
-            n = from_headlines()
+            n = from_headlines(2)
             if n:
                 r.log.info("Datos tomados de titulares: %d", n)
         except Exception as e:  # noqa: BLE001
