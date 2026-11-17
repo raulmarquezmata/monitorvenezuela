@@ -45,7 +45,7 @@ export default async function Internacional({ params }: { params: { lang: Lang }
           <p className="sub">{es ? "Bolsas de EE.UU. y de la región, volatilidad, dólar, oro, bitcoin y tasas del Tesoro. Precios con ~15 minutos de retraso en horario de mercado."
             : "US and regional equities, volatility, the dollar, gold, bitcoin and Treasury yields. Prices delayed ~15 minutes during market hours."}</p>
         </div>
-        <Link className="btn" href={`/${lang}/noticias?cat=global`}>{es ? "Noticias de mercados globales →" : "Global markets news →"}</Link>
+        <Link prefetch={false} className="btn" href={`/${lang}/noticias?cat=global`}>{es ? "Noticias de mercados globales →" : "Global markets news →"}</Link>
       </div>
 
       <div className="grid g4">{TOP.filter((c) => by[c]).map((c) => <Kpi key={c} s={by[c]} points={hist[c] ?? []} lang={lang} periods={["1D", "1W", "YTD"]} />)}</div>
