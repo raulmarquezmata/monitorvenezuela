@@ -29,13 +29,13 @@ export default async function Noticias({ params, searchParams }: { params: { lan
         ? (lang === "es" ? "Mercados internacionales: Wall Street, tasas, la Fed, petróleo y grandes empresas, de Yahoo Finance, CNBC, MarketWatch, Reuters, Financial Times, Investing.com y Bloomberg Línea." : "Global markets: Wall Street, rates, the Fed, oil and large companies, from Yahoo Finance, CNBC, MarketWatch, Reuters, Financial Times, Investing.com and Bloomberg Línea.")
         : (lang === "es" ? "Titulares de medios venezolanos e internacionales, clasificados automáticamente por tema." : "Headlines from Venezuelan and international media, auto-tagged by topic.")}</p>
       <div className="chips">
-        <Link href={q({ cat: undefined })} className={!cat ? "on" : ""}>{d.all}</Link>
-        {CATS.map((c) => <Link key={c} href={q({ cat: c })} className={cat === c ? "on" : ""}>{d.cats[c]}</Link>)}
+        <Link prefetch={false} href={q({ cat: undefined })} className={!cat ? "on" : ""}>{d.all}</Link>
+        {CATS.map((c) => <Link prefetch={false} key={c} href={q({ cat: c })} className={cat === c ? "on" : ""}>{d.cats[c]}</Link>)}
       </div>
       <div className="chips">
-        <Link href={q({ o: undefined })} className={!origin ? "on" : ""}>{lang === "es" ? "Todos los medios" : "All outlets"}</Link>
-        <Link href={q({ o: "ve" })} className={origin === "ve" ? "on" : ""}>{lang === "es" ? "Venezolanos" : "Venezuelan"}</Link>
-        <Link href={q({ o: "int" })} className={origin === "int" ? "on" : ""}>{lang === "es" ? "Internacionales" : "International"}</Link>
+        <Link prefetch={false} href={q({ o: undefined })} className={!origin ? "on" : ""}>{lang === "es" ? "Todos los medios" : "All outlets"}</Link>
+        <Link prefetch={false} href={q({ o: "ve" })} className={origin === "ve" ? "on" : ""}>{lang === "es" ? "Venezolanos" : "Venezuelan"}</Link>
+        <Link prefetch={false} href={q({ o: "int" })} className={origin === "int" ? "on" : ""}>{lang === "es" ? "Internacionales" : "International"}</Link>
       </div>
       <div className="grid two">
       <div className="card" style={{ paddingTop: 8 }}>
@@ -70,7 +70,7 @@ export default async function Noticias({ params, searchParams }: { params: { lan
           </ul>
         </div>
         <p className="muted" style={{ marginTop: 8 }}>
-          <Link href={`/${lang}/datos`}>{lang === "es" ? "Ver fuentes de noticias y su estado →" : "See news sources and their status →"}</Link>
+          <Link prefetch={false} href={`/${lang}/datos`}>{lang === "es" ? "Ver fuentes de noticias y su estado →" : "See news sources and their status →"}</Link>
         </p>
       </aside>
       </div>
