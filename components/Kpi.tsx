@@ -89,5 +89,5 @@ export function KpiCard({ m, points, lang, noData, periods, extra, rangeLabels }
       <KpiBody m={m} points={points} lang={lang} noData={noData} periods={periods ?? defaultPeriods(m.frequency)} extra={extra} sparkDays={sparkDays} />
     </CardScope>
   );
-  return m.href && !money ? <Link href={m.href} className="card">{body}</Link> : <div className="card">{body}</div>;
+  return m.href && !money ? <Link prefetch={false} href={m.href} className="card">{body}</Link> : <div className="card">{body}</div>;
 }
