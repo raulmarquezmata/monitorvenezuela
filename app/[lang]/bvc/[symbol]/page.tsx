@@ -9,7 +9,9 @@ import { t, type Lang } from "@/lib/i18n";
 import { adjustPrices, splitEvents, splitLabel } from "@/lib/splits";
 import { change, PERIOD_LABEL, type Period, type Point } from "@/lib/stats";
 
-export const revalidate = 300;
+// se arma en cada visita (con los datos de la caché): guardar ~60 fichas con años de cotizaciones como páginas
+// estáticas gastaba buena parte de las escrituras ISR del plan gratuito de Vercel
+export const dynamic = "force-dynamic";
 
 type Empresa = { nombre?: string; es?: string; en?: string; alias?: string[] };
 const EMP = (empresas as { empresas: Record<string, Empresa> }).empresas;
@@ -88,7 +90,7 @@ export default async function SymbolPage({ params }: { params: { lang: Lang; sym
 
   return (
     <>
-      <p className="muted"><Link href={`/${lang}/bvc`}>← {d.nav.bvc}</Link></p>
+      <p className="muted"><Link prefetch={false} href={`/${lang}/bvc`}>← {d.nav.bvc}</Link></p>
       <div className="head-row">
         <div>
           <h1 style={{ marginBottom: 4 }}>{symbol} <span className="muted" style={{ fontSize: 18, fontWeight: 400 }}>{name}</span></h1>
