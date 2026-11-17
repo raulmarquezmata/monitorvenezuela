@@ -50,8 +50,8 @@ export default async function Timeline({ params, searchParams }: { params: { lan
       <h1>{d.nav.timeline} {year}</h1>
       <p className="sub">{es ? "Los hechos que marcaron el año, con el dato y el gráfico de cada momento. Se alimenta de eventos seleccionados y de los datos que publican BCV, OPEP y OFAC." : "The year's defining events, each with its data point and chart. Fed by curated events and by BCV, OPEC and OFAC releases."}</p>
       <div className="chips">
-        <Link href={`/${lang}/noticias/linea-de-tiempo?y=${year}`} className={!cat ? "on" : ""}>{d.all}</Link>
-        {CATS.map((c) => <Link key={c} href={`/${lang}/noticias/linea-de-tiempo?y=${year}&cat=${c}`} className={cat === c ? "on" : ""}>{d.cats[c] ?? c}</Link>)}
+        <Link prefetch={false} href={`/${lang}/noticias/linea-de-tiempo?y=${year}`} className={!cat ? "on" : ""}>{d.all}</Link>
+        {CATS.map((c) => <Link prefetch={false} key={c} href={`/${lang}/noticias/linea-de-tiempo?y=${year}&cat=${c}`} className={cat === c ? "on" : ""}>{d.cats[c] ?? c}</Link>)}
       </div>
       {evs.length ? (
         <div className="timeline">
@@ -59,7 +59,7 @@ export default async function Timeline({ params, searchParams }: { params: { lan
             <div key={k}>
               <div className="tl-month" style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
                 <span>{monthName(k)}</span>
-                {MONTHS.includes(k) && <Link href={`/${lang}/noticias/hemeroteca?m=${k}`} style={{ fontSize: 14, fontWeight: 400 }}>{es ? "Noticias del mes →" : "Month's news →"}</Link>}
+                {MONTHS.includes(k) && <Link prefetch={false} href={`/${lang}/noticias/hemeroteca?m=${k}`} style={{ fontSize: 14, fontWeight: 400 }}>{es ? "Noticias del mes →" : "Month's news →"}</Link>}
               </div>
               {list.map((e) => (
                 <article key={e.id} className={`tl-item i${e.importance}`}>
@@ -80,7 +80,7 @@ export default async function Timeline({ params, searchParams }: { params: { lan
         </div>
       ) : <div className="empty">{d.noData}</div>}
       <p className="muted" style={{ marginTop: 24 }}>
-        <Link href={`/${lang}/noticias/linea-de-tiempo?y=${year - 1}`}>← {year - 1}</Link>
+        <Link prefetch={false} href={`/${lang}/noticias/linea-de-tiempo?y=${year - 1}`}>← {year - 1}</Link>
       </p>
     </>
   );
