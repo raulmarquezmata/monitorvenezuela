@@ -102,7 +102,7 @@ export default async function Home({ params }: { params: { lang: Lang } }) {
                 const v = c === "ust_10a" ? null : day(c);
                 const isRate = c === "ust_10a";
                 return (
-                  <Link key={c} href={`/${lang}/internacional`}>
+                  <Link prefetch={false} key={c} href={`/${lang}/internacional`}>
                     <div className="n">{es ? by[c].name_es.replace(" (futuro, diario)", "").replace(" (volatilidad del S&P 500)", "") : by[c].name_en.replace(" (futures, daily)", "").replace(" (S&P 500 volatility)", "")}</div>
                     <div className="v">{isRate ? `${num(by[c].last_value, lang, 2)}%` : num(by[c].last_value, lang, c === "bitcoin" ? 0 : 2)}</div>
                     {v != null && <div className={v >= 0 ? "up" : "down"} style={{ fontSize: 13 }}>{v >= 0 ? "▲" : "▼"} {pct(Math.abs(v), lang, 2, false)}</div>}
@@ -123,7 +123,7 @@ export default async function Home({ params }: { params: { lang: Lang } }) {
             footer={<>
             {[{ q: gain, l: d.topGain }, { q: loss, l: d.topLoss }].map(({ q, l }) => q && (
               <div key={l} style={{ borderTop: "1px solid var(--line)", marginTop: 18, paddingTop: 16, display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 12 }}>
-                <div><div className="muted">{l}</div><Link href={`/${lang}/bvc/${q.symbol}`} style={{ textDecoration: "none", fontWeight: 500, fontSize: 18 }}>{q.symbol}{q.company ? ` · ${prettyName(q.company)}` : ""}</Link></div>
+                <div><div className="muted">{l}</div><Link prefetch={false} href={`/${lang}/bvc/${q.symbol}`} style={{ textDecoration: "none", fontWeight: 500, fontSize: 18 }}>{q.symbol}{q.company ? ` · ${prettyName(q.company)}` : ""}</Link></div>
                 <span className={`delta ${q.var_pct! >= 0 ? "up" : "down"}`}>{q.var_pct! >= 0 ? "▲" : "▼"} {pct(q.var_pct, lang)}</span>
               </div>
             ))}
