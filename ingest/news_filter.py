@@ -13,7 +13,7 @@ Pasos (en orden):
   4. Sin ancla y con otro país o un tema de Wall Street: si es de mercados va a «Mercados globales»; si no, fuera.
   5. Tema: económico (+2, +1 por cada término extra, máx. +4) o político permitido (+1). Ninguno → fuera.
   6. Deportes → fuera. Petrolera internacional + acuerdo/inversión (+2).
-     Restas: sucesos y crimen (−6), salud o promoción de marcas (−5), historias personales (−3), seguridad (−3), ruido (−4), tono (−3);
+     Restas: sucesos y crimen (−6), escándalos y corrupción (−6), salud o promoción de marcas (−5), temas sociales o educativos (−5), historias personales (−3), seguridad (−3), ruido (−4), tono (−3);
      las de sucesos, seguridad y ruido se reducen a −1 si el titular trae un tema económico fuerte.
   7. Calidad de la fuente: nivel 1 (+2), medio con RSS propio (+1), desconocido que llega por Google News (−1).
   Umbral: 3 puntos.
@@ -70,6 +70,14 @@ SPORTS = re.compile(r"b[eé]isbol|f[uú]tbol|baloncesto|voleibol|softbol|atletis
 HEALTH_PR = re.compile(r"urol[oó]g|cl[ií]nica|hospital|centro m[eé]dico|tom[oó]grafo|resonador|paciente|cirug[ií]a|m[eé]dicos?\b|odontol|oftalm|"
                        r"pediatr|cardiolog|oncolog|aniversario|celebra (sus|su)|nueva sede|inaugura (su|una nueva) (tienda|sucursal|sede)|"
                        r"promoci[oó]n (especial|navide)|descuentos? de hasta|\bsorteos?\b|\brifas?\b|feliz navidad|en esta navidad", re.I)
+# temas sociales y de educación (vocación docente, universidades, liceos): no son noticias para un inversionista
+SOCIAL = re.compile(r"docente|docencia|maestr[oa]s?\b|profesor(es|as)?\b|bachiller|educaci|educativ|universi|escuela|liceo|estudiant|"
+                    r"vocaci[oó]n|carrera (docente|universitaria)|matr[ií]cula escolar|deserci[oó]n escolar", re.I)
+# … salvo que sea una medida económica concreta (aumento salarial, bono, presupuesto, financiamiento)
+SOCIAL_ECON = re.compile(r"aumento salarial|ajuste salarial|ingreso m[ií]nimo|salario m[ií]nimo|\bbonos?\b|presupuesto|financiamiento|cr[eé]dito|inversi[oó]n", re.I)
+# escándalos, sobornos y corrupción: tono judicial/político, no financiero
+SCANDAL = re.compile(r"soborn|cohecho|corrupci|agasaj|malvers|peculado|desfalc|lavado de (dinero|activos)|acusad[oa]s? de|imputad|"
+                     r"enjuiciad|esc[aá]ndalo|bribe|bribery|corruption|kickback|embezzl", re.I)
 # grandes acuerdos de petroleras internacionales: lo que más interesa (Chevron, Shell, Repsol… firmando, invirtiendo, produciendo)
 MAJORS = re.compile(r"chevron|shell|repsol|\beni\b|maurel|exxon|conocophillips|\bbp\b|totalenergies|equinor|ongc|reliance|cnpc|rosneft|"
                     r"harbour|vitol|trafigura|gunvor|glencore", re.I)
@@ -145,9 +153,10 @@ def evaluate(title: str, summary: str | None, source: str | None, *, ve_outlet: 
     if MAJORS.search(t) and DEALS.search(t):
         score += 2; why.append("petrolera internacional con acuerdo o inversión +2")
     for rx, pen, label, softens in ((CRIME, 6, "suceso o crimen", True), (PERSONAL, 3, "historia personal", False), (HEALTH_PR, 5, "salud o promoción", False),
+                                     (SOCIAL, 5, "tema social o educativo", False), (SCANDAL, 6, "escándalo o corrupción", False),
                                      (SECURITY, 3, "seguridad", True), (N.NOISE, 4, "ruido", True), (N.TONE, 3, "tono", False)):
         if rx.search(t_noise if rx is N.NOISE else t):
-            p = 1 if (softens and (strong or (rx is SECURITY and (econ or pol)))) else pen
+            p = 1 if ((softens and (strong or (rx is SECURITY and (econ or pol)))) or (rx is SOCIAL and SOCIAL_ECON.search(t))) else pen
             score -= p; why.append(f"{label} −{p}")
 
     if _in(source or "", q.get("nivel1", [])):
