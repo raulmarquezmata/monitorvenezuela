@@ -38,7 +38,7 @@ export default async function AgroBody({ lang, item: itemParam, embed = false }:
               <table>
                 <thead><tr><th>{d.item}</th><th>{d.production}</th><th>{lang === "es" ? "Var. %" : "Chg. %"}</th><th>{lang === "es" ? "Importaciones" : "Imports"}</th><th>{lang === "es" ? "Consumo" : "Consumption"}</th></tr></thead>
                 <tbody>{uRows.map((r) => { const ch = r.prod && r.prev ? (r.prod / r.prev - 1) * 100 : null; return (
-                  <tr key={r.code}><td><Link scroll={false} href={`/${lang}/agro?item=${r.code}`}>{r.name}</Link></td><td>{num(r.prod, lang, 0)}</td>
+                  <tr key={r.code}><td><Link prefetch={false} scroll={false} href={`/${lang}/agro?item=${r.code}`}>{r.name}</Link></td><td>{num(r.prod, lang, 0)}</td>
                     <td className={ch == null ? "" : ch >= 0 ? "up" : "down"}>{ch == null ? "—" : `${ch > 0 ? "+" : ""}${num(ch, lang, 1)}%`}</td><td>{num(r.imp, lang, 0)}</td><td>{num(r.cons, lang, 0)}</td></tr>); })}</tbody>
               </table>
             </div>
