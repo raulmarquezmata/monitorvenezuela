@@ -11,7 +11,7 @@ export function MainNav({ items }: { items: Item[] }) {
     <nav className="mainnav">
       {items.map((i) => {
         const on = i.match.some((m) => (m.split("/").length === 2 ? path === m : path.startsWith(m)));
-        return <Link key={i.href} href={i.href} className={on ? "on" : ""}>{i.label}</Link>;
+        return <Link prefetch={false} key={i.href} href={i.href} className={on ? "on" : ""}>{i.label}</Link>;
       })}
     </nav>
   );
@@ -21,7 +21,7 @@ export function SubNav({ items }: { items: { href: string; label: string; exact?
   const path = usePathname();
   return (
     <nav className="subnav">
-      {items.map((i) => <Link key={i.href} href={i.href} className={(i.exact ? path === i.href : path.startsWith(i.href)) ? "on" : ""}>{i.label}</Link>)}
+      {items.map((i) => <Link prefetch={false} key={i.href} href={i.href} className={(i.exact ? path === i.href : path.startsWith(i.href)) ? "on" : ""}>{i.label}</Link>)}
     </nav>
   );
 }
@@ -31,8 +31,8 @@ export function LangSwitch({ lang }: { lang: string }) {
   const rest = path.replace(/^\/(es|en)/, "");
   return (
     <div className="seg">
-      <Link href={`/es${rest}`} className={lang === "es" ? "on" : ""}>ES</Link>
-      <Link href={`/en${rest}`} className={lang === "en" ? "on" : ""}>EN</Link>
+      <Link prefetch={false} href={`/es${rest}`} className={lang === "es" ? "on" : ""}>ES</Link>
+      <Link prefetch={false} href={`/en${rest}`} className={lang === "en" ? "on" : ""}>EN</Link>
     </div>
   );
 }
