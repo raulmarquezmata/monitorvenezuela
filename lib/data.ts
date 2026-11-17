@@ -3,8 +3,8 @@ import { unstable_cache } from "next/cache";
 
 /** Cada consulta se guarda unos minutos en la caché de Vercel: las páginas abren al instante y los
  *  robots (cada 10–20 min) avisan al terminar (/api/refresh) y todas las páginas se rehacen a la vez. */
-function cached<A extends unknown[], R>(fn: (...a: A) => Promise<R>, key: string, ttl: number) {
-  return unstable_cache(fn, ["data", key], { revalidate: ttl, tags: ["datos"] });
+function cached<A extends unknown[], R>(fn: (...a: A) => Promise<R>, key: string, ttl: number, tag = "datos") {
+  return unstable_cache(fn, ["data", key], { revalidate: ttl, tags: [tag] });
 }
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -316,25 +316,27 @@ async function bankSample_(): Promise<BankRow[]> {
 }
 
 // ---------------------------------------------------------------- versiones con caché
+// «datos»: se renueva cada vez que corren los robots. «lento»: datos mensuales o que cambian poco; vencen solos
+// (así cada corrida no obliga a reescribir tablas grandes en la caché de Vercel, que cobra por escritura)
 export const latest = cached(latest_, "latest", 300);
 export const history = history_; // caché por tramos (histLong/histTail): ninguna entrada pasa de 2 MB
 export const bvcLatest = cached(bvcLatest_, "bvcLatest", 120);
 export const bvcSymbol = bvcSymbol_; // caché por tramos (quotesLong/quotesTail)
 export const news = cached(news_, "news", 120);
-export const trade = cached(trade_, "trade", 3600);
-export const agro = cached(agro_, "agro", 3600);
+export const trade = cached(trade_, "trade", 3600, "lento");
+export const agro = cached(agro_, "agro", 3600, "lento");
 export const lastRun = cached(lastRun_, "lastRun", 60);
 export const lastRunFresh = lastRun_;
 export const events = cached(events_, "events", 600);
 export const bonds = cached(bonds_, "bonds", 600);
-export const bankRanking = cached(bankRanking_, "bankRanking", 1800);
-export const bankSystem = cached(bankSystem_, "bankSystem", 1800);
-export const bankSample = cached(bankSample_, "bankSample", 1800);
+export const bankRanking = cached(bankRanking_, "bankRanking", 1800, "lento");
+export const bankSystem = cached(bankSystem_, "bankSystem", 1800, "lento");
+export const bankSample = cached(bankSample_, "bankSample", 1800, "lento");
 export const informes = cached(informes_, "informes", 300);
 export const hemerotecaAuto = hemerotecaAuto_; // caché por mes (hemeroPast/hemeroNow)
-export const ofacActions = cached(ofacActions_, "ofacActions", 600);
-export const newsSources = cached(newsSources_, "newsSources", 300);
+export const ofacActions = cached(ofacActions_, "ofacActions", 600, "lento");
+export const newsSources = cached(newsSources_, "newsSources", 300, "lento");
 export const status = cached(status_, "status", 120);
 export const bvcEvents = cached(bvcEvents_, "bvcEvents", 600);
 export const symbolNews = cached(symbolNews_, "symbolNews", 300);
-export const companyClasses = cached(companyClasses_, "companyClasses", 300);
+export const companyClasses = cached(companyClasses_, "companyClasses", 300, "lento");
