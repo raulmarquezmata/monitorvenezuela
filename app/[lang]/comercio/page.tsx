@@ -73,7 +73,7 @@ export default async function Comercio({ params, searchParams }: { params: { lan
         <div className="card-top" style={{ alignItems: "baseline", flexWrap: "wrap", gap: 8 }}>
           <h2 style={{ margin: 0, fontSize: 18 }}>{es ? `Detalle por producto y por socio · ${year}` : `Detail by product and partner · ${year}`}</h2>
           <div className="chips" style={{ margin: 0 }}>
-            {years.map((y) => <Link key={y} scroll={false} href={`/${lang}/comercio?year=${y}`} className={y === year ? "on" : ""}>{y}{partial(y) ? (es ? " · parcial" : " · partial") : ""}</Link>)}
+            {years.map((y) => <Link prefetch={false} key={y} scroll={false} href={`/${lang}/comercio?year=${y}`} className={y === year ? "on" : ""}>{y}{partial(y) ? (es ? " · parcial" : " · partial") : ""}</Link>)}
           </div>
         </div>
         <p className="muted" style={{ fontSize: 13, margin: "6px 0 12px" }}>{partial(year)
