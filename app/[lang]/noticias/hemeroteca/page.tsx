@@ -50,18 +50,18 @@ export default async function Hemeroteca({ params, searchParams }: { params: { l
       </form>
 
       <div className="chips">
-        <Link href={href({ cat: undefined, p: undefined })} className={!cat ? "on" : ""}>{es ? "Todos los temas" : "All topics"}</Link>
-        {CATS.map((c) => <Link key={c} href={href({ cat: c, p: undefined })} className={cat === c ? "on" : ""}>{CAT_LABEL[c][lang]}</Link>)}
+        <Link prefetch={false} href={href({ cat: undefined, p: undefined })} className={!cat ? "on" : ""}>{es ? "Todos los temas" : "All topics"}</Link>
+        {CATS.map((c) => <Link prefetch={false} key={c} href={href({ cat: c, p: undefined })} className={cat === c ? "on" : ""}>{CAT_LABEL[c][lang]}</Link>)}
       </div>
       <div className="chips">
-        <Link href={href({ m: undefined, p: undefined })} className={!ym ? "on" : ""}>{es ? "Todo el año" : "Whole year"}</Link>
-        {MONTHS.map((m) => <Link key={m} href={href({ m, p: undefined })} className={ym === m ? "on" : ""}>{monthLabel(m, lang)}</Link>)}
+        <Link prefetch={false} href={href({ m: undefined, p: undefined })} className={!ym ? "on" : ""}>{es ? "Todo el año" : "Whole year"}</Link>
+        {MONTHS.map((m) => <Link prefetch={false} key={m} href={href({ m, p: undefined })} className={ym === m ? "on" : ""}>{monthLabel(m, lang)}</Link>)}
       </div>
       <details className="hm-sectors">
         <summary>{sector ? `${es ? "Sector" : "Sector"}: ${sector}` : es ? "Filtrar por sector" : "Filter by sector"}</summary>
         <div className="chips" style={{ marginTop: 10 }}>
-          <Link href={href({ s: undefined, p: undefined })} className={!sector ? "on" : ""}>{es ? "Todos" : "All"}</Link>
-          {topSectors(24).map((s) => <Link key={s} href={href({ s, p: undefined })} className={sector === s ? "on" : ""}>{s}</Link>)}
+          <Link prefetch={false} href={href({ s: undefined, p: undefined })} className={!sector ? "on" : ""}>{es ? "Todos" : "All"}</Link>
+          {topSectors(24).map((s) => <Link prefetch={false} key={s} href={href({ s, p: undefined })} className={sector === s ? "on" : ""}>{s}</Link>)}
         </div>
       </details>
 
@@ -77,7 +77,7 @@ export default async function Hemeroteca({ params, searchParams }: { params: { l
                   <span className="tag">{CAT_LABEL[n.cat]?.[lang] ?? n.cat}</span>
                   <span>{n.dateLabel}</span>
                   {n.auto && <span className="tag" title={es ? "Entró sola desde las noticias del día" : "Added automatically from the daily news"}>{es ? "automática" : "automatic"}</span>}
-                  {n.sectors.slice(0, 3).map((s) => <Link key={s} href={href({ s, p: undefined })} className="hm-sector">{s}</Link>)}
+                  {n.sectors.slice(0, 3).map((s) => <Link prefetch={false} key={s} href={href({ s, p: undefined })} className="hm-sector">{s}</Link>)}
                 </div>
                 <details className="hm-item">
                   <summary className="t">{es ? n.titleEs : n.titleEn || n.titleEs}</summary>
@@ -99,9 +99,9 @@ export default async function Hemeroteca({ params, searchParams }: { params: { l
 
       {pages > 1 && (
         <nav className="hm-pager">
-          {page > 1 && <Link href={href({ p: String(page - 1) })}>← {es ? "Anteriores" : "Newer"}</Link>}
+          {page > 1 && <Link prefetch={false} href={href({ p: String(page - 1) })}>← {es ? "Anteriores" : "Newer"}</Link>}
           <span>{page} / {pages}</span>
-          {page < pages && <Link href={href({ p: String(page + 1) })}>{es ? "Siguientes" : "Older"} →</Link>}
+          {page < pages && <Link prefetch={false} href={href({ p: String(page + 1) })}>{es ? "Siguientes" : "Older"} →</Link>}
         </nav>
       )}
     </>
