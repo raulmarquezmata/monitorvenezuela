@@ -64,13 +64,13 @@ export default async function Informes({ params, searchParams }: { params: { lan
         </form>
       </div>
       <div className="chips">
-        <Link href={href({ tema: undefined })} className={!tema ? "on" : ""}>{d.all}</Link>
-        {present.map((k) => <Link key={k} href={href({ tema: k })} className={tema === k ? "on" : ""}>{TOPICS[k][lang]}</Link>)}
+        <Link prefetch={false} href={href({ tema: undefined })} className={!tema ? "on" : ""}>{d.all}</Link>
+        {present.map((k) => <Link prefetch={false} key={k} href={href({ tema: k })} className={tema === k ? "on" : ""}>{TOPICS[k][lang]}</Link>)}
       </div>
       <div className="chips">
-        <Link href={href({ idioma: undefined })} className={!idioma ? "on" : ""}>{es ? "Ambos idiomas" : "Both languages"}</Link>
-        <Link href={href({ idioma: "es" })} className={idioma === "es" ? "on" : ""}>{es ? "En español" : "In Spanish"}</Link>
-        <Link href={href({ idioma: "en" })} className={idioma === "en" ? "on" : ""}>{es ? "En inglés" : "In English"}</Link>
+        <Link prefetch={false} href={href({ idioma: undefined })} className={!idioma ? "on" : ""}>{es ? "Ambos idiomas" : "Both languages"}</Link>
+        <Link prefetch={false} href={href({ idioma: "es" })} className={idioma === "es" ? "on" : ""}>{es ? "En español" : "In Spanish"}</Link>
+        <Link prefetch={false} href={href({ idioma: "en" })} className={idioma === "en" ? "on" : ""}>{es ? "En inglés" : "In English"}</Link>
       </div>
       {groups.map((g) => (
         <section key={g.key} style={{ marginBottom: 28 }}>
