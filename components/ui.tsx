@@ -35,7 +35,7 @@ export function SectionHead({ label, href, more }: { label: string; href?: strin
   return (
     <div className="section-head">
       <span className="label">{label}</span>
-      {href && more && <Link href={href} className="more">{more} →</Link>}
+      {href && more && <Link prefetch={false} href={href} className="more">{more} →</Link>}
     </div>
   );
 }
