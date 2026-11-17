@@ -109,7 +109,7 @@ export default async function BVC({ params }: { params: { lang: Lang } }) {
               <div><span className="muted">{es ? "Bolívares" : "Bolivars"}</span><b>Bs {mm(capBs)} <small>MM</small></b></div>
             </div>
             {top3.length > 0 && <p className="muted" style={{ fontSize: 13, margin: "12px 0 0" }}>{es ? "Los tres mayores: " : "Largest three: "}
-              {top3.map((r, i) => <span key={r.symbol}>{i ? " · " : ""}<Link href={`/${lang}/bvc/${r.symbol}`}>{r.symbol}</Link> {num((r.market_cap_bs! / capBs) * 100, lang, 1)}%</span>)}</p>}
+              {top3.map((r, i) => <span key={r.symbol}>{i ? " · " : ""}<Link prefetch={false} href={`/${lang}/bvc/${r.symbol}`}>{r.symbol}</Link> {num((r.market_cap_bs! / capBs) * 100, lang, 1)}%</span>)}</p>}
             <p className="muted" style={{ fontSize: 13, margin: "8px 0 0" }}>{es ? "Acciones en circulación × último cierre, convertido con la tasa de hoy." : "Shares outstanding × last close, converted at today's rate."}</p>
           </>) : <div className="empty" style={{ height: 120 }}>{d.noData}</div>}
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 14 }}>
