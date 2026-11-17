@@ -54,7 +54,7 @@ export default async function LangLayout({ children, params }: { children: React
     <RangeProvider>
       <header className="top">
         <div className="wrap">
-          <Link href={L} className="brand">
+          <Link prefetch={false} href={L} className="brand">
             {BRAND === "solfin" ? (
               <><SolfinLogo height={30} /><span className="brand-sep" aria-hidden /><span className="brand-app">Radar</span></>
             ) : (<><i aria-hidden />{d.site}</>)}
@@ -73,9 +73,9 @@ export default async function LangLayout({ children, params }: { children: React
       <main><div className="wrap">{children}</div></main>
       <footer><div className="wrap">
         <div className="foot-links">
-          <Link href={`${L}/herramientas`}>{d.nav.tools}</Link>
-          <Link href={`${L}/datos`}>{lang === "es" ? "Fuentes y metodología" : "Sources & methodology"}</Link>
-          <Link href={`${L}/noticias/linea-de-tiempo`}>{d.nav.timeline}</Link>
+          <Link prefetch={false} href={`${L}/herramientas`}>{d.nav.tools}</Link>
+          <Link prefetch={false} href={`${L}/datos`}>{lang === "es" ? "Fuentes y metodología" : "Sources & methodology"}</Link>
+          <Link prefetch={false} href={`${L}/noticias/linea-de-tiempo`}>{d.nav.timeline}</Link>
         </div>
         {d.disclaimer} · © {new Date().getFullYear()} {d.site}
       </div></footer>
