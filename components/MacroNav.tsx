@@ -32,11 +32,11 @@ export default function MacroNav({ lang }: { lang: Lang }) {
   return (
     <div className="macronav">
       <nav className="subnav groups">
-        {groups.map((g) => <Link key={g.key} href={g.items[0].href} className={g === active ? "on" : ""}>{g.label}</Link>)}
+        {groups.map((g) => <Link prefetch={false} key={g.key} href={g.items[0].href} className={g === active ? "on" : ""}>{g.label}</Link>)}
       </nav>
       {active.items.length > 1 && (
         <nav className="subnav sub">
-          {active.items.map((i) => <Link key={i.href} href={i.href} className={path.startsWith(i.href) ? "on" : ""}>{i.label}</Link>)}
+          {active.items.map((i) => <Link prefetch={false} key={i.href} href={i.href} className={path.startsWith(i.href) ? "on" : ""}>{i.label}</Link>)}
         </nav>
       )}
     </div>
