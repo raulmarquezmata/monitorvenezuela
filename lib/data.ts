@@ -178,6 +178,41 @@ export async function sp500Map(): Promise<{ updated: string; rows: import("@/com
   } catch { return null; }
 }
 
+/** Registra una descarga (tabla descargas; el visitante anónimo solo puede insertar). */
+export async function logDownload(archivo: string, pagina: string | null): Promise<void> {
+  if (!sb) return;
+  try { await sb.from("descargas").insert({ archivo, pagina }); } catch { /* el conteo nunca bloquea la descarga */ }
+}
+export type DownloadStat = { archivo: string; n: number; ultima: string };
+/** Descargas de los últimos 30 días, de la más pedida a la menos. */
+export async function downloadStats(): Promise<DownloadStat[]> {
+  if (!sb) return [];
+  const { data, error } = await sb.from("descargas_30d").select("*").limit(40);
+  return error ? [] : ((data as DownloadStat[]) ?? []);
+}
+/** Un informe por su identificador. */
+export async function informeById(id: string): Promise<Informe | null> {
+  if (!sb) return null;
+  const { data } = await sb.from("informes").select("id,file,url,thumb_url,title,date,lang,topic,summary,pages,size,created_at").eq("id", id).maybeSingle();
+  return (data as Informe) ?? null;
+}
+
+/** Calendario automático de EE.UU. (robot eeuu: Fed y BLS) → reportes/mercado/calendario.json. */
+export async function calendarioAuto(): Promise<{ fecha: string; tipo: string; es: string; en: string }[]> {
+  if (!url) return [];
+  try {
+    const r = await fetch(`${url.replace(/\/$/, "")}/storage/v1/object/public/reportes/mercado/calendario.json`, { next: { revalidate: 21600, tags: ["lento"] } });
+    return r.ok ? ((await r.json()).items ?? []) : [];
+  } catch { return []; }
+}
+/** Usuario del bot de Telegram (lo guarda el robot de alertas). */
+async function botUser_(): Promise<string | null> {
+  if (!sb) return null;
+  const { data } = await sb.from("app_state").select("valor").eq("clave", "tg_bot").maybeSingle();
+  return (data as { valor: string } | null)?.valor ?? null;
+}
+export const botUser = cached(botUser_, "botUser", 86400, "lento");
+
 export type Earning = { date: string; symbol: string; name: string; time: "pre" | "post" | ""; eps: string | null; quarter: string | null };
 /** Fechas de resultados de las mayores empresas del S&P 500 (robot eeuu → reportes/mercado/earnings.json). */
 export async function earningsCal(): Promise<Earning[]> {
