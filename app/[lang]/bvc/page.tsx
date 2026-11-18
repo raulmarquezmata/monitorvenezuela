@@ -128,7 +128,7 @@ export default async function BVC({ params }: { params: { lang: Lang } }) {
       )}
       </div>
 
-      <div className="card">
+      <div className="card" id="acciones">
         <CardScope initial="1M">
           <div className="card-top" style={{ flexWrap: "wrap" }}><h3>{d.equities}</h3>
             <span style={{ display: "inline-flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
@@ -142,7 +142,7 @@ export default async function BVC({ params }: { params: { lang: Lang } }) {
         </CardScope>
       </div>
 
-      <details className="card fold" style={{ marginTop: 16 }}>
+      <details className="card fold" style={{ marginTop: 16 }} id="renta-fija">
         <summary><h3 style={{ display: "inline" }}>{d.fixedIncome}</h3> <span className="muted">· {rf.length} {es ? "instrumentos" : "instruments"}</span>
           <a className="btn" style={{ float: "right" }} href={`/api/export?bvc=RF&format=xlsx&lang=${lang}`}>⬇ Excel</a></summary>
         <CardScope initial="1M">
@@ -157,7 +157,7 @@ export default async function BVC({ params }: { params: { lang: Lang } }) {
         <Downloads lang={lang} />
       </section>
 
-      <details className="card fold" style={{ marginTop: 24 }}>
+      <details className="card fold" style={{ marginTop: 24 }} id="indices">
         <summary><h3 style={{ display: "inline" }}>{d.cat.mercados}</h3> <span className="muted">· {es ? "índices sectoriales, renta fija, Mercado de Otros Bienes y BOLPRIAVEN" : "sector indices, fixed income, Other Goods Market and BOLPRIAVEN"}</span></summary>
         <div className="grid g2">
         {idx.filter((s) => !HIDE.includes(s.code) && (hist[s.code] ?? []).length > 0).map((s) => (
