@@ -123,11 +123,14 @@ async function bvcEvents_(symbols: string[]): Promise<BvcEvent[]> {
   return error ? [] : ((data as BvcEvent[]) ?? []);
 }
 
-/** Noticias etiquetadas con el símbolo (o con otra clase de la misma empresa). */
+// Noticias de la ficha de una acción: fuera las de servicio al cliente (fallas de la app, «cómo comprar dólares»,
+// promociones, tarjetas, sedes, horarios) y homónimos extranjeros. Quedan resultados, capital, asambleas, dividendos…
+const SYMBOL_NOISE = /falla|aplicaci[oó]n m[oó]vil|\bapp\b|c[oó]mo (comprar|financiar|funciona|abrir|solicitar|activar|pagar)|paso a paso|requisitos|nuevos l[ií]mites|tarjetas? de cr[eé]dito|credif[aá]cil|operativo|nueva sede|estrena|horario|feriado|promoci[oó]n|sorteo|navidad|aniversario|investimentos|\bbrasil\b/i;
 async function symbolNews_(symbols: string[], lang: "es" | "en", limit = 12): Promise<News[]> {
   if (!sb || !symbols.length) return [];
-  const { data, error } = await sb.from("news").select("*").overlaps("symbols", symbols).order("published_at", { ascending: false }).limit(limit);
-  return error ? [] : ((data as News[]) ?? []).map((n) => localizeNews(n, lang));
+  const { data, error } = await sb.from("news").select("*").overlaps("symbols", symbols).order("published_at", { ascending: false }).limit(limit * 3);
+  if (error) return [];
+  return ((data as News[]) ?? []).filter((n) => !SYMBOL_NOISE.test(`${n.title} ${n.title_es ?? ""}`)).slice(0, limit).map((n) => localizeNews(n, lang));
 }
 
 /** Clases de acciones de la misma empresa (p. ej. RST y RST.B) con su último cierre. */
