@@ -32,7 +32,7 @@ _S = [
     ("inflacion_mensual", "precios", "Inflación mensual", "Monthly inflation", "%", "%", "M", "BCV (vía Finanzas Digital)", "https://finanzasdigital.com/inflacion-por-pais/venezuela/", 2, 10),
     ("inflacion_interanual", "precios", "Inflación interanual", "Year-on-year inflation", "%", "%", "M", "BCV (vía Finanzas Digital)", "https://finanzasdigital.com/inflacion-por-pais/venezuela/", 2, 20),
     ("inflacion_acumulada", "precios", "Inflación acumulada en el año", "Year-to-date inflation", "%", "%", "M", "BCV (vía Finanzas Digital)", "https://finanzasdigital.com/inflacion-por-pais/venezuela/", 2, 25),
-    ("ipc_eeuu", "precios", "IPC de EE.UU. (inflación en dólares)", "US CPI (dollar inflation)", "índice", "index", "M", "BLS vía FRED", "https://fred.stlouisfed.org/series/CPIAUCSL", 2, 90),
+    ("ipc_eeuu", "precios", "IPC de EE.UU. (inflación en dólares)", "US CPI (dollar inflation)", "índice", "index", "M", "BLS", "https://www.bls.gov/cpi/", 2, 90),
 
     # ---------------- Sector externo
     ("reservas_internacionales", "externo", "Reservas internacionales", "International reserves", "millones US$", "US$ million", "D", "BCV", BCV + "/estadisticas/reservas-internacionales", 0, 10),
@@ -82,10 +82,12 @@ _S = [
     ("eeuu_ipc_interanual", "internacional", "EE.UU.: inflación interanual (IPC)", "US CPI inflation (YoY)", "%", "%", "M", "BLS", "https://www.bls.gov/cpi/", 1, 40),
     ("eeuu_ipc_mensual", "internacional", "EE.UU.: inflación mensual (IPC)", "US CPI inflation (MoM)", "%", "%", "M", "BLS", "https://www.bls.gov/cpi/", 1, 41),
     ("eeuu_ipc_subyacente", "internacional", "EE.UU.: inflación subyacente interanual", "US core CPI inflation (YoY)", "%", "%", "M", "BLS", "https://www.bls.gov/cpi/", 1, 42),
-    ("eeuu_nomina_no_agricola", "internacional", "EE.UU.: empleos creados (nómina no agrícola)", "US nonfarm payrolls (monthly change)", "miles", "thousand", "M", "BLS", "https://www.bls.gov/ces/", 0, 43),
+    ("eeuu_nomina_no_agricola", "internacional", "EE.UU.: empleos creados (nómina no agrícola)", "US nonfarm payrolls (monthly change)", "mil empleos", "k jobs", "M", "BLS", "https://www.bls.gov/ces/", 0, 43),
     ("eeuu_desempleo", "internacional", "EE.UU.: tasa de desempleo", "US unemployment rate", "%", "%", "M", "BLS", "https://www.bls.gov/cps/", 1, 44),
-    ("eeuu_nfp_esperado", "internacional", "EE.UU.: nómina no agrícola esperada (consenso)", "US nonfarm payrolls: consensus", "miles", "thousand", "M", "FX Blue (consenso del mercado)", "https://www.fxblue.com/calendar/item/Nonfarm_Payrolls_US", 0, 49),
-    ("eeuu_nfp_publicado", "internacional", "EE.UU.: nómina no agrícola publicada (primera lectura)", "US nonfarm payrolls: first print", "miles", "thousand", "M", "BLS, primera publicación (vía FX Blue)", "https://www.fxblue.com/calendar/item/Nonfarm_Payrolls_US", 0, 50),
+    ("eeuu_nfp_esperado", "internacional", "EE.UU.: nómina no agrícola esperada (consenso)", "US nonfarm payrolls: consensus", "mil empleos", "k jobs", "M", "FX Blue (consenso del mercado)", "https://www.fxblue.com/calendar/item/Nonfarm_Payrolls_US", 0, 49),
+    ("eeuu_nfp_publicado", "internacional", "EE.UU.: nómina no agrícola publicada (primera lectura)", "US nonfarm payrolls: first print", "mil empleos", "k jobs", "M", "BLS, primera publicación (vía FX Blue)", "https://www.fxblue.com/calendar/item/Nonfarm_Payrolls_US", 0, 50),
+    ("eeuu_ipc_esperado", "internacional", "EE.UU.: inflación interanual esperada (consenso)", "US CPI inflation: consensus", "%", "%", "M", "FX Blue (consenso del mercado)", "https://www.fxblue.com/calendar/item/Consumer_Price_Index_YoY_US", 1, 51),
+    ("eeuu_ipc_publicado", "internacional", "EE.UU.: inflación interanual publicada (primera lectura)", "US CPI inflation: first print", "%", "%", "M", "BLS, dato publicado (vía FX Blue)", "https://www.fxblue.com/calendar/item/Consumer_Price_Index_YoY_US", 1, 52),
     ("fed_tasa_objetivo", "internacional", "Fed: tasa objetivo (techo del rango)", "Fed funds target (upper bound)", "%", "%", "D", "Reserva Federal de Nueva York", "https://www.newyorkfed.org/markets/reference-rates/effr", 2, 45),
     ("fed_prob_subida", "internacional", "Fed: probabilidad de subida en la próxima reunión", "Fed: probability of a hike at the next meeting", "%", "%", "D", "CME (futuros de fondos federales) · método FedWatch", "https://www.cmegroup.com/markets/interest-rates/cme-fedwatch-tool.html", 1, 46),
     ("fed_prob_baja", "internacional", "Fed: probabilidad de baja en la próxima reunión", "Fed: probability of a cut at the next meeting", "%", "%", "D", "CME (futuros de fondos federales) · método FedWatch", "https://www.cmegroup.com/markets/interest-rates/cme-fedwatch-tool.html", 1, 47),
@@ -229,7 +231,7 @@ for code in ("sp500", "nasdaq", "dow_jones", "vix", "dxy", "oro_diario", "bitcoi
     PLAN[code] = (A, 5, "Robot global cada 10 min en horario de mercado (Yahoo Finance).")
 for code in ("ust_2a", "ust_5a", "ust_10a", "ust_20a", "ust_30a"):
     PLAN[code] = (A, 5, "Robot global cada 10 min en horario de mercado (curva diaria del Tesoro de EE.UU.; respaldo FRED/Yahoo).")
-for code in ("eeuu_ipc_interanual", "eeuu_ipc_mensual", "eeuu_ipc_subyacente", "eeuu_nomina_no_agricola", "eeuu_desempleo", "eeuu_nfp_esperado", "eeuu_nfp_publicado"):
+for code in ("eeuu_ipc_interanual", "eeuu_ipc_mensual", "eeuu_ipc_subyacente", "eeuu_nomina_no_agricola", "eeuu_desempleo", "eeuu_nfp_esperado", "eeuu_nfp_publicado", "eeuu_ipc_esperado", "eeuu_ipc_publicado"):
     PLAN[code] = (A, 45, "Robot eeuu (API del BLS y consenso de FX Blue): entra minutos después de que el BLS publica, a las 8:30 a. m. de Nueva York.")
 PLAN["fed_tasa_objetivo"] = (A, 5, "Robot eeuu (API de la Fed de Nueva York, techo del rango objetivo).")
 for code in ("fed_prob_subida", "fed_prob_baja", "fed_tasa_esperada"):
