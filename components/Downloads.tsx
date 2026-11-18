@@ -2,6 +2,7 @@ import ShareWA from "./ShareWA";
 import StockReportPicker from "./StockReportPicker";
 import { bvcLatest, dailyReportUrl, mktcapReportUrl, stockReportUrl, weeklyReportUrl } from "@/lib/data";
 import { prettyName } from "@/lib/names";
+import { dl } from "@/lib/dl";
 import type { Lang } from "@/lib/i18n";
 
 /** Devuelve la URL solo si el archivo ya existe en Storage. */
@@ -35,7 +36,7 @@ export default async function Downloads({ lang, compact = false }: { lang: Lang;
         {docs.map((x) => (
           <div key={x.t} className="dl-item">
             <div><b>{x.t}</b><p className="muted">{x.d}</p></div>
-            {x.url ? <span style={{ display: "inline-flex", gap: 8, alignItems: "center" }}><a className="btn primary" href={x.url} target="_blank" rel="noreferrer">⬇ PDF</a><ShareWA text={`${x.t} · Radar Solfin`} url={x.url} label="" /></span>
+            {x.url ? <span style={{ display: "inline-flex", gap: 8, alignItems: "center" }}><a className="btn primary" href={dl(x.url, `pdf:${x.t}`)} target="_blank" rel="noreferrer">⬇ PDF</a><ShareWA text={`${x.t} · Radar Solfin`} url={x.url} label="" /></span>
               : <span className="muted" style={{ fontSize: 13 }}>{x.t === (es ? "Radar semanal" : "Weekly Radar") ? (es ? "Sale el viernes, tras el cierre" : "Out Friday, after the close") : (es ? "Disponible tras el cierre" : "Available after the close")}</span>}
           </div>
         ))}
@@ -52,7 +53,7 @@ export default async function Downloads({ lang, compact = false }: { lang: Lang;
           { t: es ? "Renta fija: última sesión" : "Fixed income: last session", d: es ? "Papeles comerciales, obligaciones y títulos de participación negociados." : "Commercial paper, bonds and participation notes traded.", h: `/api/export?bvc=RF&format=xlsx&lang=${lang}` },
           { t: es ? "Índices y montos (histórico)" : "Indices and turnover (history)", d: es ? "IBC, índices sectoriales y monto negociado diario desde 2020." : "IBC, sector indices and daily turnover since 2020.", h: `/api/export?category=mercados&format=xlsx&lang=${lang}` },
         ].map((x) => (
-          <div key={x.t} className="dl-item"><div><b>{x.t}</b><p className="muted">{x.d}</p></div><a className="btn" href={x.h}>⬇ Excel</a></div>
+          <div key={x.t} className="dl-item"><div><b>{x.t}</b><p className="muted">{x.d}</p></div><a className="btn" href={dl(x.h, `excel:${x.t}`)}>⬇ Excel</a></div>
         ))}
       </div>
       <p className="muted" style={{ fontSize: 13, margin: "14px 0 0" }}>📊 {es
