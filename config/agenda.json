@@ -1,7 +1,221 @@
 {
-  "_ayuda": "Agenda de publicaciones que se muestra en Inicio. Agrega o corrige fechas copiando un bloque. tipo: opep, fed, bcv, bvc, otro. Las asambleas de la BVC se agregan solas desde la base de datos.",
+  "_ayuda": "Agenda de publicaciones que se muestra en Inicio. Agrega o corrige fechas copiando un bloque. tipo: opep, fed, eeuu, bcv, bvc, otro. Las asambleas de la BVC se agregan solas desde la base de datos.",
   "fechas": [
-    { "fecha": "2026-12-09", "tipo": "fed", "es": "Fed: decisión de tasas (FOMC)", "en": "Fed: rate decision (FOMC)" },
-    { "fecha": "2026-12-14", "tipo": "opep", "es": "OPEP: informe mensual (producción y Merey de noviembre)", "en": "OPEC: monthly report (November output and Merey)" }
+    {
+      "fecha": "2026-12-04",
+      "tipo": "eeuu",
+      "es": "EE.UU.: empleo (nómina no agrícola) de noviembre 2026, 8:30 a. m. NY",
+      "en": "US: nonfarm payrolls for November 2026, 8:30 a.m. ET"
+    },
+    {
+      "fecha": "2026-12-09",
+      "tipo": "fed",
+      "es": "Fed: decisión de tasas (FOMC)",
+      "en": "Fed: rate decision (FOMC)"
+    },
+    {
+      "fecha": "2026-12-10",
+      "tipo": "eeuu",
+      "es": "EE.UU.: inflación (IPC) de noviembre 2026, 8:30 a. m. NY",
+      "en": "US: CPI for November 2026, 8:30 a.m. ET"
+    },
+    {
+      "fecha": "2026-12-14",
+      "tipo": "opep",
+      "es": "OPEP: informe mensual (producción y Merey de noviembre)",
+      "en": "OPEC: monthly report (November output and Merey)"
+    },
+    {
+      "fecha": "2027-01-08",
+      "tipo": "eeuu",
+      "es": "EE.UU.: empleo (nómina no agrícola) de diciembre 2026, 8:30 a. m. NY",
+      "en": "US: nonfarm payrolls for December 2026, 8:30 a.m. ET"
+    },
+    {
+      "fecha": "2027-01-13",
+      "tipo": "eeuu",
+      "es": "EE.UU.: inflación (IPC) de diciembre 2026, 8:30 a. m. NY",
+      "en": "US: CPI for December 2026, 8:30 a.m. ET"
+    },
+    {
+      "fecha": "2027-01-27",
+      "tipo": "fed",
+      "es": "Fed: decisión de tasas (FOMC)",
+      "en": "Fed: rate decision (FOMC)"
+    },
+    {
+      "fecha": "2027-02-05",
+      "tipo": "eeuu",
+      "es": "EE.UU.: empleo (nómina no agrícola) de enero, 8:30 a. m. NY",
+      "en": "US: nonfarm payrolls for January, 8:30 a.m. ET"
+    },
+    {
+      "fecha": "2027-02-11",
+      "tipo": "eeuu",
+      "es": "EE.UU.: inflación (IPC) de enero, 8:30 a. m. NY",
+      "en": "US: CPI for January, 8:30 a.m. ET"
+    },
+    {
+      "fecha": "2027-03-05",
+      "tipo": "eeuu",
+      "es": "EE.UU.: empleo (nómina no agrícola) de febrero, 8:30 a. m. NY",
+      "en": "US: nonfarm payrolls for February, 8:30 a.m. ET"
+    },
+    {
+      "fecha": "2027-03-10",
+      "tipo": "eeuu",
+      "es": "EE.UU.: inflación (IPC) de febrero, 8:30 a. m. NY",
+      "en": "US: CPI for February, 8:30 a.m. ET"
+    },
+    {
+      "fecha": "2027-03-17",
+      "tipo": "fed",
+      "es": "Fed: decisión de tasas (FOMC)",
+      "en": "Fed: rate decision (FOMC)"
+    },
+    {
+      "fecha": "2027-04-02",
+      "tipo": "eeuu",
+      "es": "EE.UU.: empleo (nómina no agrícola) de marzo, 8:30 a. m. NY",
+      "en": "US: nonfarm payrolls for March, 8:30 a.m. ET"
+    },
+    {
+      "fecha": "2027-04-13",
+      "tipo": "eeuu",
+      "es": "EE.UU.: inflación (IPC) de marzo, 8:30 a. m. NY",
+      "en": "US: CPI for March, 8:30 a.m. ET"
+    },
+    {
+      "fecha": "2027-04-28",
+      "tipo": "fed",
+      "es": "Fed: decisión de tasas (FOMC)",
+      "en": "Fed: rate decision (FOMC)"
+    },
+    {
+      "fecha": "2027-05-07",
+      "tipo": "eeuu",
+      "es": "EE.UU.: empleo (nómina no agrícola) de abril, 8:30 a. m. NY",
+      "en": "US: nonfarm payrolls for April, 8:30 a.m. ET"
+    },
+    {
+      "fecha": "2027-05-12",
+      "tipo": "eeuu",
+      "es": "EE.UU.: inflación (IPC) de abril, 8:30 a. m. NY",
+      "en": "US: CPI for April, 8:30 a.m. ET"
+    },
+    {
+      "fecha": "2027-06-04",
+      "tipo": "eeuu",
+      "es": "EE.UU.: empleo (nómina no agrícola) de mayo, 8:30 a. m. NY",
+      "en": "US: nonfarm payrolls for May, 8:30 a.m. ET"
+    },
+    {
+      "fecha": "2027-06-09",
+      "tipo": "fed",
+      "es": "Fed: decisión de tasas (FOMC)",
+      "en": "Fed: rate decision (FOMC)"
+    },
+    {
+      "fecha": "2027-06-10",
+      "tipo": "eeuu",
+      "es": "EE.UU.: inflación (IPC) de mayo, 8:30 a. m. NY",
+      "en": "US: CPI for May, 8:30 a.m. ET"
+    },
+    {
+      "fecha": "2027-07-02",
+      "tipo": "eeuu",
+      "es": "EE.UU.: empleo (nómina no agrícola) de junio, 8:30 a. m. NY",
+      "en": "US: nonfarm payrolls for June, 8:30 a.m. ET"
+    },
+    {
+      "fecha": "2027-07-14",
+      "tipo": "eeuu",
+      "es": "EE.UU.: inflación (IPC) de junio, 8:30 a. m. NY",
+      "en": "US: CPI for June, 8:30 a.m. ET"
+    },
+    {
+      "fecha": "2027-07-28",
+      "tipo": "fed",
+      "es": "Fed: decisión de tasas (FOMC)",
+      "en": "Fed: rate decision (FOMC)"
+    },
+    {
+      "fecha": "2027-08-06",
+      "tipo": "eeuu",
+      "es": "EE.UU.: empleo (nómina no agrícola) de julio, 8:30 a. m. NY",
+      "en": "US: nonfarm payrolls for July, 8:30 a.m. ET"
+    },
+    {
+      "fecha": "2027-08-11",
+      "tipo": "eeuu",
+      "es": "EE.UU.: inflación (IPC) de julio, 8:30 a. m. NY",
+      "en": "US: CPI for July, 8:30 a.m. ET"
+    },
+    {
+      "fecha": "2027-09-03",
+      "tipo": "eeuu",
+      "es": "EE.UU.: empleo (nómina no agrícola) de agosto, 8:30 a. m. NY",
+      "en": "US: nonfarm payrolls for August, 8:30 a.m. ET"
+    },
+    {
+      "fecha": "2027-09-14",
+      "tipo": "eeuu",
+      "es": "EE.UU.: inflación (IPC) de agosto, 8:30 a. m. NY",
+      "en": "US: CPI for August, 8:30 a.m. ET"
+    },
+    {
+      "fecha": "2027-09-15",
+      "tipo": "fed",
+      "es": "Fed: decisión de tasas (FOMC)",
+      "en": "Fed: rate decision (FOMC)"
+    },
+    {
+      "fecha": "2027-10-08",
+      "tipo": "eeuu",
+      "es": "EE.UU.: empleo (nómina no agrícola) de septiembre, 8:30 a. m. NY",
+      "en": "US: nonfarm payrolls for September, 8:30 a.m. ET"
+    },
+    {
+      "fecha": "2027-10-14",
+      "tipo": "eeuu",
+      "es": "EE.UU.: inflación (IPC) de septiembre, 8:30 a. m. NY",
+      "en": "US: CPI for September, 8:30 a.m. ET"
+    },
+    {
+      "fecha": "2027-10-27",
+      "tipo": "fed",
+      "es": "Fed: decisión de tasas (FOMC)",
+      "en": "Fed: rate decision (FOMC)"
+    },
+    {
+      "fecha": "2027-11-05",
+      "tipo": "eeuu",
+      "es": "EE.UU.: empleo (nómina no agrícola) de octubre, 8:30 a. m. NY",
+      "en": "US: nonfarm payrolls for October, 8:30 a.m. ET"
+    },
+    {
+      "fecha": "2027-11-10",
+      "tipo": "eeuu",
+      "es": "EE.UU.: inflación (IPC) de octubre, 8:30 a. m. NY",
+      "en": "US: CPI for October, 8:30 a.m. ET"
+    },
+    {
+      "fecha": "2027-11-17",
+      "tipo": "fed",
+      "es": "Fed: decisión de tasas (FOMC)",
+      "en": "Fed: rate decision (FOMC)"
+    },
+    {
+      "fecha": "2027-12-03",
+      "tipo": "eeuu",
+      "es": "EE.UU.: empleo (nómina no agrícola) de noviembre, 8:30 a. m. NY",
+      "en": "US: nonfarm payrolls for November, 8:30 a.m. ET"
+    },
+    {
+      "fecha": "2027-12-10",
+      "tipo": "eeuu",
+      "es": "EE.UU.: inflación (IPC) de noviembre, 8:30 a. m. NY",
+      "en": "US: CPI for November, 8:30 a.m. ET"
+    }
   ]
 }
