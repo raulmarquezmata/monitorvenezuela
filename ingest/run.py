@@ -20,11 +20,11 @@ JOBS = {
     "catalog": catalog.run, "fx": fx.run, "fx_hist": fx.run_history, "bvc": bvc.run, "bvc_full": lambda: bvc.run(full=True), "news": news.run,
     "bcv_stats": bcv_stats.run, "inflation": inflation.run, "press": press.run, "banking": banking.run,
     "opec": opec.run, "sunaval": sunaval.run, "oil": oil.run, "ofac": ofac.run, "events": events.run,
-    "manual": manual.run, "bonds": bonds.run, "trade": trade.run, "agro": agro.run, "commodities": commodities.run,
+    "manual": manual.run, "bonds": bonds.run, "bonos_frankfurt": bonds.run_frankfurt, "bonos_frankfurt_hist": lambda: bonds.run_frankfurt(force=True), "trade": trade.run, "agro": agro.run, "commodities": commodities.run,
     "sudeban": sudeban.run, "bancos_muestra": bancos_muestra.run, "census": census.run, "trade_mensual": trade.run_monthly, "agro_usda": agro.run_usda, "futuros": futures.run, "ipc": fx.run_cpi, "embi": embi.run, "opec_local": lambda: opec.run(local_only=True), "alerts": alerts.run, "emisores": emisores.run, "reportes": reportes.run, "cierre_pdf": reportes.run_daily, "semanal": reportes.run_weekly, "global": global_mkts.run, "vigilante": watchdog.run, "informes": informes.run, "alerts_daily": lambda: alerts.run(daily=True),
 }
 GROUPS = {
-    "frequent": ["catalog", "fx", "bvc", "news", "futuros", "global", "alerts", "cierre_pdf", "semanal"],
+    "frequent": ["catalog", "fx", "bvc", "news", "futuros", "global", "bonos_frankfurt", "alerts", "cierre_pdf", "semanal"],
     "telegram": ["fx", "bvc", "alerts", "cierre_pdf"],  # corrida corta para el buenos días y el cierre
     # publicaciones oficiales: cada 2 horas en días hábiles, para cargarlas y avisar apenas salgan
     "oficial": ["bcv_stats", "inflation", "press", "banking", "opec", "sunaval", "embi", "oil", "emisores", "informes", "alerts", "vigilante"],
