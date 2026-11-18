@@ -562,9 +562,136 @@ def send_email(text: str) -> bool:
     return True
 
 
+# ------------------------------------------------------------------ avisos personalizados (bot de Telegram)
+# Cada persona escribe al bot por privado y elige temas; el canal sigue recibiendo todo.
+TEMAS = {
+    "resumen": ("Resúmenes", "buenos días, cierre del día, de la semana y del mes"),
+    "cambio": ("Dólar", "saltos del oficial y del alternativo, brecha, reservas e intervención"),
+    "bvc": ("Bolsa de Caracas", "IBC, acciones con movimientos fuertes, noticias de emisores y asambleas"),
+    "eeuu": ("EE.UU. y la Fed", "IPC, empleo, comunicados y discursos de la Fed"),
+    "petroleo": ("Petróleo", "Brent, WTI, gas, informe de la OPEP y exportaciones"),
+    "materias": ("Materias primas", "oro, cobre, café, cacao, granos y otras"),
+    "macro": ("Macro y deuda", "publicaciones del BCV, PIB, banca, riesgo país y OFAC"),
+    "noticias": ("Noticias", "noticias económicas importantes de Venezuela"),
+    "informes": ("Informes", "cada informe nuevo del Research Desk"),
+}
+
+
+def tema_de(rule_id: str) -> str | None:
+    rid = rule_id
+    if rid in ("buenos_dias", "cierre_dia", "cierre_semana", "cierre_mes"):
+        return "resumen"
+    if rid in ("paralelo_salto", "oficial_salto", "reservas", "intervencion") or rid.startswith("brecha"):
+        return "cambio"
+    if rid in ("ibc_salto", "accion_salto", "volumen_alto", "bvc_noticia", "bvc_asamblea", "bvc_lote", "sunaval"):
+        return "bvc"
+    if rid in ("eeuu_ipc", "eeuu_empleo", "fed_comunicados"):
+        return "eeuu"
+    if rid in ("momr", "exportaciones", "brent_salto", "wti_salto", "gas_salto"):
+        return "petroleo"
+    if rid.startswith("mp_"):
+        return "materias"
+    if rid in ("bcv_publica", "actividad", "bancos", "embi_salto", "ofac"):
+        return "macro"
+    if rid == "noticia":
+        return "noticias"
+    if rid == "informe_nuevo":
+        return "informes"
+    return None
+
+
+def tg(method: str, **payload):
+    tok = os.environ.get("TELEGRAM_BOT_TOKEN")
+    if not tok:
+        return None
+    r = http.post(f"https://api.telegram.org/bot{tok.strip()}/{method}", json=payload, timeout=30)
+    return r.json() if r.ok else None
+
+
+def menu_temas(temas: list[str]) -> str:
+    lines = ["<b>Avisos del Radar Solfin</b>", "Elija sus temas escribiendo, por ejemplo: <code>/temas cambio bvc eeuu</code>", ""]
+    for k, (t, d) in TEMAS.items():
+        lines.append(f"{'✅' if k in temas else '▫️'} <b>{k}</b> · {t}: {d}")
+    lines += ["", "<code>/todo</code> todos los temas · <code>/stop</code> dejar de recibir · <code>/temas</code> ver esta lista"]
+    return "\n".join(lines)
+
+
+def bot_updates(r) -> None:
+    """Lee los mensajes privados al bot (/start, /temas …, /todo, /stop) y guarda la suscripción de cada persona."""
+    state = {x["clave"]: x["valor"] for x in select("app_state", {"select": "clave,valor", "clave": "in.(tg_offset,tg_bot)"})}
+    if "tg_bot" not in state:
+        me = tg("getMe") or {}
+        if me.get("ok"):
+            upsert("app_state", [{"clave": "tg_bot", "valor": me["result"].get("username")}], "clave")
+    res = tg("getUpdates", offset=int(state.get("tg_offset") or 0), timeout=0, allowed_updates=["message"]) or {}
+    ups = res.get("result") or []
+    if not ups:
+        return
+    subs = {x["chat_id"]: x for x in select("telegram_subs", {"select": "*"})}
+    alias = {"dolar": "cambio", "dólar": "cambio", "cambiario": "cambio", "bolsa": "bvc", "fed": "eeuu", "eeuu": "eeuu", "ee.uu.": "eeuu",
+             "petroleo": "petroleo", "petróleo": "petroleo", "materias": "materias", "commodities": "materias", "resumen": "resumen",
+             "resumenes": "resumen", "macro": "macro", "noticias": "noticias", "informes": "informes", "bvc": "bvc", "cambio": "cambio"}
+    changed = []
+    for u in ups:
+        m = u.get("message") or {}
+        chat = m.get("chat") or {}
+        if chat.get("type") != "private":
+            continue
+        cid, txt = chat.get("id"), (m.get("text") or "").strip()
+        name = " ".join(x for x in (chat.get("first_name"), chat.get("last_name")) if x) or chat.get("username")
+        sub = subs.get(cid) or {"chat_id": cid, "nombre": name, "temas": ["resumen", "informes"], "activo": True}
+        cmd, *args = (txt.lower().split() or [""])
+        if cmd.startswith("/start"):
+            sub["activo"] = True
+            tg("sendMessage", chat_id=cid, parse_mode="HTML", text="Bienvenido. Por defecto recibirá los resúmenes y los informes nuevos.\n\n" + menu_temas(sub["temas"]))
+        elif cmd.startswith("/todo"):
+            sub["temas"], sub["activo"] = list(TEMAS), True
+            tg("sendMessage", chat_id=cid, parse_mode="HTML", text=menu_temas(sub["temas"]))
+        elif cmd.startswith("/stop"):
+            sub["activo"] = False
+            tg("sendMessage", chat_id=cid, text="Listo: ya no recibirá avisos. Escriba /start para volver.")
+        elif cmd.startswith("/temas"):
+            pick = [alias[a] for a in args if a in alias]
+            if pick:
+                sub["temas"], sub["activo"] = sorted(set(pick)), True
+            tg("sendMessage", chat_id=cid, parse_mode="HTML", text=menu_temas(sub["temas"]))
+        else:
+            tg("sendMessage", chat_id=cid, parse_mode="HTML", text=menu_temas(sub["temas"]))
+        sub["nombre"] = sub.get("nombre") or name
+        subs[cid] = sub
+        changed.append(sub)
+    if changed:
+        upsert("telegram_subs", [{k: v for k, v in x.items() if k in ("chat_id", "nombre", "temas", "activo")} for x in changed], "chat_id")
+    upsert("app_state", [{"clave": "tg_offset", "valor": str(ups[-1]["update_id"] + 1)}], "clave")
+    r.log.info("Bot: %d mensajes, %d suscripciones actualizadas", len(ups), len(changed))
+
+
+def send_subs(text: str, tema: str | None, subs: list[dict]) -> int:
+    """Envía el aviso a cada suscriptor que eligió ese tema (además del canal)."""
+    if not tema:
+        return 0
+    n = 0
+    for sb in subs:
+        if sb.get("activo") and tema in (sb.get("temas") or []):
+            try:
+                if tg("sendMessage", chat_id=sb["chat_id"], text=pretty(text), parse_mode="HTML", disable_web_page_preview=True):
+                    n += 1
+            except Exception:  # noqa: BLE001
+                pass
+    return n
+
+
 def run(daily: bool = False):
     import time
     with Run("alerts") as r:
+        try:
+            bot_updates(r)
+        except Exception as e:  # noqa: BLE001
+            r.log.info("Bot de Telegram: %s", e)
+        try:
+            subs = [x for x in select("telegram_subs", {"select": "chat_id,temas,activo", "activo": "eq.true"})]
+        except Exception:  # noqa: BLE001
+            subs = []
         rules = json.loads(CONFIG.read_text(encoding="utf-8"))["reglas"]
         by_tipo = {x["id"]: x["tipo"] for x in rules}
         if not (os.environ.get("TELEGRAM_BOT_TOKEN") and os.environ.get("TELEGRAM_CHAT_ID")):
@@ -655,6 +782,8 @@ def run(daily: bool = False):
                     if send_telegram(text):
                         channels.append("telegram")
                         n_sent += 1
+                        if send_subs(text, tema_de(rid), subs):
+                            channels.append("suscriptores")
                         time.sleep(3)  # Telegram admite ~20 mensajes por minuto en un canal
                 except Exception as e:  # noqa: BLE001
                     r.note(f"Telegram: {e}")
