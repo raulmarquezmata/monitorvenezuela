@@ -104,8 +104,8 @@ _S = [
 
     # ---------------- Deuda soberana
     ("embi_venezuela", "deuda", "Riesgo país (EMBI de JPMorgan)", "Country risk (JPMorgan EMBI)", "pbs", "bps", "D", "JPMorgan (vía BCRP / prensa)", "https://estadisticas.bcrp.gob.pe/estadisticas/series/diarias/tasas-de-interes-embig-variacion-en-pbs", 0, 1),
-    ("deuda_venz_prom", "deuda", "Bonos de la República · precio promedio", "Republic bonds · average price", "% del nominal", "% of par", "D", "Bloomberg", None, 2, 10),
-    ("deuda_pdvsa_prom", "deuda", "Bonos de PDVSA · precio promedio", "PDVSA bonds · average price", "% del nominal", "% of par", "D", "Bloomberg", None, 2, 20),
+    ("deuda_venz_prom", "deuda", "Bonos de la República · precio promedio", "Republic bonds · average price", "% del nominal", "% of par", "D", "Börse Frankfurt / Bloomberg", "https://live.deutsche-boerse.com/", 2, 10),
+    ("deuda_pdvsa_prom", "deuda", "Bonos de PDVSA · precio promedio", "PDVSA bonds · average price", "% del nominal", "% of par", "D", "Börse Frankfurt / Bloomberg", "https://live.deutsche-boerse.com/", 2, 20),
 
     # ---------------- Materias primas (relevantes para Venezuela)
     ("oro", "commodities", "Oro", "Gold", "US$/oz", "US$/oz", "M", "Banco Mundial", WB, 2, 10),
@@ -186,8 +186,8 @@ PLAN = {
     "bvc_volumen_usd": (A, 45, "Robot sunaval diario (informe mensual de SUNAVAL)."),
     "mob_monto": (A, 45, "Robot sunaval diario."), "mob_operaciones": (A, 45, "Robot sunaval diario."),
     "bolpriaven_monto": (A, 45, "Robot sunaval diario."),
-    "deuda_venz_prom": (M, 10, "Subir data/bonos/bloomberg.xlsx (plantilla con fórmulas Bloomberg) cuando quieras actualizar; idealmente cada viernes."),
-    "deuda_pdvsa_prom": (M, 10, "Mismo archivo bloomberg.xlsx."),
+    "deuda_venz_prom": (A, 4, "Robot bonos_frankfurt: precios de la Bolsa de Frankfurt en su horario (22 de 24 bonos). Si subes data/bonos/bloomberg.xlsx, Bloomberg manda en esas fechas."),
+    "deuda_pdvsa_prom": (A, 4, "Robot bonos_frankfurt (Bolsa de Frankfurt) + Bloomberg cuando se sube bloomberg.xlsx."),
     "pib_real_var": (A, 120, "Robot bcv_stats diario: descarga el archivo del BCV y guarda cuando hay publicación nueva. Trimestral desde 2008."),
     "cuenta_corriente": (A, 120, "Robot bcv_stats diario: descarga el archivo del BCV y guarda cuando hay publicación nueva. Trimestral desde 1997."),
     "exportaciones_bienes": (A, 120, "Robot bcv_stats diario: descarga el archivo del BCV y guarda cuando hay publicación nueva. Trimestral desde 1997."),
