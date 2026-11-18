@@ -52,6 +52,22 @@ export default async function Comercio({ params, searchParams }: { params: { lan
       <MacroNav lang={lang} />
       <h1>{d.nav.trade}</h1>
       <p className="sub">{d.mirrorNote}</p>
+      <div className="notice" style={{ marginBottom: 16, fontSize: 14, lineHeight: 1.5 }}>
+        <b>{es ? "Cómo leer esta página (son estimaciones)" : "How to read this page (these are estimates)"}</b>
+        <ul style={{ margin: "6px 0 0", paddingLeft: 18 }}>
+          {(es ? [
+            "Venezuela no publica estadísticas de comercio exterior. Todo lo de esta página es «espejo»: lo que cada país declara haber comprado o vendido a Venezuela ante UN Comtrade.",
+            "Exportaciones = lo que los socios dicen haber importado desde Venezuela, valorado en su aduana (incluye flete y seguro). No es lo que ingresó a Venezuela: el cobro real de PDVSA es menor por descuentos, intermediarios y pagos en especie.",
+            "Petróleo = capítulo 27 del arancel (crudo, combustibles y derivados). Si un comprador declara el crudo venezolano como de otro origen (por ejemplo, vía Malasia), ese valor no aparece aquí.",
+            "Los años y meses recientes están incompletos hasta que todos los socios reportan (tardan de 2 a 18 meses). El año marcado «parcial» sirve para ver la composición, no el total.",
+          ] : [
+            "Venezuela does not publish trade statistics. Everything here is mirror data: what each country reports to UN Comtrade about its trade with Venezuela.",
+            "Exports = what partners report importing from Venezuela, valued at their border (including freight and insurance). It is not what Venezuela received: PDVSA's actual proceeds are lower due to discounts, intermediaries and in-kind payments.",
+            "Oil = tariff chapter 27 (crude, fuels and products). If a buyer records Venezuelan crude under another origin (e.g., via Malaysia), it does not show here.",
+            "Recent years and months are incomplete until all partners report (2–18 months). A year marked “partial” shows the mix, not the total.",
+          ]).map((x) => <li key={x}>{x}</li>)}
+        </ul>
+      </div>
       {(mh.exportaciones_espejo_mensual ?? []).length > 0 && (
         <div style={{ marginBottom: 12 }}>
           <ChartCard lang={lang} title={lang === "es" ? "Mes a mes (últimos 3 años)" : "Month by month (last 3 years)"} date={lang === "es" ? "millones US$" : "US$ million"} decimals={0} height={260}
@@ -81,9 +97,9 @@ export default async function Comercio({ params, searchParams }: { params: { lan
                 : `${year} is incomplete: it only includes what ${partnersByYear[year].size} of the usual ~${maxP} trading partners have reported so far, and only the months each one has published (countries take 2–12 months to report to UN Comtrade). Use it for the mix (what is sold and to whom), not the annual total.`)
           : (es ? "Los botones de año cambian solo estas cuatro tablas." : "The year buttons change only these four tables.")}</p>
       <div className="grid cards">
-        <div className="card"><div className="card-head"><h3>{d.exports} {d.byProduct} · {year}</h3><span className="muted">MM US$</span></div><BarList lang={lang} items={agg("X", "hs2")} /></div>
+        <div className="card"><div className="card-head"><h3>{d.exports} {d.byProduct} · {year}</h3><span className="muted">{es ? "MM US$ · según socios" : "US$ MM · per partners"}</span></div><BarList lang={lang} items={agg("X", "hs2")} /></div>
         <div className="card"><div className="card-head"><h3>{d.imports} {d.byProduct} · {year}</h3><span className="muted">MM US$</span></div><BarList lang={lang} alt items={agg("M", "hs2")} /></div>
-        <div className="card"><div className="card-head"><h3>{d.exports} {d.byPartner} · {year}</h3><span className="muted">MM US$</span></div><BarList lang={lang} items={agg("X", "partner")} /></div>
+        <div className="card"><div className="card-head"><h3>{d.exports} {d.byPartner} · {year}</h3><span className="muted">{es ? "MM US$ · según socios" : "US$ MM · per partners"}</span></div><BarList lang={lang} items={agg("X", "partner")} /></div>
         <div className="card"><div className="card-head"><h3>{d.imports} {d.byPartner} · {year}</h3><span className="muted">MM US$</span></div><BarList lang={lang} alt items={agg("M", "partner")} /></div>
       </div>
       </section>
