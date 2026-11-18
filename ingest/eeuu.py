@@ -1,7 +1,7 @@
 """EE.UU.: inflación (IPC), empleo (nómina no agrícola y desempleo) y la Fed.
 
-- IPC general y subyacente (CPIAUCSL, CPILFESL), nómina no agrícola (PAYEMS), desempleo (UNRATE) y tasa objetivo
-  de la Fed (DFEDTARU, techo del rango): FRED, sin clave. Se guardan ya transformados (variación interanual y
+- IPC general y subyacente, nómina no agrícola y desempleo: API pública del BLS (sin clave). Tasa objetivo de la
+  Fed (techo del rango): API de la Fed de Nueva York. Se guardan ya transformados (variación interanual y
   mensual del IPC; empleos creados en el mes, en miles).
 - Probabilidades de la Fed: futuros de fondos federales a 30 días (CME, vía Yahoo Finance), con el método de
   CME FedWatch: el futuro del mes de la reunión promedia la tasa de antes y la de después según los días;
@@ -18,7 +18,6 @@ import datetime as dt
 import json
 
 from .common import Run, ensure_bucket, fetch, save_obs, storage_upload
-from .fx import fred_series
 
 YF = "https://query1.finance.yahoo.com/v8/finance/chart/{sym}"
 MONTH_CODE = "FGHJKMNQUVXZ"
@@ -32,30 +31,83 @@ def yoy(pts: list[tuple[str, float]], lag: int = 12) -> list[tuple[str, float]]:
     return [(pts[i][0], (pts[i][1] / pts[i - lag][1] - 1) * 100) for i in range(lag, len(pts))]
 
 
+BLS = "https://api.bls.gov/publicAPI/v1/timeseries/data/"
+# BLS (sin clave: 25 consultas al día, 10 años por consulta). FRED bloquea las IP de GitHub, por eso no se usa aquí.
+BLS_IDS = {"CUSR0000SA0": "ipc", "CUSR0000SA0L1E": "sub", "CES0000000001": "nfp", "LNS14000000": "des"}
+NYFED = "https://markets.newyorkfed.org/api/rates/unsecured/effr/search.json"
+
+
+def bls(y0: int, y1: int) -> dict[str, list[tuple[str, float]]]:
+    j = fetch(BLS, method="POST", json={"seriesid": list(BLS_IDS), "startyear": str(y0), "endyear": str(y1)},
+              timeout=40, retries=2).json()
+    if j.get("status") != "REQUEST_SUCCEEDED":
+        raise RuntimeError(f"BLS: {' '.join(j.get('message') or [])[:120]}")
+    out = {}
+    for s in (j.get("Results") or {}).get("series") or []:
+        pts = []
+        for d in s.get("data") or []:
+            per = d.get("period") or ""
+            if per.startswith("M") and per != "M13":
+                try:
+                    pts.append((f"{d['year']}-{per[1:]}-01", float(d["value"])))
+                except (KeyError, ValueError):
+                    pass
+        out[BLS_IDS.get(s.get("seriesID"), "")] = sorted(pts)
+    return out
+
+
+def due(last: str | None, now: dt.datetime) -> bool:
+    """¿Toca consultar el BLS? Solo si falta el dato del mes pasado, y sin gastar el cupo diario:
+    el día de publicación (agenda) desde las 13:30 UTC en cada corrida de la primera media hora, y si no,
+    una vez al día (16 UTC) por si la fecha cambió."""
+    if not last:
+        return True
+    y, m = month_add(now.year, now.month, -1)
+    if last >= f"{y}-{m:02d}-01":
+        return False
+    try:
+        from pathlib import Path
+        ag = json.loads((Path(__file__).resolve().parent.parent / "config" / "agenda.json").read_text())
+        hoy = any(e.get("fecha") == now.date().isoformat() and e.get("tipo") == "eeuu" for e in ag.get("fechas", []))
+    except Exception:  # noqa: BLE001
+        hoy = False
+    if hoy and (now.hour, now.minute) >= (13, 30):
+        return now.minute < 30
+    return now.hour == 16 and now.minute < 30
+
+
 def macro(r: Run) -> None:
     from .common import select
-    # historia completa la primera vez; después, solo lo reciente (cada corrida reescribiría miles de filas)
-    full = not select("observations", {"select": "date", "series_code": "eq.eeuu_ipc_interanual", "limit": 1})
-    tail = (lambda pts, n=24: pts) if full else (lambda pts, n=24: pts[-n:])
-
-    def save(code, pts, src, n=24):
-        r.rows += save_obs(code, tail(pts, n), src)
-    cpi = fred_series("CPIAUCSL")
-    if cpi:
-        save("eeuu_ipc_interanual", yoy(cpi), "BLS vía FRED")
-        save("eeuu_ipc_mensual", yoy(cpi, 1), "BLS vía FRED")
-    core = fred_series("CPILFESL")
-    if core:
-        save("eeuu_ipc_subyacente", yoy(core), "BLS vía FRED")
-    nfp = fred_series("PAYEMS")
-    if nfp:
-        save("eeuu_nomina_no_agricola", [(nfp[i][0], nfp[i][1] - nfp[i - 1][1]) for i in range(1, len(nfp))], "BLS vía FRED")
-    une = fred_series("UNRATE")
-    if une:
-        save("eeuu_desempleo", une, "BLS vía FRED")
-    tgt = fred_series("DFEDTARU")
-    if tgt:
-        save("fed_tasa_objetivo", [p for p in tgt if p[0] >= "2008-12-16"], "Reserva Federal vía FRED", 30)
+    now = dt.datetime.now(dt.timezone.utc)
+    last = select("observations", {"select": "date", "series_code": "eq.eeuu_ipc_interanual", "order": "date.desc", "limit": 1})
+    last = last[0]["date"] if last else None
+    if due(last, now):
+        # 20 años de historia la primera vez (2 consultas); luego, 2 años (lo que pide el interanual)
+        spans = [(now.year - 19, now.year - 10), (now.year - 9, now.year)] if not last else [(now.year - 2, now.year)]
+        data: dict[str, list] = {}
+        for y0, y1 in spans:
+            for k, v in bls(y0, y1).items():
+                data[k] = sorted(set(data.get(k, []) + v))
+        keep = (lambda pts: pts) if not last else (lambda pts: pts[-14:])
+        if data.get("ipc"):
+            r.rows += save_obs("eeuu_ipc_interanual", keep(yoy(data["ipc"])), "BLS")
+            r.rows += save_obs("eeuu_ipc_mensual", keep(yoy(data["ipc"], 1)), "BLS")
+        if data.get("sub"):
+            r.rows += save_obs("eeuu_ipc_subyacente", keep(yoy(data["sub"])), "BLS")
+        if data.get("nfp"):
+            n = data["nfp"]
+            r.rows += save_obs("eeuu_nomina_no_agricola", keep([(n[i][0], n[i][1] - n[i - 1][1]) for i in range(1, len(n))]), "BLS")
+        if data.get("des"):
+            r.rows += save_obs("eeuu_desempleo", keep(data["des"]), "BLS")
+    # tasa objetivo de la Fed (techo del rango), de la Fed de Nueva York: una vez al día, o tras cada FOMC
+    tl = select("observations", {"select": "date", "series_code": "eq.fed_tasa_objetivo", "order": "date.desc", "limit": 1})
+    tl = tl[0]["date"] if tl else None
+    fomc_hoy = now.date().isoformat() in FOMC and now.hour >= 19
+    if not tl or (now.hour == 16 and now.minute < 30) or (fomc_hoy and tl < now.date().isoformat()):
+        start = "2016-03-01" if not tl else (now.date() - dt.timedelta(days=10)).isoformat()
+        j = fetch(NYFED, params={"startDate": start, "endDate": now.date().isoformat()}, timeout=40, retries=2).json()
+        pts = sorted({(x["effectiveDate"], float(x["targetRateTo"])) for x in j.get("refRates") or [] if x.get("targetRateTo") is not None})
+        r.rows += save_obs("fed_tasa_objetivo", pts, "Reserva Federal de Nueva York")
 
 
 def zq(year: int, month: int) -> list[tuple[str, float]]:
@@ -162,7 +214,7 @@ def run(force: bool = False):
         try:
             macro(r)
         except Exception as e:  # noqa: BLE001
-            r.note(f"FRED: {str(e)[:120]}")
+            r.note(f"BLS/Fed NY: {str(e)[:120]}")
         try:
             fed_probs(r)
         except Exception as e:  # noqa: BLE001
