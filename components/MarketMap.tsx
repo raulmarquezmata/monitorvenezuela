@@ -51,7 +51,10 @@ function color(v: number | null, per: Per) {
   return `rgb(${x.map((c, i) => Math.round(c + (y[i] - c) * t)).join(",")})`;
 }
 
-type Tile = MapRow & Box & { v: number };
+type Tile = MapRow & Box & { v: number; ytd: number | null };
+// OJO: el rendimiento del año se llama «y» en los datos, igual que la coordenada vertical del cuadro; al armar el mapa
+// la coordenada lo pisaba (el año mostraba la posición en píxeles). Se guarda aparte como «ytd».
+const val = (t: Tile, per: Per) => (per === "y" ? t.ytd : t[per]);
 type Ind = { name: string; sector: string; x: number; y: number; w: number; h: number; head: number; tiles: Tile[] };
 
 function Spark({ pts, up }: { pts?: number[]; up: boolean }) {
@@ -90,7 +93,7 @@ export default function MarketMap({ rows, lang }: { rows: MapRow[]; lang: "es" |
       const inds = squarify([...byInd.entries()].map(([name, rs]) => ({ name, rs, v: rs.reduce((a, r) => a + r.w, 0) })),
         { x: s.x + 1, y: s.y + sh, w: s.w - 2, h: s.h - sh - 1 }).map((g) => {
         const head = g.h > 30 && g.w > 34 ? 12 : 0; // franja con el nombre de la industria
-        const tiles = squarify(g.rs.map((r) => ({ ...r, v: r.w })), { x: g.x + 1, y: g.y + head + 1, w: g.w - 2, h: g.h - head - 2 }) as Tile[];
+        const tiles = squarify(g.rs.map((r) => ({ ...r, v: r.w, ytd: r.y })), { x: g.x + 1, y: g.y + head + 1, w: g.w - 2, h: g.h - head - 2 }) as Tile[];
         return { name: g.name, sector: s.name, x: g.x, y: g.y, w: g.w, h: g.h, head, tiles } as Ind;
       });
       return { ...s, sh, inds };
@@ -133,7 +136,7 @@ export default function MarketMap({ rows, lang }: { rows: MapRow[]; lang: "es" |
                   {g.head > 0 && <><rect x={g.x} y={g.y} width={g.w} height={g.head} fill="#3a3e48" />
                     <text x={g.x + 3} y={g.y + 9} fontSize={8.5} fontWeight={600} fill="#c9ccd4">{(g.name.length * 5 > g.w - 6 ? g.name.slice(0, Math.max(2, Math.floor((g.w - 10) / 5))) + "…" : g.name).toUpperCase()}</text></>}
                   {g.tiles.map((t) => {
-                    const v = t[per];
+                    const v = val(t, per);
                     const fs = Math.min(44, t.h / 2.3, (t.w - 4) / (t.t.length * 0.62));
                     const show = fs >= 7.5;
                     const two = show && t.h > fs * 2.3;
@@ -157,14 +160,14 @@ export default function MarketMap({ rows, lang }: { rows: MapRow[]; lang: "es" |
             <div className="mp-head">{hover.ind.sector} · {hover.ind.name}</div>
             <div className="mp-main">
               <div><b>{hover.t.t}</b><div className="mp-name">{hover.t.n}</div></div>
-              <Spark pts={hover.t.sp} up={(hover.t[per] ?? 0) >= 0} />
+              <Spark pts={hover.t.sp} up={(val(hover.t, per) ?? 0) >= 0} />
               <span className="mp-price">{money(hover.t.p)}</span>
-              <span className={(hover.t[per] ?? 0) >= 0 ? "mp-up" : "mp-dn"}>{pct(hover.t[per])}</span>
+              <span className={(val(hover.t, per) ?? 0) >= 0 ? "mp-up" : "mp-dn"}>{pct(val(hover.t, per))}</span>
             </div>
             {peers.map((t) => (
               <div key={t.t} className="mp-row">
-                <b>{t.t}</b><Spark pts={t.sp} up={(t[per] ?? 0) >= 0} /><span className="mp-price">{money(t.p)}</span>
-                <span className={(t[per] ?? 0) >= 0 ? "mp-up" : "mp-dn"}>{pct(t[per])}</span>
+                <b>{t.t}</b><Spark pts={t.sp} up={(val(t, per) ?? 0) >= 0} /><span className="mp-price">{money(t.p)}</span>
+                <span className={(val(t, per) ?? 0) >= 0 ? "mp-up" : "mp-dn"}>{pct(val(t, per))}</span>
               </div>
             ))}
           </div>
