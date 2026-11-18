@@ -101,7 +101,7 @@ export default async function Internacional({ params }: { params: { lang: Lang }
 
       {REGION.some(has) && (
         <details className="card fold" style={{ marginTop: 16 }}>
-          <summary><h3 style={{ display: "inline" }}>{es ? "Emergentes y región" : "Emerging markets and the region"}</h3> <span className="muted">· {es ? "EEM, Bovespa, Merval, IPC México, IPSA Chile" : "EEM, Bovespa, Merval, Mexico IPC, Chile IPSA"}</span></summary>
+          <summary><h3 style={{ display: "inline" }}>{es ? "Emergentes y región" : "Emerging markets and the region"}</h3> <span className="muted">· {es ? "EEM, Bovespa, Argentina (ARGT), IPC México, Chile (ECH)" : "EEM, Bovespa, Argentina (ARGT), Mexico IPC, Chile (ECH)"}</span></summary>
           <div className="grid g2">{REGION.filter(has).map((c) => <SeriesCard key={c} s={by[c]} points={hist[c] ?? []} lang={lang} allowLog initial="1A" />)}</div>
         </details>
       )}
