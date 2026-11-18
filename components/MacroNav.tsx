@@ -34,15 +34,6 @@ export default function MacroNav({ lang }: { lang: Lang }) {
       <nav className="subnav groups">
         {groups.map((g) => <Link prefetch={false} key={g.key} href={g.items[0].href} className={g === active ? "on" : ""}>{g.label}</Link>)}
       </nav>
-      <details className="macro-guide" open={path.endsWith("/indicadores/cambiario")}>
-        <summary>{lang === "es" ? "¿Qué hay en Macro? Guía rápida de cada sección" : "What's in Macro? Quick guide to each section"}</summary>
-        <div className="macro-guide-grid">
-          {groups.map((g) => (
-            <div key={g.key}><b>{g.label}</b>
-              <ul>{g.items.map((i) => <li key={i.href}><Link prefetch={false} href={i.href}>{i.label}</Link> <span className="muted">· {i.d}</span></li>)}</ul>
-            </div>))}
-        </div>
-      </details>
       {active.items.length > 1 && (
         <nav className="subnav sub">
           {active.items.map((i) => <Link prefetch={false} key={i.href} href={i.href} className={path.startsWith(i.href) ? "on" : ""}>{i.label}</Link>)}
