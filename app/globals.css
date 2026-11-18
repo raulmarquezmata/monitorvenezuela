@@ -472,3 +472,27 @@ ul.agenda .d { min-width: 92px; color: var(--text-3); text-transform: capitalize
 .macro-guide-grid li { margin: 0 0 6px; line-height: 1.35; }
 @media (max-width: 980px) { .macro-guide-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 560px) { .macro-guide-grid { grid-template-columns: 1fr; } }
+
+/* ---------------- Menú principal con subsecciones desplegables */
+.top .wrap { position: relative; }
+.navitem { position: relative; display: flex; align-items: stretch; }
+.navitem.mega { position: static; }
+.navitem > a { gap: 5px; }
+.navitem .caret { font-size: 10px; opacity: .6; transition: transform .15s; }
+.navmenu { display: none; position: absolute; top: 100%; left: -14px; z-index: 50; min-width: 300px; padding: 10px; background: var(--surface);
+  border: 1px solid var(--line); border-radius: var(--radius); box-shadow: 0 12px 32px rgba(0, 0, 0, .18); }
+.navmenu.wide { display: none; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px 14px; left: 24px; right: 24px; min-width: 0; }
+.navgroup-label { font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--text-3); padding: 8px 12px 4px; }
+.navmenu a { display: block !important; border: 0 !important; padding: 8px 12px; border-radius: calc(var(--radius) - 2px); color: var(--text) !important; white-space: normal !important; text-decoration: none; }
+.navmenu a b { display: block; font-size: 14px; font-weight: 600; }
+.navmenu a small { display: block; font-size: 12.5px; color: var(--text-2); margin-top: 2px; line-height: 1.35; }
+.navmenu a:hover, .navmenu a.cur { background: var(--bg); }
+@media (min-width: 901px) and (hover: hover) {
+  .mainnav { overflow: visible; }
+  .navitem.open .navmenu, .navitem.has-menu:focus-within .navmenu { display: block; }
+  .navitem.open .navmenu.wide, .navitem.has-menu:focus-within .navmenu.wide { display: grid; }
+  .navitem.open .caret { transform: rotate(180deg); }
+}
+@media (max-width: 1100px) and (min-width: 901px) { .navmenu.wide { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 901px) { .mainnav { gap: 20px; } }
+@media (max-width: 900px), (hover: none) { .navitem .caret { display: none; } }
