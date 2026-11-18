@@ -72,7 +72,7 @@ HEALTH_PR = re.compile(r"urol[oó]g|cl[ií]nica|hospital|centro m[eé]dico|tom[o
                        r"pediatr|cardiolog|oncolog|aniversario|celebra (sus|su)|nueva sede|inaugura (su|una nueva) (tienda|sucursal|sede)|"
                        r"promoci[oó]n (especial|navide)|descuentos? de hasta|\bsorteos?\b|\brifas?\b|feliz navidad|en esta navidad", re.I)
 # temas sociales y de educación (vocación docente, universidades, liceos): no son noticias para un inversionista
-SOCIAL = re.compile(r"docente|docencia|maestr[oa]s?\b|profesor(es|as)?\b|bachiller|educaci|educativ|universi|escuela|liceo|estudiant|"
+SOCIAL = re.compile(r"docente|docencia|\bmaestr[oa]s\b|profesor(es|as)?\b|bachiller|educaci|educativ|universi|escuela|liceo|estudiant|"
                     r"vocaci[oó]n|carrera (docente|universitaria)|matr[ií]cula escolar|deserci[oó]n escolar", re.I)
 # … salvo que sea una medida económica concreta (aumento salarial, bono, presupuesto, financiamiento)
 SOCIAL_ECON = re.compile(r"aumento salarial|ajuste salarial|ingreso m[ií]nimo|salario m[ií]nimo|\bbonos?\b|presupuesto|financiamiento|cr[eé]dito|inversi[oó]n", re.I)
