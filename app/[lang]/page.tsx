@@ -5,7 +5,7 @@ import Downloads from "@/components/Downloads";
 import NewsTicker from "@/components/NewsTicker";
 import Agenda from "@/components/Agenda";
 import { chartLabels, Kpi, NotConfigured, SectionHead } from "@/components/ui";
-import { bvcLatest, configured, history, latest, news } from "@/lib/data";
+import { botUser, bvcLatest, configured, fedMarket, history, latest, news } from "@/lib/data";
 import { num, pct, fmtDateFor } from "@/lib/format";
 import { prettyName } from "@/lib/names";
 import { change } from "@/lib/stats";
@@ -23,10 +23,11 @@ export default async function Home({ params }: { params: { lang: Lang } }) {
   const es = lang === "es";
   const d = t(lang);
   if (!configured) return <NotConfigured />;
-  const [all, hist, quotes, items, calc] = await Promise.all([
-    latest(), history([...KPIS, ...INTL, "ibc", "inflacion_acumulada", "inflacion_interanual"], 12), bvcLatest(), news(150, undefined, lang),
-    history(["usd_bcv", "usd_paralelo", "eur_bcv", "inflacion_mensual", "ipc_eeuu"], 40),
+  const [all, hist, quotes, items, calc, fed] = await Promise.all([
+    latest(), history([...KPIS, ...INTL, "ibc", "inflacion_acumulada", "inflacion_interanual", "brent", "fed_tasa_objetivo"], 12), bvcLatest(), news(150, undefined, lang),
+    history(["usd_bcv", "usd_paralelo", "eur_bcv", "inflacion_mensual", "ipc_eeuu"], 40), fedMarket(),
   ]);
+  const bot = await botUser();
   const by = Object.fromEntries(all.map((s) => [s.code, s]));
   const headlines = balanced(groupNews(items.filter((n) => n.category !== "global")), 2, 6);
   const href = (c: string) => by[c] ? `/${lang}/indicadores/${by[c].category}#${c}` : undefined;
@@ -66,18 +67,46 @@ export default async function Home({ params }: { params: { lang: Lang } }) {
   }
   if (by.merey?.last_value) lines.push(es ? `La cesta Merey promedió US$ ${num(by.merey.last_value, lang, 2)} en ${fmtDateFor(by.merey.last_date!, "M", lang)} (OPEP).` : `The Merey basket averaged US$ ${num(by.merey.last_value, lang, 2)} in ${fmtDateFor(by.merey.last_date!, "M", lang)} (OPEC).`);
 
+  // ---- Lo clave hoy: seis cifras en una línea
+  const arrow = (v: number | null, inv = false) => (v == null ? undefined : { sub: `${v >= 0 ? "▲" : "▼"} ${pct(Math.abs(v), lang, 2, false)} ${es ? "hoy" : "today"}`, cls: (inv ? v <= 0 : v >= 0) ? "up" : "down" });
+  const next = fed?.meetings?.[0];
+  const fedTop = next ? [{ l: es ? "subir" : "hike", v: next.hike }, { l: es ? "mantener" : "hold", v: next.hold ?? Math.max(0, 100 - next.hike - next.cut) }, { l: es ? "bajar" : "cut", v: next.cut }].reduce((a, b) => (b.v > a.v ? b : a)) : null;
+  const ftar = last(hist.fed_tasa_objetivo);
+  const dsh = (v: number | null | undefined, dd = 2) => (v == null ? "—" : num(v, lang, dd));
+  const clave: { k: string; n: string; v: string; href: string; sub?: string; cls?: string }[] = [
+    { k: "usd", n: es ? "Dólar oficial BCV" : "Official dollar (BCV)", v: `Bs ${dsh(by.usd_bcv?.last_value)}`, href: `/${lang}/indicadores/cambiario`, ...arrow(day("usd_bcv"), true) },
+    { k: "brecha", n: es ? "Brecha con el alternativo" : "Gap vs. alternative", v: `${dsh(by.brecha_cambiaria?.last_value, 1)}%`, href: `/${lang}/indicadores/cambiario`,
+      sub: by.usd_paralelo?.last_value ? `${es ? "Alternativo" : "Alternative"} Bs ${num(by.usd_paralelo.last_value, lang, 2)}` : undefined },
+    { k: "ibc", n: "IBC", v: dsh(ibc?.last_value), href: `/${lang}/bvc`, ...arrow(day("ibc")) },
+    { k: "brent", n: "Brent", v: `US$ ${dsh(by.brent?.last_value)}`, href: `/${lang}/indicadores/petroleo`, ...arrow(day("brent")) },
+    { k: "embi", n: es ? "Riesgo país (EMBI)" : "Country risk (EMBI)", v: `${dsh(by.embi_venezuela?.last_value, 0)} pb`, href: `/${lang}/indicadores/deuda`, ...arrow(day("embi_venezuela"), true) },
+    { k: "fed", n: es ? "Fed: tasa objetivo" : "Fed funds target", v: ftar != null ? `${num(ftar - 0.25, lang, 2)}–${num(ftar, lang, 2)}%` : "—", href: `/${lang}/internacional#fed`,
+      sub: next && fedTop ? `${new Intl.DateTimeFormat(es ? "es-VE" : "en-US", { day: "numeric", month: "short", timeZone: "UTC" }).format(new Date(`${next.date}T12:00:00Z`)).replace(".", "")}: ${fedTop.l} ${num(fedTop.v, lang, 0)}%` : undefined },
+  ];
+
   const ticker = groupNews(items.filter((n) => n.category !== "global")).slice(0, 18).map((n) => ({ t: n.title, url: n.url, s: n.source ?? "" }));
   return (
     <>
       {ticker.length > 0 && <NewsTicker items={ticker} label={es ? "Última hora" : "Latest"} />}
-      {lines.length > 0 && (
-        <section className="section">
-          <details className="card today fold">
-            <summary><h3 style={{ display: "inline" }}>{es ? "Qué pasó hoy" : "Today at a glance"}</h3> <span className="muted">· {lines[0]}</span></summary>
-            <ul>{lines.map((l) => <li key={l}>{l}</li>)}</ul>
-          </details>
-        </section>
-      )}
+      <section className="section">
+        <SectionHead label={es ? "Lo clave hoy" : "Key today"} />
+        <div className="card clave" style={{ padding: 0 }}>
+          <div className="ticker-strip">
+            {clave.map((x) => (
+              <Link prefetch={false} key={x.k} href={x.href}>
+                <div className="n">{x.n}</div>
+                <div className="v">{x.v}</div>
+                {x.sub && <div className={x.cls ?? "muted"} style={{ fontSize: 13 }}>{x.sub}</div>}
+              </Link>
+            ))}
+          </div>
+          <div className="clave-grid">
+            <div><h4>{es ? "Qué pasó hoy" : "What happened today"}</h4><ul>{lines.map((l) => <li key={l}>{l}</li>)}</ul></div>
+            <div className="hl"><h4>{es ? "Tres noticias del día" : "Three stories today"}</h4>
+              {headlines.slice(0, 3).map((n) => <a key={n.id} href={n.url} target="_blank" rel="noreferrer">{n.title}<small>{n.source} · {time(n.published_at)}</small></a>)}</div>
+          </div>
+        </div>
+      </section>
 
       <section className="section">
         <SectionHead label={d.keyIndicators} href={`/${lang}/indicadores/cambiario`} more={d.seeMacro} />
@@ -152,7 +181,18 @@ export default async function Home({ params }: { params: { lang: Lang } }) {
         <SectionHead label={es ? "Informes y descargas" : "Reports and downloads"} href={`/${lang}/informes`} more={es ? "Ver todos los informes" : "See all reports"} />
         <div className="grid home-dl">
           <Downloads lang={lang} compact />
-          <Agenda lang={lang} />
+          <div style={{ display: "grid", gap: 20, alignContent: "start" }}>
+            <Agenda lang={lang} />
+            {bot && (
+              <div className="card">
+                <div className="card-top"><h3>{es ? "Avisos en Telegram, a su medida" : "Telegram alerts, your way"}</h3></div>
+                <p className="muted" style={{ fontSize: 14, margin: "8px 0 12px" }}>{es
+                  ? "Escriba al bot y elija qué recibir: dólar, Bolsa de Caracas, EE.UU. y la Fed, petróleo, materias primas, macro, noticias, informes o resúmenes."
+                  : "Message the bot and choose what to receive: FX, Caracas Stock Exchange, US and the Fed, oil, commodities, macro, news, reports or summaries."}</p>
+                <a className="btn primary" href={`https://t.me/${bot}?start=radar`} target="_blank" rel="noreferrer">✈ {es ? "Abrir el bot" : "Open the bot"} @{bot}</a>
+              </div>
+            )}
+          </div>
         </div>
       </section>
 
