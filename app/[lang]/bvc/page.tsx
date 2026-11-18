@@ -1,6 +1,7 @@
 import Link from "next/link";
 import QuoteTable from "@/components/QuoteTable";
 import Downloads from "@/components/Downloads";
+import { dl } from "@/lib/dl";
 import ChartCard from "@/components/ChartCard";
 import { CardControls, CardScope } from "@/components/CardScope";
 import { chartLabels, NotConfigured, SectionHead, SeriesCard } from "@/components/ui";
@@ -68,8 +69,8 @@ export default async function BVC({ params }: { params: { lang: Lang } }) {
           </p>
         </div>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
-          {dailyUrl && <a className="btn primary" href={dailyUrl} target="_blank" rel="noreferrer">⬇ {es ? "Informe de cierre (PDF)" : "Closing report (PDF)"}</a>}
-          {pdfUrl && <a className="btn primary" href={pdfUrl} target="_blank" rel="noreferrer">⬇ {es ? "Informe mkt cap (PDF)" : "Market cap report (PDF)"}</a>}
+          {dailyUrl && <a className="btn primary" href={dl(dailyUrl, "pdf:Cierre de la BVC")} target="_blank" rel="noreferrer">⬇ {es ? "Informe de cierre (PDF)" : "Closing report (PDF)"}</a>}
+          {pdfUrl && <a className="btn primary" href={dl(pdfUrl, "pdf:Capitalización de mercado")} target="_blank" rel="noreferrer">⬇ {es ? "Informe mkt cap (PDF)" : "Market cap report (PDF)"}</a>}
           <a className="btn" href="#descargas">📥 {es ? "Descargas: informes PDF y Excel" : "Downloads: PDF reports and Excel"}</a>
         </div>
       </div>
@@ -112,7 +113,7 @@ export default async function BVC({ params }: { params: { lang: Lang } }) {
             <p className="muted" style={{ fontSize: 13, margin: "8px 0 0" }}>{es ? "Acciones en circulación × último cierre, convertido con la tasa de hoy." : "Shares outstanding × last close, converted at today's rate."}</p>
           </>) : <div className="empty" style={{ height: 120 }}>{d.noData}</div>}
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 14 }}>
-            <a className="btn" href={`/api/export?bvc=mktcap&format=xlsx&lang=${lang}`}>⬇ {es ? "Lista de capitalización (Excel)" : "Market cap list (Excel)"}</a>
+            <a className="btn" href={dl(`/api/export?bvc=mktcap&format=xlsx&lang=${lang}`, "excel:Capitalización por empresa")}>⬇ {es ? "Lista de capitalización (Excel)" : "Market cap list (Excel)"}</a>
           </div>
         </div>
       </div>
@@ -129,12 +130,12 @@ export default async function BVC({ params }: { params: { lang: Lang } }) {
       </div>
 
       <div className="card" id="acciones">
-        <CardScope initial="1M">
+        <CardScope initial="1M" cur="USD_PAR">
           <div className="card-top" style={{ flexWrap: "wrap" }}><h3>{d.equities}</h3>
             <span style={{ display: "inline-flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
               <span className="date">{es ? "clic en una fila para ver la acción" : "click a row to open the stock"}</span>
-              <a className="btn" href={`/api/export?bvc=RV&format=xlsx&lang=${lang}`} title={es ? "Descarga esta tabla (última sesión) en Excel" : "Download this table (last session) to Excel"}>⬇ Excel</a>
-              <a className="btn" href={`/api/export?bvc=RV&format=csv&lang=${lang}`}>CSV</a>
+              <a className="btn" href={dl(`/api/export?bvc=RV&format=xlsx&lang=${lang}`, "excel:Acciones: última sesión")} title={es ? "Descarga esta tabla (última sesión) en Excel" : "Download this table (last session) to Excel"}>⬇ Excel</a>
+              <a className="btn" href={dl(`/api/export?bvc=RV&format=csv&lang=${lang}`, "csv:Acciones: última sesión")}>CSV</a>
             </span></div>
           <CardControls lang={lang} money ranges={null} rangeLabels={d.range} />
           {rv.length ? <QuoteTable rows={rv} lang={lang} showCap labels={labels} />
