@@ -27,7 +27,7 @@ export default function BondsTable({ lang, list, prices }: { lang: "es" | "en"; 
   const cell = (v: number | null) => <td className={v == null ? "" : v > 0 ? "pos" : v < 0 ? "neg" : ""}>{v == null ? "—" : `${v > 0 ? "+" : ""}${nf(v, 2)}%`}</td>;
   const groups = [["VENZ", es ? "República" : "Republic"], ["PDVSA", "PDVSA"]] as const;
   const chosen = list.find((b) => b.ticker === sel);
-  if (!list.length) return <div className="empty" style={{ marginTop: 16 }}>{es ? "Sin precios todavía: sube data/bonos/bloomberg.xlsx" : "No prices yet"}</div>;
+  if (!list.length) return <div className="empty" style={{ marginTop: 16 }}>{es ? "Sin precios todavía (el robot de Frankfurt los carga en horario de esa bolsa)" : "No prices yet"}</div>;
   return (
     <>
       <div className="tbl-wrap" style={{ marginTop: 14 }}>
@@ -46,6 +46,9 @@ export default function BondsTable({ lang, list, prices }: { lang: "es" | "en"; 
           ))}
         </table>
       </div>
+      <p className="muted" style={{ marginTop: 8, fontSize: 13 }}>{es
+        ? "Precios en % del nominal: Bolsa de Frankfurt (cierre diario y último precio del día; suele quedar 1–4 puntos por debajo de Bloomberg porque cotiza cerca del precio comprador). Donde se cargó Bloomberg, manda Bloomberg."
+        : "Prices in % of par: Frankfurt Stock Exchange (daily close and latest price; usually 1–4 points below Bloomberg, near the bid). Bloomberg prevails where loaded."}</p>
       {chosen && (
         <div style={{ marginTop: 20 }}>
           <div className="card-top"><h3>{chosen.name}</h3><span className="date">{chosen.ticker}</span></div>
