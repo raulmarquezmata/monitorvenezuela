@@ -306,12 +306,12 @@ def balanza_pagos(book) -> dict:
             pts = [(d, num(df.iat[r, j])) for j, d in cols.items()]
             if code == "importaciones_bienes":  # la balanza registra importaciones con signo negativo
                 pts = [(d, abs(v)) if v is not None else (d, v) for d, v in pts]
-            out[code] = dedupe(pts)
+            out[code] = dedupe([(d, v) for d, v in pts if d <= _today()])
     # petroleras / no petroleras de exportaciones (primeras filas tras "Exportaciones de bienes")
     r = find_row(df, r"^Exportaciones de bienes")
     if r is not None:
         for k, code in ((1, "exportaciones_petroleras"), (2, "exportaciones_no_petroleras")):
-            out[code] = dedupe([(d, num(df.iat[r + k, j])) for j, d in cols.items()])
+            out[code] = dedupe([(d, num(df.iat[r + k, j])) for j, d in cols.items() if d <= _today()])
     return out
 
 
@@ -322,8 +322,14 @@ def pib_trimestral(book) -> dict:
     for code, rx in (("pib_real_var", r"^Consolidado"), ("pib_petrolero_var", r"^Actividad petrolera"), ("pib_no_petrolero_var", r"^Actividad no petrolera")):
         r = find_row(df, rx)
         if r is not None:
-            out[code] = dedupe([(d, num(df.iat[r, j])) for j, d in cols.items()])
+            # el archivo del BCV trae el trimestre en curso con fórmulas vacías (p. ej. −87,85%): solo trimestres cerrados
+            out[code] = dedupe([(d, num(df.iat[r, j])) for j, d in cols.items() if d <= _today()])
     return out
+
+
+def _today() -> str:
+    import datetime as _dt
+    return _dt.date.today().isoformat()
 
 
 def pib_anual(book) -> dict:
@@ -336,7 +342,7 @@ def pib_anual(book) -> dict:
     for code, rx in (("pib_anual_var", r"^Consolidado"), ("pib_petrolero_anual_var", r"^Actividad petrolera"), ("pib_no_petrolero_anual_var", r"^Actividad no petrolera")):
         r = find_row(df, rx)
         if r is not None:
-            out[code] = dedupe([(d, num(df.iat[r, j])) for j, d in cols.items()])
+            out[code] = dedupe([(d, num(df.iat[r, j])) for j, d in cols.items() if d <= _today()])
     return out
 
 
