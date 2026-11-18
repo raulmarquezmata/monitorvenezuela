@@ -96,16 +96,20 @@ export default async function SymbolPage({ params }: { params: { lang: Lang; sym
           <h1 style={{ marginBottom: 4 }}>{symbol} <span className="muted" style={{ fontSize: 18, fontWeight: 400 }}>{name}</span></h1>
           <p className="sub" style={{ marginBottom: 0 }}>{[meta?.sector, meta?.isin ? `ISIN ${meta.isin}` : null, classes.length > 1 ? (es ? `Clases: ${syms.join(", ")}` : `Share classes: ${syms.join(", ")}`) : null].filter(Boolean).join(" · ")}</p>
         </div>
-        {pdfEs && (
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          {pdfEs && <>
             <a className="btn on" href={es ? pdfEs : pdfEn!} target="_blank" rel="noreferrer">⬇ {es ? "Informe PDF al día" : "Up-to-date PDF report"}</a>
             <a className="btn" href={es ? pdfEn! : pdfEs} target="_blank" rel="noreferrer">{es ? "English" : "Español"}</a>
-          </div>
-        )}
+          </>}
+          <a className="btn" href={`/api/export?symbol=${encodeURIComponent(symbol)}&format=xlsx&lang=${lang}`} title={es ? "Todos los precios diarios en Bs y en US$" : "All daily prices in Bs and US$"}>⬇ {es ? "Histórico en Excel" : "History (Excel)"}</a>
+        </div>
       </div>
       {desc && <p className="stock-desc">{desc}</p>}
       <div style={{ marginTop: 12 }}>
-        <StockChart lang={lang} symbol={symbol} bs={bs} usdOf={usdOf} usdPar={usdPar} shares={shares} labels={chartLabels(lang)} rangeLabels={d.range} initial="1A" note={splitNote} />
+        <StockChart lang={lang} symbol={symbol} bs={bs} usdOf={usdOf} usdPar={usdPar} shares={shares} labels={chartLabels(lang)} rangeLabels={d.range} initial={bs.length > 250 ? "1A" : "MAX"} note={splitNote} />
+        {bs.length > 0 && bs[0][0] > "2025-06-30" && <p className="muted" style={{ fontSize: 13, marginTop: 8 }}>{es
+          ? `La Bolsa de Caracas solo publica precios de ${symbol} desde el ${fmtD(bs[0][0])}: es la historia completa disponible en su sistema para este símbolo.`
+          : `The Caracas Stock Exchange only publishes ${symbol} prices since ${fmtD(bs[0][0])}: that is the full history available in its system for this symbol.`}</p>}
       </div>
 
       <div className="grid kpis k4" style={{ marginTop: 16 }}>
