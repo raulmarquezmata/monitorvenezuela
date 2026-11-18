@@ -16,6 +16,7 @@ from __future__ import annotations
 import calendar
 import datetime as dt
 import json
+import math
 
 from .common import Run, ensure_bucket, fetch, save_obs, storage_upload
 
@@ -153,9 +154,17 @@ def fedwatch(day: str, meetings: list[str], rates: dict[tuple[int, int], dict[st
             frac = d.day / n
             post = (avg - frac * prev) / (1 - frac) if frac < 1 else avg
         delta = post - prev
-        p = min(1.0, abs(delta) / 0.25)
+        # reparto en pasos de 25 pb, como FedWatch: un Δ de 26,8 pb = 93% de +25 y 7% de +50
+        st = delta / 0.25
+        k = math.floor(st)
+        p = st - k
+        moves = {k: 1 - p, k + 1: p}
         out.append({"date": mt, "rate": round(post, 3), "delta_bp": round(delta * 100, 1),
-                    "hike": round(p * 100, 1) if delta > 0 else 0.0, "cut": round(p * 100, 1) if delta < 0 else 0.0})
+                    "hike": round(sum(v for j, v in moves.items() if j > 0) * 100, 1),
+                    "hold": round(moves.get(0, 0.0) * 100, 1),
+                    "cut": round(sum(v for j, v in moves.items() if j < 0) * 100, 1),
+                    "big": round(sum(v for j, v in moves.items() if abs(j) >= 2) * 100, 1),
+                    "moves": {str(j): round(v * 100, 1) for j, v in moves.items() if v >= 0.005}})
         prev = post
     return out
 
@@ -199,9 +208,108 @@ def fed_probs(r: Run) -> None:
     r.rows += save_obs("fed_prob_subida", hike, "CME (futuros de fondos federales vía Yahoo) · método FedWatch")
     r.rows += save_obs("fed_prob_baja", cut, "CME (futuros de fondos federales vía Yahoo) · método FedWatch")
     r.rows += save_obs("fed_tasa_esperada", exp, "CME (futuros de fondos federales vía Yahoo) · método FedWatch")
+    # rangos objetivo: se encadenan las reuniones a partir del rango vigente (techo publicado por la Fed de NY)
+    from .common import select
+    up = select("observations", {"select": "value", "series_code": "eq.fed_tasa_objetivo", "order": "date.desc", "limit": 1})
+    lo0 = round(float(up[0]["value"]) - 0.25, 2) if up else None
+    if lo0 is not None:
+        dist = {0: 1.0}
+        for m in table:
+            nd: dict[int, float] = {}
+            for j, q in dist.items():
+                for mv, pv in m["moves"].items():
+                    nd[j + int(mv)] = nd.get(j + int(mv), 0) + q * pv / 100
+            dist = {j: q for j, q in nd.items() if q >= 0.001}
+            m["ranges"] = [{"lo": round(lo0 + 0.25 * j, 2), "hi": round(lo0 + 0.25 * (j + 1), 2), "p": round(q * 100, 1)} for j, q in sorted(dist.items())]
+            top = max(m["ranges"], key=lambda x: x["p"])
+            m["top"] = top
     ensure_bucket(BUCKET)
-    payload = {"updated": dt.datetime.now(dt.timezone.utc).isoformat(), "start": round(before[days[-1]], 3), "meetings": table}
+    payload = {"updated": dt.datetime.now(dt.timezone.utc).isoformat(), "start": round(before[days[-1]], 3), "meetings": table,
+               "current": {"lo": lo0, "hi": round(lo0 + 0.25, 2)} if lo0 is not None else None,
+               "last_meeting": last_meeting}
     storage_upload(BUCKET, "mercado/fed.json", json.dumps(payload).encode(), content_type="application/json", max_age=60)
+
+
+FXBLUE = "https://api.fxblue.com/calendar/item/Nonfarm_Payrolls_US"
+NASDAQ_EARN = "https://api.nasdaq.com/api/calendar/earnings"
+UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36",
+      "Accept": "application/json, text/plain, */*", "Origin": "https://www.nasdaq.com", "Referer": "https://www.nasdaq.com/"}
+
+
+def kval(x: str) -> float | None:
+    x = (x or "").strip().upper().replace(",", "")
+    mult = 1000.0 if x.endswith("M") else 1.0
+    x = x.rstrip("KM")
+    try:
+        return float(x) * mult
+    except ValueError:
+        return None
+
+
+def nfp_consensus(r: Run) -> None:
+    """Nómina no agrícola: lo esperado por el mercado (consenso) frente al dato publicado ese día (primera
+    lectura, antes de revisiones). Fuente: calendario de FX Blue (unos 3 años de historia)."""
+    import re
+    html = fetch(FXBLUE, headers={"User-Agent": UA["User-Agent"]}, timeout=40, retries=2).text
+    rows = re.findall(r'ts="(\d+)"[^>]*>[^<]*</span></div>\s*<div[^>]*title="Forecast"[^>]*>([^<]*)</div>\s*<div[^>]*title="Actual"[^>]*>([^<]*)</div>', html)
+    exp, act = {}, {}
+    for ts, f, a in sorted(rows, key=lambda x: int(x[0])):
+        d = dt.datetime.fromtimestamp(int(ts) / 1000, dt.timezone.utc).date()
+        y, m = month_add(d.year, d.month, -1)  # se publica el mes siguiente al de referencia
+        ref = f"{y}-{m:02d}-01"
+        if kval(f) is not None:
+            exp[ref] = kval(f)
+        if kval(a) is not None:
+            act[ref] = kval(a)
+    if not act:
+        r.note("Consenso de nómina no agrícola: la página no trajo filas")
+        return
+    r.rows += save_obs("eeuu_nfp_esperado", sorted(exp.items()), "FX Blue (consenso)")
+    r.rows += save_obs("eeuu_nfp_publicado", sorted(act.items()), "BLS, primera publicación (vía FX Blue)")
+
+
+def earnings_stale(hours: int = 26) -> bool:
+    import os
+    try:
+        j = fetch(f"{os.environ.get('SUPABASE_URL', '').rstrip('/')}/storage/v1/object/public/{BUCKET}/mercado/earnings.json", timeout=20, retries=1).json()
+        upd = dt.datetime.fromisoformat(j["updated"])
+        return (dt.datetime.now(dt.timezone.utc) - upd).total_seconds() > hours * 3600
+    except Exception:  # noqa: BLE001
+        return True
+
+
+def earnings(r: Run, days: int = 100) -> None:
+    """Fechas de resultados de las 25 mayores empresas del S&P 500 (por peso) → reportes/mercado/earnings.json."""
+    import os
+    import time
+    base = os.environ.get("SUPABASE_URL", "").rstrip("/")
+    sp = fetch(f"{base}/storage/v1/object/public/{BUCKET}/mercado/sp500.json", timeout=30, retries=2).json()
+    top = sorted(sp.get("rows") or [], key=lambda x: -(x.get("w") or 0))[:25]
+    want = {x["t"].replace("-", ".").upper(): x for x in top}
+    items, fails = [], 0
+    day = dt.date.today()
+    for i in range(days):
+        d = day + dt.timedelta(days=i)
+        if d.weekday() > 4:
+            continue
+        try:
+            j = fetch(NASDAQ_EARN, params={"date": d.isoformat()}, headers=UA, timeout=25, retries=2).json()
+        except Exception as e:  # noqa: BLE001
+            fails += 1
+            if fails >= 3 and not items:
+                raise RuntimeError(f"Nasdaq no responde: {str(e)[:80]}")
+            continue
+        for row in ((j.get("data") or {}).get("rows") or []):
+            sym = (row.get("symbol") or "").replace("/", ".").upper()
+            if sym in want:
+                items.append({"date": d.isoformat(), "symbol": sym, "name": want[sym].get("n") or row.get("name"),
+                              "time": {"time-pre-market": "pre", "time-after-hours": "post"}.get(row.get("time"), ""),
+                              "eps": row.get("epsForecast") or None, "quarter": row.get("fiscalQuarterEnding") or None})
+        time.sleep(0.4)
+    ensure_bucket(BUCKET)
+    payload = {"updated": dt.datetime.now(dt.timezone.utc).isoformat(), "items": items}
+    storage_upload(BUCKET, "mercado/earnings.json", json.dumps(payload, ensure_ascii=False).encode(), content_type="application/json", max_age=300)
+    r.rows += len(items)
 
 
 def run(force: bool = False):
@@ -219,3 +327,16 @@ def run(force: bool = False):
             fed_probs(r)
         except Exception as e:  # noqa: BLE001
             r.note(f"Probabilidades de la Fed: {str(e)[:120]}")
+        # consenso de la nómina (una vez al día y los días de publicación) y resultados del S&P (una vez al día)
+        from .common import select
+        sin_nfp = not select("observations", {"select": "date", "series_code": "eq.eeuu_nfp_publicado", "limit": 1})
+        if force or sin_nfp or (now.hour == 16 and now.minute < 30) or (now.weekday() == 4 and 13 <= now.hour < 16):
+            try:
+                nfp_consensus(r)
+            except Exception as e:  # noqa: BLE001
+                r.note(f"Consenso NFP: {str(e)[:100]}")
+        if force or (now.hour == 15 and now.minute < 30) or earnings_stale():
+            try:
+                earnings(r)
+            except Exception as e:  # noqa: BLE001
+                r.note(f"Resultados S&P: {str(e)[:100]}")
