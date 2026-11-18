@@ -65,6 +65,48 @@ def find_pdfs(back_months: int = 3) -> list[str]:
     return list(dict.fromkeys(urls))
 
 
+def urls_for(y: int, m: int) -> list[str]:
+    """Direcciones posibles del MOMR de un mes (opec.org y espejo público)."""
+    name = MONTHS_EN[m - 1]
+    urls = [f"https://www.opec.org/assets/assetdb/momr-{name.lower()}-{y}.pdf",
+            f"https://www.opec.org/opec_web/static_files_project/media/downloads/MOMR%20{name}%20{y}.pdf",
+            f"https://www.opec.org/opec_web/static_files_project/media/downloads/publications/MOMR%20{name}%20{y}.pdf"]
+    for fy, fm in ((y, m), (y + (m == 12), m % 12 + 1)):
+        urls.append(MIRROR.format(fy=fy, fm=fm, month=name, y=y))
+    return urls
+
+
+def backfill_gradual(r, per_run: int = 3, floor: str = "2012-01") -> None:
+    """Historia de la cesta Merey hacia atrás, poco a poco: cada día se buscan 3 informes MOMR más viejos
+    (cada uno trae el Merey de 2 a 3 meses). Avanza hasta enero de 2012 y se detiene."""
+    from .common import select
+    st = {x["clave"]: x["valor"] for x in select("app_state", {"select": "clave,valor", "clave": "eq.momr_backfill"})}
+    t = today_caracas()
+    cur = st.get("momr_backfill") or f"{t.year - 2}-{t.month:02d}"
+    if cur <= floor:
+        return
+    y, m = int(cur[:4]), int(cur[5:7])
+    found = 0
+    for _ in range(per_run):
+        m -= 1
+        if m == 0:
+            y, m = y - 1, 12
+        for url in urls_for(y, m):
+            try:
+                content = get(url).content
+                if not content.startswith(b"%PDF"):
+                    continue
+            except Exception:  # noqa: BLE001
+                continue
+            data = parse_text(pdf_text(content))
+            if data.get("merey"):
+                r.rows += save_obs("merey", data["merey"], f"OPEP MOMR ({url.rsplit('/', 1)[-1]})")
+                found += 1
+            break
+    upsert("app_state", [{"clave": "momr_backfill", "valor": f"{y}-{m:02d}"}], "clave")
+    r.log.info("Merey hacia atrás: hasta %d-%02d, %d informes con datos", y, m, found)
+
+
 def months_in(line: str) -> list[tuple[int, int]]:
     out = []
     for mon, yy in TOKEN.findall(line):
@@ -181,6 +223,10 @@ def run(backfill: bool = False, local_only: bool = False):
             got = True
             if not backfill:
                 break  # el más reciente basta: trae los últimos 3 meses (con revisiones)
+        try:
+            backfill_gradual(r)
+        except Exception as e:  # noqa: BLE001
+            r.log.info("Merey hacia atrás: %s", e)
         if not got:
             from .common import select
             last = select("observations", {"select": "date", "series_code": "eq.merey", "order": "date.desc", "limit": 1})
