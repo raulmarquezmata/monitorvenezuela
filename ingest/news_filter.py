@@ -16,7 +16,7 @@ Pasos (en orden):
      Restas: sucesos y crimen (−6), escándalos y corrupción (−6), salud o promoción de marcas (−5), temas sociales o educativos (−5), historias personales (−3), seguridad (−3), ruido (−4), tono (−3);
      las de sucesos, seguridad y ruido se reducen a −1 si el titular trae un tema económico fuerte.
   7. Calidad de la fuente: nivel 1 (+2), medio con RSS propio (+1), desconocido que llega por Google News (−1).
-  Umbral: 3 puntos.
+  Umbral: 5 puntos. Sin un término del núcleo financiero (CORE) el tema no suma.
 """
 from __future__ import annotations
 
@@ -25,7 +25,7 @@ import pathlib
 import re
 
 QUALITY = pathlib.Path(__file__).resolve().parent.parent / "config" / "news_quality.json"
-UMBRAL = 3
+UMBRAL = 5  # calidad antes que cantidad (antes 3)
 
 JUNK = re.compile(r"^(tema|temas|etiqueta|secci[oó]n|en vivo|minuto a minuto|galer[ií]a|fotos?|podcast|opini[oó]n|editorial)\s*[:|\-–]|"
                   r"^(econom[ií]a|pol[ií]tica|internacionales?|nacionales?|deportes|sucesos|mercados?|negocios)$|hor[oó]scopo", re.I)
@@ -47,6 +47,7 @@ REGIONAL = re.compile(r"colombia|ecopetrol|guyana|exxon|staatsolie|surinam|trini
 ENERGY = re.compile(r"petr[oó]le|crudo|\bgas\b|gasoduct|oleoduct|refiner|energ|el[eé]ctric|\boil\b|lng|bloque", re.I)
 # temas propiamente venezolanos aunque el titular no diga «Venezuela»
 VE_SPECIFIC = re.compile(r"\bbcv\b|seniat|sudeban|sunaval|\bbvc\b|bolpriaven|pdvsa|corpoelec|cantv|fedec[aá]maras|conindustria|consecomercio|"
+                         r"chevron.{0,40}licencia|licencia.{0,40}chevron|chevron.{0,40}license|license.{0,40}chevron|"
                          r"venamcham|cavecol|bol[ií]var(es)?\b|ingreso (integral|m[ií]nimo)|bono de (guerra|fin de a)|patria\b|cashea|"
                          r"banesco|bancaribe|mercantil|provincial|\bbnc\b|banplus|delcy|cabello|maduro|machado|asamblea nacional|\btsj\b|"
                          r"caracas|maracaibo|zulia|carabobo|anzo[aá]tegui|monagas|bol[ií]var\b|guayana|orinoco|\bfaja\b|esequibo", re.I)
@@ -83,6 +84,15 @@ MAJORS = re.compile(r"chevron|shell|repsol|\beni\b|maurel|exxon|conocophillips|\
                     r"harbour|vitol|trafigura|gunvor|glencore", re.I)
 DEALS = re.compile(r"acuerdo|contrato|pacto|firma|licencia|empresa mixta|joint venture|participaci[oó]n|invert|inversi[oó]n|producci[oó]n|"
                    r"bloque|campo|deal|contract|license|stake|invest|production|output|agreement|sign", re.I)
+
+# núcleo financiero/económico: sin al menos uno de estos términos, el tema cuenta poco (calidad > cantidad)
+CORE = re.compile(r"\bbcv\b|inflaci|\bpib\b|d[oó]lar|divisa|cambiari|tipo de cambio|bol[ií]var(es)?\b|petr[oó]le|crudo|barril|\bgas\b|pdvsa|"
+                  r"chevron|shell|repsol|\beni\b|maurel|opep|opec|refiner|miner|\boro\b|bonos?\b|deuda|acreedor|riesgo pa[ií]s|embi|"
+                  r"sanci|licencia|ofac|export|import|arancel|inversi[oó]n|inversiones|inversionista|invertir|invierte|"
+                  r"\bbanc(a|o|os|as)\b|banquer|captaci|cartera|empresari|cr[eé]dito|encaje|liquidez|reservas|bolsa|acciones|\bbvc\b|sunaval|casa de bolsa|papeles comerciales|"
+                  r"salario|ingreso m[ií]nimo|impuest|seniat|recaudaci|presupuesto|fiscal|\bfmi\b|\bimf\b|\bbid\b|\bcaf\b|"
+                  r"adquisi|adquier|fusi[oó]n|resultados|ganancia|utilidad|ventas|facturaci|producci[oó]n petrolera|megavatio|"
+                  r"\boil\b|crude|barrel|sanction|license|invest|\bbank|\bbond|\bdebt|stock|acquisi|tariff|inflation|\bgdp\b", re.I)
 
 # términos de negocio que contienen palabras de la lista de ruido
 BUSINESS_OK = re.compile(r"pre-?concurso|concurso de acreedores|concurso p[uú]blico|licitaci[oó]n", re.I)
@@ -138,13 +148,18 @@ def evaluate(title: str, summary: str | None, source: str | None, *, ve_outlet: 
     else:
         return {"ok": False, "scope": "ve", "score": 0, "reason": "sin mención a Venezuela"}
 
-    econ = len({m.group(0).lower() for m in N.ECON.finditer(t_econ)})
+    econ = len({m.group(0).lower() for m in N.ECON.finditer(t_econ)} | {m.group(0).lower() for m in CORE.finditer(t_econ)})
     pol = bool(N.POL_OK.search(t))
     strong = bool(N.STRONG.search(t_econ))
-    if econ:
+    core = bool(CORE.search(t_econ))
+    if econ and core:
         pts = min(4, 1 + econ); score += pts; why.append(f"tema económico +{pts}")
-    elif pol:
+    elif econ:  # solo palabras generales («empresa», «mercado», «industria»…): cuenta poco
+        why.append("tema económico general +0")
+    elif pol and anchor_title:
         score += 1; why.append("política permitida +1")
+    elif pol:
+        why.append("política sin Venezuela en el titular +0")
     else:
         return {"ok": False, "scope": "ve", "score": score, "reason": "sin tema económico ni político permitido"}
     if N.categorize(f"{t} {summary or ''}") == "politica" and not pol and not N.ECON_POLICY.search(t):
@@ -164,7 +179,7 @@ def evaluate(title: str, summary: str | None, source: str | None, *, ve_outlet: 
     elif not aggregator:
         score += 1; why.append("medio con RSS propio +1")
     elif not _in(source or "", q.get("conocidas", [])):
-        score -= 1; why.append("fuente desconocida −1")
+        score -= 2; why.append("fuente desconocida −2")
 
     ok = score >= UMBRAL
     return {"ok": ok, "scope": "ve", "score": score, "reason": ("; ".join(why) if ok else f"puntaje {score} < {UMBRAL}: " + "; ".join(why))}
