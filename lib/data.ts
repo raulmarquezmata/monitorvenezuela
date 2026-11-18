@@ -178,6 +178,16 @@ export async function sp500Map(): Promise<{ updated: string; rows: import("@/com
   } catch { return null; }
 }
 
+export type FedMeeting = { date: string; rate: number; delta_bp: number; hike: number; cut: number };
+/** Probabilidades de la Fed por reunión (robot eeuu → reportes/mercado/fed.json). */
+export async function fedMarket(): Promise<{ updated: string; start: number; meetings: FedMeeting[] } | null> {
+  if (!url) return null;
+  try {
+    const r = await fetch(`${url.replace(/\/$/, "")}/storage/v1/object/public/reportes/mercado/fed.json`, { next: { revalidate: 600, tags: ["datos"] } });
+    return r.ok ? await r.json() : null;
+  } catch { return null; }
+}
+
 /** Asambleas y eventos de emisores entre dos fechas (para la agenda). */
 export async function upcomingEvents(from: string, to: string): Promise<{ symbol: string; date: string; kind: string | null }[]> {
   if (!sb) return [];
