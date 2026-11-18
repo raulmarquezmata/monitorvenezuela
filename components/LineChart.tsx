@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRange, windowed } from "./Range";
 
 type Point = [string, number];
-type S = { name: string; points: Point[]; color?: string; axis?: "right"; dash?: boolean };
+type S = { name: string; points: Point[]; color?: string; axis?: "right"; dash?: boolean; /** en modo barras: marca horizontal (p. ej. lo esperado) en vez de barra */ tick?: boolean };
 type Labels = { logScale: string; table: string; chart: string; date: string; noData: string };
 const COLORS = ["var(--series-1)", "var(--series-2)", "var(--series-3)", "#8a6fb0", "#3d7ea6", "#c79a2e", "#b5473a", "#5c9e6e"];
 const ts = (d: string) => Date.parse(`${d}T00:00:00Z`);
@@ -154,7 +154,9 @@ export default function LineChart({
               {rt.map((v) => <text key={`r${v}`} x={w - padR + 8} y={YR(v) + 4} textAnchor="start">{fmtAxis(v)}</text>)}
               {xt.map((t, i) => <text key={t} x={X(t)} y={height - 6} textAnchor={i === 0 ? "start" : i === xt.length - 1 ? "end" : "middle"}>{xLabel(t)}</text>)}
             </g>
-            {data.map((s) => bars ? (
+            {data.map((s) => bars && s.tick ? (
+              <g key={s.name}>{s.pts.map((p) => <line key={p[0]} x1={X(ts(p[0])) - bw / 2 - 2} x2={X(ts(p[0])) + bw / 2 + 2} y1={Y(p[1])} y2={Y(p[1])} stroke={s.color} strokeWidth={2.5} strokeLinecap="round" />)}</g>
+            ) : bars ? (
               <g key={s.name}>{s.pts.map((p) => {
                 const v = cap(p[1]), y = Y(Math.max(v, 0)), h = Math.abs(Y(v) - Y(0)), cut = v < p[1];
                 return <g key={p[0]}>{cut && <path d={`M${X(ts(p[0])) - bw / 2},${y + 6}l${bw},-5M${X(ts(p[0])) - bw / 2},${y + 11}l${bw},-5`} stroke="var(--surface)" strokeWidth={2} />}<rect x={X(ts(p[0])) - bw / 2} y={v >= 0 ? y : Y(0)} width={bw} height={Math.max(1, h)} rx={2} fill={s.color} opacity={hp && hp[0] !== p[0] ? .55 : 1} />{cut && <text x={X(ts(p[0]))} y={padT + 10} textAnchor="middle" fontSize={11} fill="var(--text-2)">↑</text>}</g>;
