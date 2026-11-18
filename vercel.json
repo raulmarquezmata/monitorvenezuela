@@ -1,0 +1,5 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "git": { "deploymentEnabled": { "mejoras": false } },
+  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- app components lib public content config/agenda.json config/bvc_ajustes.json config/bvc_empresas.json package.json package-lock.json next.config.mjs tsconfig.json vercel.json"
+}
