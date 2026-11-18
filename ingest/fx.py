@@ -198,15 +198,9 @@ def sanitize() -> int:
 
 
 def run_cpi():
-    """IPC de EE.UU. (para la inflación en dólares): FRED y, si no responde, la API pública del BLS."""
+    """IPC de EE.UU. (para la inflación en dólares): API pública del BLS (FRED no responde a los robots de GitHub).
+    El robot eeuu además lo actualiza apenas sale cada mes."""
     with Run("ipc_eeuu") as r:
-        try:
-            pts = fred_series("CPIAUCSL")
-            if pts:
-                r.rows += save_obs("ipc_eeuu", pts, "BLS vía FRED")
-                return
-        except Exception as e:  # noqa: BLE001
-            r.log.info("FRED IPC: %s", e)
         try:
             y = dt.date.today().year
             pts = []
@@ -234,10 +228,6 @@ def run_history():
                 r.rows += save_obs(code, pts, "FRED (Fed H.10)")
         except Exception as e:  # noqa: BLE001
             r.note(f"FRED: {e}")
-        try:  # IPC de EE.UU. para la calculadora de inflación en dólares
-            r.rows += save_obs("ipc_eeuu", fred_series("CPIAUCSL"), "BLS vía FRED")
-        except Exception as e:  # noqa: BLE001
-            r.note(f"FRED IPC EE.UU.: {e}")
 
 
 def run(backfill: bool = False):
