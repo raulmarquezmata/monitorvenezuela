@@ -141,6 +141,41 @@ def pdf_text(content: bytes) -> str:
 LOCAL = __import__("pathlib").Path(__file__).resolve().parent.parent / "data" / "sunaval"
 
 
+def guess_reports(skip: set[str]) -> list[tuple[str, str]]:
+    """Plan B cuando la página de SUNAVAL bloquea al robot (403): el PDF suele seguir accesible en su ruta de
+    WordPress, que es predecible: /wp-content/uploads/AAAA/MM(publicación)/GUACHO-SECTOR-VALORES.-MES-DE-<MES>-<AAAA>.pdf.
+    Se prueban los 3 últimos meses (subidos 1 o 2 meses después del mes que informan)."""
+    from .common import http
+    names = {v: k.upper() for k, v in MONTHS.items()}
+    today = dt.date.today()
+    out = []
+    for back in (1, 2, 3):
+        y, m = today.year, today.month - back
+        while m <= 0:
+            y, m = y - 1, m + 12
+        per = f"{y}-{m:02d}"
+        if per in skip:
+            continue
+        for lag in (1, 2):
+            py, pm = y, m + lag
+            if pm > 12:
+                py, pm = py + 1, pm - 12
+            if dt.date(py, pm, 1) > today:
+                continue
+            for fname in (f"GUACHO-SECTOR-VALORES.-MES-DE-{names[m]}-{y}.pdf", f"GUACHO-SECTOR-VALORES-MES-DE-{names[m]}-{y}.pdf"):
+                url = f"https://www.sunaval.gob.ve/wp-content/uploads/{py}/{pm:02d}/{fname}"
+                try:
+                    r = http.head(url, timeout=25, allow_redirects=True)
+                    if r.status_code == 200 and "pdf" in r.headers.get("content-type", "").lower():
+                        out.append((url, per))
+                        break
+                except Exception:  # noqa: BLE001
+                    continue
+            if out and out[-1][1] == per:
+                break
+    return out
+
+
 def period_from_name(name: str) -> str | None:
     n = name.lower()
     mm = next((v for k, v in MONTHS.items() if k in n), None)
@@ -170,8 +205,14 @@ def run(backfill: bool = False):
         try:
             reports = list_reports()
         except Exception as e:  # noqa: BLE001
-            r.note(f"La página de SUNAVAL no respondió ({str(e)[:80]}). Si hace falta, sube el informe a data/sunaval/.")
-            return
+            from .common import select
+            have = {period_from_name(x["filename"] or "") for x in select("source_files", {"select": "filename", "page": "eq.SUNAVAL mensual"})}
+            reports = guess_reports({p for p in have if p})
+            if not reports:
+                r.note(f"La página de SUNAVAL no respondió ({str(e)[:80]}) y el informe nuevo aún no está en su ruta habitual. "
+                       "Si ya salió, súbelo a data/sunaval/.")
+                return
+            r.log.info("Página bloqueada; informe encontrado por su ruta directa: %s", reports[0][0])
         if not reports:
             r.note("No se encontraron informes mensuales en la página de SUNAVAL")
             return
