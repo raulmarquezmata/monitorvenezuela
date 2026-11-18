@@ -1,7 +1,7 @@
 import { BRAND_NAME } from "@/lib/brand";
 import ExcelJS from "exceljs";
 import { NextRequest } from "next/server";
-import { bvcLatest, history, latest } from "@/lib/data";
+import { bvcLatest, bvcSymbol, history, latest } from "@/lib/data";
 import { BS_UNITS, toUsd } from "@/lib/money";
 import { prettyName } from "@/lib/names";
 
@@ -44,6 +44,20 @@ export async function GET(req: NextRequest) {
     return respond(format, lang, `bvc_capitalizacion_${stamp}`, head, body, [[es ? "Fuente" : "Source",
       es ? `Bolsa de Valores de Caracas (sesión ${session}); tasas del ${BRAND_NAME.es}: mercado alternativo Bs ${par ?? "—"}, oficial BCV Bs ${of ?? "—"}`
          : `Caracas Stock Exchange (session ${session}); ${BRAND_NAME.en} rates: alternative market Bs ${par ?? "—"}, BCV official Bs ${of ?? "—"}`]]);
+  }
+
+  // ---------------- BVC: histórico de una acción (precios en Bs y en US$ a la tasa de cada fecha)
+  if (q.get("symbol")) {
+    const sym = q.get("symbol")!.toUpperCase().slice(0, 12);
+    const [{ quotes }, fx] = await Promise.all([bvcSymbol(sym), history(["usd_bcv", "usd_paralelo"], 15)]);
+    const at = (pts: [string, number][], d: string) => { let v: number | null = null; for (const p of pts) { if (p[0] <= d) v = p[1]; else break; } return v; };
+    const es = lang === "es";
+    const head = es ? ["fecha", "apertura_bs", "maximo_bs", "minimo_bs", "cierre_bs", "var_pct", "volumen", "monto_bs", "operaciones", "cierre_usd_oficial", "cierre_usd_alternativo"]
+      : ["date", "open_bs", "high_bs", "low_bs", "close_bs", "change_pct", "volume", "amount_bs", "trades", "close_usd_official", "close_usd_alternative"];
+    const body = quotes.map((r) => { const o = at(fx.usd_bcv ?? [], r.date), p = at(fx.usd_paralelo ?? [], r.date);
+      return [r.date, r.open ?? null, r.high ?? null, r.low ?? null, r.close, r.var_pct, r.volume, r.amount, r.trades ?? null, r.close && o ? r.close / o : null, r.close && p ? r.close / p : null]; });
+    return respond(format, lang, `bvc_${sym.replace(/\W/g, "_").toLowerCase()}_historico_${stamp}`, head, body, [[es ? "Fuente" : "Source",
+      es ? "Bolsa de Valores de Caracas; precios sin ajustar por splits; US$ a la tasa de cada fecha (BCV y mercado alternativo)" : "Caracas Stock Exchange; prices not split-adjusted; US$ at each date's rate (BCV and alternative market)"]]);
   }
 
   // ---------------- BVC

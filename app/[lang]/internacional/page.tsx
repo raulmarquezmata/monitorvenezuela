@@ -1,8 +1,9 @@
 import Link from "next/link";
 import MarketMap, { Movers } from "@/components/MarketMap";
-import { chartLabels, Kpi, NotConfigured, SectionHead, SeriesCard } from "@/components/ui";
-import Agenda from "@/components/Agenda";
-import { configured, fedMarket, history, latest, sp500Map } from "@/lib/data";
+import { Kpi, NotConfigured, SectionHead, SeriesCard } from "@/components/ui";
+import Agenda, { type Item as AgendaItem } from "@/components/Agenda";
+import { FedNextCard, FedRateCard, FedTable, NfpCard, fedChanges } from "@/components/FedCards";
+import { configured, earningsCal, fedMarket, history, latest, sp500Map } from "@/lib/data";
 import { dateTime, num } from "@/lib/format";
 import { valueAt, type Point } from "@/lib/stats";
 import { t, type Lang } from "@/lib/i18n";
@@ -11,16 +12,15 @@ export const revalidate = 300;
 
 const TOP = ["sp500", "nasdaq", "dow_jones", "vix", "dxy", "oro_diario", "bitcoin", "ust_10a"];
 const RATES = ["ust_2a", "ust_5a", "ust_10a", "ust_20a", "ust_30a"];
-const REGION = ["eem", "bovespa", "argentina_argt", "ipc_mexico", "chile_ech"];
 const USA = ["eeuu_ipc_interanual", "eeuu_ipc_subyacente", "eeuu_nomina_no_agricola", "eeuu_desempleo"];
-const FED = ["fed_tasa_objetivo", "fed_prob_subida", "fed_prob_baja", "fed_tasa_esperada"];
+const FED = ["fed_tasa_objetivo"];
 
 export default async function Internacional({ params }: { params: { lang: Lang } }) {
   const { lang } = params;
   const d = t(lang);
   const es = lang === "es";
   if (!configured) return <NotConfigured />;
-  const [series, map, fed] = await Promise.all([latest("internacional"), sp500Map(), fedMarket()]);
+  const [series, map, fed, earn] = await Promise.all([latest("internacional"), sp500Map(), fedMarket(), earningsCal()]);
   const hist = await history(series.map((s) => s.code), 12);
   const by = Object.fromEntries(series.map((s) => [s.code, s]));
   const has = (c: string) => (hist[c] ?? []).length > 0;
@@ -51,7 +51,8 @@ export default async function Internacional({ params }: { params: { lang: Lang }
         <Link prefetch={false} className="btn" href={`/${lang}/noticias?cat=global`}>{es ? "Noticias de mercados globales →" : "Global markets news →"}</Link>
       </div>
 
-      <div className="grid g4">{TOP.filter((c) => by[c]).map((c) => <Kpi key={c} s={by[c]} points={hist[c] ?? []} lang={lang} periods={["1D", "1W", "YTD"]} />)}</div>
+      <div className="grid g4">{TOP.filter((c) => by[c]).map((c) => <Kpi key={c} s={by[c]} points={hist[c] ?? []} lang={lang} periods={["1D", "1W", "YTD"]} href={`/${lang}/internacional/graficos#${c}`} />)}</div>
+      <p className="muted" style={{ fontSize: 13, marginTop: 10 }}>{es ? "Toque cualquier tarjeta para ver su gráfico con toda la historia (desde 2016)." : "Tap any card to see its full-history chart (since 2016)."} <Link prefetch={false} href={`/${lang}/internacional/graficos`}>{es ? "Ver todos los gráficos →" : "See all charts →"}</Link></p>
 
       {map?.rows?.length ? (
         <section className="section">
@@ -69,38 +70,54 @@ export default async function Internacional({ params }: { params: { lang: Lang }
         </section>
       ) : null}
 
-      {(USA.some(has) || FED.some(has)) && (
+      {(USA.some(has) || FED.some(has)) && (() => {
+        const next = fed?.meetings?.[0];
+        const ch = fedChanges(hist.fed_tasa_objetivo ?? [], fed?.last_meeting);
+        const earnItems: AgendaItem[] = earn.map((e) => ({ date: e.date, tipo: "empresa",
+          es: `Resultados de ${e.name} (${e.symbol})${e.time === "pre" ? ", antes de la apertura" : e.time === "post" ? ", tras el cierre" : ""}`,
+          en: `${e.name} (${e.symbol}) earnings${e.time === "pre" ? ", before the open" : e.time === "post" ? ", after the close" : ""}` }));
+        return (
         <section className="section" id="fed">
           <SectionHead label={es ? "EE.UU.: inflación, empleo y la Fed" : "US: inflation, jobs and the Fed"} />
-          <div className="grid g4">{[...USA, ...FED.filter((c) => c !== "fed_prob_baja")].filter((c) => by[c] && has(c)).map((c) => (
-            <Kpi key={c} s={by[c]} points={hist[c] ?? []} lang={lang} periods={c === "eeuu_nomina_no_agricola" ? [] : undefined} />))}</div>
-          <div className="card split" style={{ marginTop: 16 }}>
+          <div className="grid g3">
+            {USA.filter((c) => by[c] && has(c)).map((c) => (
+              <Kpi key={c} s={by[c]} points={hist[c] ?? []} lang={lang} href={`#${c}`} periods={c === "eeuu_nomina_no_agricola" ? [] : ["PREV", "YOY"]}
+                extra={c === "eeuu_nomina_no_agricola" ? (() => { const a = hist.eeuu_nfp_publicado?.at(-1), e = hist.eeuu_nfp_esperado?.find((p) => p[0] === a?.[0]);
+                  return a ? [{ label: es ? "Primera lectura" : "First print", value: a[1], unit: es ? " mil" : "k", decimals: 0 }, { label: es ? "Esperado" : "Expected", value: e?.[1] ?? null, unit: es ? " mil" : "k", decimals: 0 }] : undefined; })() : undefined} />))}
+            {has("fed_tasa_objetivo") && <FedRateCard points={hist.fed_tasa_objetivo ?? []} lang={lang} lastMeeting={fed?.last_meeting} href="#fed_tasa_objetivo" />}
+            <FedNextCard m={next} lang={lang} href="#fed-mercado" />
+          </div>
+          <div className="card split" style={{ marginTop: 20 }} id="fed-mercado">
             <div>
               <div className="card-top"><h3>{es ? "¿Qué espera el mercado de la Fed?" : "What the market expects from the Fed"}</h3>
                 {fed?.updated && <span className="date">{dateTime(fed.updated, lang).replace(/\.$/, "")}</span>}</div>
-              {fed?.meetings?.length ? (
-                <table className="tbl compact">
-                  <thead><tr><th>{es ? "Reunión" : "Meeting"}</th><th style={{ textAlign: "right" }}>{es ? "Prob. subida" : "Hike prob."}</th><th style={{ textAlign: "right" }}>{es ? "Prob. baja" : "Cut prob."}</th><th style={{ textAlign: "right" }}>{es ? "Tasa esperada" : "Expected rate"}</th></tr></thead>
-                  <tbody>{fed.meetings.map((m) => (
-                    <tr key={m.date}><td>{new Intl.DateTimeFormat(es ? "es-VE" : "en-US", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(`${m.date}T12:00:00Z`))}</td>
-                      <td style={{ textAlign: "right", fontWeight: 600 }} className={m.hike >= 50 ? "down" : ""}>{num(m.hike, lang, 0)}%</td>
-                      <td style={{ textAlign: "right", fontWeight: 600 }} className={m.cut >= 50 ? "up" : ""}>{num(m.cut, lang, 0)}%</td>
-                      <td style={{ textAlign: "right" }}>{num(m.rate, lang, 2)}%</td></tr>))}</tbody>
-                </table>
-              ) : <p className="muted">{es ? "Las probabilidades aparecerán tras la primera corrida del robot." : "Probabilities will appear after the robot's first run."}</p>}
+              {fed?.meetings?.length ? <FedTable meetings={fed.meetings} lang={lang} />
+                : <p className="muted">{es ? "Las probabilidades aparecerán tras la primera corrida del robot." : "Probabilities will appear after the robot's first run."}</p>}
               <p className="muted" style={{ fontSize: 13, marginTop: 10 }}>{es
-                ? "Calculado con los futuros de fondos federales a 30 días (CME) por el método de CME FedWatch: probabilidad de que la Fed mueva la tasa 25 pb en cada reunión y tasa promedio esperada después de ella. Es lo que descuenta el mercado, no un pronóstico."
-                : "Computed from 30-day fed funds futures (CME) with the CME FedWatch method: probability of a 25 bp move at each meeting and the average rate expected afterwards. It reflects market pricing, not a forecast."}</p>
+                ? "Rango vigente: " + (fed?.current ? `${num(fed.current.lo, lang, 2)}–${num(fed.current.hi, lang, 2)}%` : "—") + ". Subir, mantener y bajar es lo que el mercado descuenta para cada reunión; el rango más probable acumula las reuniones anteriores. Cálculo propio con los futuros de fondos federales a 30 días (CME), por el método de CME FedWatch; puede diferir unos puntos del publicado por CME. Es lo que descuenta el mercado, no un pronóstico."
+                : "Current range: " + (fed?.current ? `${num(fed.current.lo, lang, 2)}–${num(fed.current.hi, lang, 2)}%` : "—") + ". Hike, hold and cut are what the market prices for each meeting; the most likely range compounds earlier meetings. Our own calculation from 30-day fed funds futures (CME) using the CME FedWatch method; it may differ by a few points from CME's. It reflects market pricing, not a forecast."}</p>
             </div>
-            <div><Agenda lang={lang} days={120} tipos={["eeuu", "fed"]} max={10} title={es ? "Calendario de EE.UU." : "US calendar"} /></div>
+            <div><Agenda plain lang={lang} days={90} tipos={["eeuu", "fed", "empresa"]} max={16} extra={earnItems} title={es ? "Calendario de EE.UU." : "US calendar"} />
+              <p className="muted" style={{ fontSize: 13, marginTop: 8 }}>{es ? "Incluye los resultados trimestrales de las 25 mayores empresas del S&P 500 (fechas de Nasdaq)." : "Includes quarterly earnings of the 25 largest S&P 500 companies (dates from Nasdaq)."}</p></div>
           </div>
-          <details className="card fold" style={{ marginTop: 16 }}>
-            <summary><h3 style={{ display: "inline" }}>{es ? "Histórico: inflación, empleo y Fed" : "History: inflation, jobs and the Fed"}</h3> <span className="muted">· {es ? "IPC, subyacente, nómina no agrícola, desempleo, tasa de la Fed y probabilidad de subida" : "CPI, core, payrolls, unemployment, Fed rate and hike probability"}</span></summary>
-            <div className="grid g2">{[...USA, "eeuu_ipc_mensual", ...FED].filter((c) => by[c] && has(c)).map((c) => (
-              <SeriesCard key={c} s={by[c]} points={hist[c] ?? []} lang={lang} bars={c === "eeuu_nomina_no_agricola" || c === "eeuu_ipc_mensual"} initial={c.startsWith("fed_prob") || c === "fed_tasa_esperada" ? "MAX" : "1A"} />))}</div>
+          <details className="card fold" style={{ marginTop: 20 }} open>
+            <summary><h3 style={{ display: "inline" }}>{es ? "Histórico: inflación, empleo y Fed" : "History: inflation, jobs and the Fed"}</h3> <span className="muted">· {es ? "IPC, subyacente, empleo, desempleo y tasa de la Fed" : "CPI, core, payrolls, unemployment and the Fed rate"}</span></summary>
+            <div className="grid g2">
+              {has("eeuu_nfp_publicado") && <NfpCard actual={hist.eeuu_nfp_publicado ?? []} expected={hist.eeuu_nfp_esperado ?? []} lang={lang} />}
+              {[...USA, "eeuu_ipc_mensual"].filter((c) => by[c] && has(c)).map((c) => (
+                <SeriesCard key={c} s={by[c]} points={hist[c] ?? []} lang={lang} bars={c === "eeuu_nomina_no_agricola" || c === "eeuu_ipc_mensual"} initial="MAX" clip={c === "eeuu_nomina_no_agricola"}
+                  note={c === "eeuu_nomina_no_agricola" ? (es ? "Serie revisada del BLS (cambia con cada publicación). La comparación con lo esperado está en el gráfico de arriba." : "BLS revised series (changes with each release). The comparison with expectations is in the chart above.") : undefined} />))}
+              {has("fed_tasa_objetivo") && by.fed_tasa_objetivo && <SeriesCard s={by.fed_tasa_objetivo} points={hist.fed_tasa_objetivo ?? []} lang={lang} initial="MAX" stats={false}
+                extra={<div className="stats" style={{ marginTop: 8 }}>
+                  <span className="st"><small>{es ? "Rango vigente" : "Current range"}</small><b>{num((hist.fed_tasa_objetivo?.at(-1)?.[1] ?? 0.25) - 0.25, lang, 2)}–{num(hist.fed_tasa_objetivo?.at(-1)?.[1], lang, 2)}%</b></span>
+                  <span className="st"><small>{es ? "Última reunión" : "Last meeting"}</small><b className={ch.meeting ? (ch.meeting > 0 ? "down" : "up") : ""}>{ch.meeting == null ? "—" : ch.meeting === 0 ? (es ? "sin cambio" : "no change") : `${ch.meeting > 0 ? "+" : ""}${ch.meeting} pb`}</b></span>
+                  <span className="st"><small>{es ? "En el año" : "YTD"}</small><b className={ch.ytd ? (ch.ytd > 0 ? "down" : "up") : ""}>{ch.ytd == null ? "—" : `${ch.ytd > 0 ? "+" : ""}${ch.ytd} pb`}</b></span>
+                </div>} />}
+            </div>
           </details>
         </section>
-      )}
+        );
+      })()}
 
       {RATES.some(has) && (
         <section className="section">
@@ -130,17 +147,12 @@ export default async function Internacional({ params }: { params: { lang: Lang }
         </section>
       )}
 
-      <details className="card fold section">
-        <summary><h3 style={{ display: "inline" }}>{es ? "Gráficos: bolsas y activos" : "Charts: equities and assets"}</h3> <span className="muted">· S&P 500, Nasdaq, Dow Jones, VIX, {es ? "dólar, oro" : "dollar, gold"}, bitcoin</span></summary>
-        <div className="grid g2">{TOP.filter((c) => has(c) && c !== "ust_10a").map((c) => <SeriesCard key={c} s={by[c]} points={hist[c] ?? []} lang={lang} allowLog initial="1A" />)}</div>
-      </details>
-
-      {REGION.some(has) && (
-        <details className="card fold" style={{ marginTop: 16 }}>
-          <summary><h3 style={{ display: "inline" }}>{es ? "Emergentes y región" : "Emerging markets and the region"}</h3> <span className="muted">· {es ? "EEM, Bovespa, Argentina (ARGT), IPC México, Chile (ECH)" : "EEM, Bovespa, Argentina (ARGT), Mexico IPC, Chile (ECH)"}</span></summary>
-          <div className="grid g2">{REGION.filter(has).map((c) => <SeriesCard key={c} s={by[c]} points={hist[c] ?? []} lang={lang} allowLog initial="1A" />)}</div>
-        </details>
-      )}
+      <section className="section">
+        <Link prefetch={false} href={`/${lang}/internacional/graficos`} className="card" style={{ display: "block", textDecoration: "none" }}>
+          <div className="card-top"><h3>{es ? "Gráficos de bolsas, activos y región →" : "Equity, asset and regional charts →"}</h3></div>
+          <p className="muted" style={{ margin: "6px 0 0" }}>{es ? "S&P 500, Nasdaq, Dow Jones, VIX, dólar (DXY), oro, bitcoin, Bovespa, México, Argentina, Chile y emergentes, con toda la historia disponible." : "S&P 500, Nasdaq, Dow Jones, VIX, dollar (DXY), gold, bitcoin, Bovespa, Mexico, Argentina, Chile and emerging markets, with full history."}</p>
+        </Link>
+      </section>
       {!series.length && <div className="empty">{es ? "Los datos internacionales aparecerán después de la primera corrida del robot." : "International data will appear after the robot's first run."}</div>}
     </>
   );

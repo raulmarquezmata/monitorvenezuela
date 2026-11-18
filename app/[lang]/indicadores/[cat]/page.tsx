@@ -5,7 +5,6 @@ import MacroNav from "@/components/MacroNav";
 import { BarList, chartLabels, Kpi, NotConfigured, SectionHead, SeriesCard } from "@/components/ui";
 import { bankRanking, bankSample, bankSystem, bonds, configured, history, latest } from "@/lib/data";
 import BankExplorer from "@/components/BankExplorer";
-import AgroBody from "@/components/AgroBody";
 import { num } from "@/lib/format";
 import { cumulative, valueAt } from "@/lib/stats";
 import type { Range } from "@/components/Range";
@@ -21,11 +20,11 @@ const INTRO: Record<Category, { es: string; en: string }> = {
   cambiario: { es: "Dólar oficial del BCV por fecha valor, mercado alternativo (Binance P2P), brecha e intervención cambiaria.", en: "BCV official rate by value date, Binance P2P alternative-market rate, gap and FX intervention." },
   monetario: { es: "Liquidez (M1 y M2) desde 1997, base monetaria desde 2001, multiplicador y encaje (BCV). Saldos en miles de bolívares actuales: use escala log para ver toda la serie.", en: "Money (M1, M2) since 1997, monetary base since 2001, multiplier and reserve requirement (BCV). Balances in thousand current bolivars: use log scale for the full series." },
   precios: { es: "Inflación oficial del BCV (INPC), serie mensual desde 1986.", en: "BCV official inflation (CPI), monthly series since 1986." },
-  externo: { es: "Reservas internacionales (desde 1996), balanza de pagos trimestral del BCV (desde 1997), exportaciones petroleras mensuales, comercio mensual con EE.UU. (Census, casi al día) y comercio exterior espejo.", en: "International reserves (since 1996), BCV quarterly balance of payments (since 1997), monthly oil exports, monthly trade with the US (Census, near real time) and mirror trade." },
+  externo: { es: "Reservas internacionales del BCV (diarias, desde 1996) arriba; luego lo más reciente: exportaciones petroleras por seguimiento de buques y comercio con EE.UU. (Census y EIA). La balanza de pagos del BCV es trimestral y sale con unos 6 meses de rezago, por eso queda en «Ver más».", en: "International reserves (since 1996), BCV quarterly balance of payments (since 1997), monthly oil exports, monthly trade with the US (Census, near real time) and mirror trade." },
   banca: { es: "Cartera de créditos y captaciones del sistema bancario, en bolívares y en dólares, y ranking por banco.", en: "Banking system loans and deposits in bolivars and dollars, and bank ranking." },
-  petroleo: { es: "Producción de crudo (OPEP y EIA), cesta Merey y precios de referencia.", en: "Crude output (OPEC and EIA), Merey basket and benchmark prices." },
+  petroleo: { es: "Producción de crudo (OPEP y EIA), cesta Merey y precios de referencia (Brent, WTI y gas Henry Hub). Las materias primas y el agro tienen su propio botón arriba.", en: "Crude output (OPEC and EIA), Merey basket and benchmark prices." },
   mercados: { es: "Índices y volúmenes de la Bolsa de Valores de Caracas y BOLPRIAVEN.", en: "Caracas Stock Exchange and BOLPRIAVEN indices and volumes." },
-  actividad: { es: "PIB real del BCV (trimestral y anual, total, petrolero y no petrolero) y recaudación del SENIAT.", en: "BCV real GDP (quarterly and annual; total, oil and non-oil) and SENIAT tax collection." },
+  actividad: { es: "PIB real del BCV por trimestre (total, petrolero y no petrolero), variaciones anuales (se actualizan al cierre de cada año) y recaudación del SENIAT.", en: "BCV real GDP (quarterly and annual; total, oil and non-oil) and SENIAT tax collection." },
   deuda: { es: "Riesgo país (EMBI de JPMorgan) y bonos de la República y de PDVSA (precio en % del valor nominal).", en: "Country risk (JPMorgan EMBI) and Republic and PDVSA bonds (price as % of par)." },
   commodities: { es: "Precios internacionales de materias primas relevantes para Venezuela (Banco Mundial, desde 1960).", en: "International prices of commodities relevant to Venezuela (World Bank, since 1960)." },
 };
@@ -49,15 +48,17 @@ const NOTES: Record<string, { es: string; en: string }> = {
   recaudacion_seniat_usd: { es: "Solo los meses en que el SENIAT o la prensa informaron la cifra directamente en dólares; para el resto, use el botón US$ en la tarjeta en bolívares.", en: "Only months where SENIAT or the press reported the figure directly in dollars." },
   embi_venezuela: { es: "Diferencial en puntos básicos entre el rendimiento de los bonos venezolanos y el de los bonos del Tesoro de EE.UU. (EMBI de JPMorgan): cuanto más alto, más caro le resulta al país endeudarse. 100 pbs = 1 punto porcentual.", en: "Spread in basis points of Venezuelan bonds over US Treasuries (JPMorgan EMBI): higher means costlier borrowing. 100 bps = 1 percentage point." },
   inflacion_mensual: { es: "Cuando el BCV o la Presidencia anuncian la inflación del mes antes de que salga la cifra habitual, se muestra ese anuncio (octubre 2026: 6,2%, anunciado el 3 de noviembre) y se reemplaza solo al publicarse la cifra oficial.", en: "When the BCV or the Presidency announces the month's inflation before the usual release, that announcement is shown (October 2026: 6.2%, announced on November 3) and replaced automatically once the official figure is published." },
+  pib_petrolero_anual_var: { es: "Variación del año completo: se actualiza una vez al año, cuando el BCV publica el cierre del año (último: 2025). Para el año en curso, vea las cifras trimestrales.", en: "Full-year change: updated once a year, when the BCV publishes the year-end figure (latest: 2025). For the current year, see the quarterly figures." },
+  pib_no_petrolero_anual_var: { es: "Variación del año completo: se actualiza una vez al año, cuando el BCV publica el cierre del año (último: 2025). Para el año en curso, vea las cifras trimestrales.", en: "Full-year change: updated once a year, when the BCV publishes the year-end figure (latest: 2025). For the current year, see the quarterly figures." },
   pib_real_var: { es: "El BCV publica el PIB solo por trimestre: no existe una cifra oficial mensual. El III trimestre de 2026 (6,6%) es el anuncio preliminar de la Presidencia del 3 de noviembre; se reemplaza solo cuando el BCV publique su archivo.", en: "The BCV publishes GDP only quarterly: there is no official monthly figure. Q3 2026 (6.6%) is the preliminary figure announced by the Presidency on November 3; it is replaced automatically once the BCV publishes its file." },
 };
-const VISIBLE = 4; // tarjetas visibles antes del desplegable «Ver más»
-const HIDDEN = new Set(["taladros_venezuela", "petroleo_prod_opep_fs", "petroleo_prod_opep_cd", "petroleo_prod_eia", "intervencion_bcv", "inflacion_acumulada", "ipc_eeuu"]);
+const VISIBLE_DEF = 4; // tarjetas visibles antes del desplegable «Ver más»
+const HIDDEN = new Set(["pib_anual_var", "taladros_venezuela", "petroleo_prod_opep_fs", "petroleo_prod_opep_cd", "petroleo_prod_eia", "intervencion_bcv", "inflacion_acumulada", "ipc_eeuu"]);
 /** Rango por tarjeta cuando el estándar (1M…Máx) no aplica. */
 const RANGES: Record<string, Range[]> = {
   inflacion_mensual: ["YTD", "1A", "MAX"], inflacion_interanual: ["1A"], merey: [], intervencion_bcv_mensual: ["1A", "MAX"],
 };
-const INITIAL: Record<string, Range> = { inflacion_interanual: "1A", merey: "MAX", intervencion_bcv_mensual: "1A" };
+const INITIAL: Record<string, Range> = { inflacion_interanual: "1A", merey: "MAX", intervencion_bcv_mensual: "1A", recaudacion_seniat: "YTD", recaudacion_seniat_usd: "YTD" };
 const HILO = new Set(["brent", "wti", "henry_hub", "oro", "plata", "cobre", "aluminio", "mineral_hierro", "cafe", "cacao", "azucar", "maiz_cbot", "trigo_kc", "soya_cbot", "embi_venezuela"]);
 
 /** Años sin dato y años parciales en las series espejo de Comtrade. */
@@ -86,20 +87,22 @@ export default async function CategoryPage({ params }: { params: { lang: Lang; c
   const hist = await history([...series.map((s) => s.code), ...(cat === "precios" ? [] : [])], 45);
   const [bnd, ranking, sample, system, fxb] = await Promise.all([cat === "deuda" ? bonds() : null, cat === "banca" ? bankRanking() : [], cat === "banca" ? bankSample() : [],
     cat === "banca" ? bankSystem() : [], cat === "banca" ? history(["usd_bcv"], 5) : Promise.resolve({} as Record<string, [string, number][]>)]);
-  // Petróleo y materias primas: materias primas y agro van como desplegables debajo del petróleo
-  const comm = cat === "petroleo" ? await latest("commodities") : [];
-  const commHist = comm.length ? await history(comm.map((s) => s.code), 45) : {};
   const by = Object.fromEntries(series.map((s) => [s.code, s]));
-  const featured = cat === "cambiario" ? ["usd_bcv", "usd_paralelo", "brecha_cambiaria"] : [];
+  const featured = cat === "cambiario" ? ["usd_bcv", "usd_paralelo", "eur_bcv", "brecha_cambiaria"] : [];
   // destacados de cada página (gráfico grande arriba de la cuadrícula)
-  const lead = cat === "monetario" ? "multiplicador" : null;
+  const lead = cat === "monetario" ? "multiplicador" : cat === "externo" ? "reservas_internacionales" : null;
   const rest = series.filter((s) => (!featured.includes(s.code) || s.code === "brecha_cambiaria") && !(cat === "cambiario" && ["usd_paralelo", "eur_bcv"].includes(s.code))
     && s.code !== lead
     && !HIDDEN.has(s.code) && s.code !== "embi_venezuela"
     // series automáticas que todavía no tienen ningún dato no se muestran (sí en Metodología)
     && ((hist[s.code] ?? []).length > 0 || s.method !== "auto"));
   if (cat === "cambiario") rest.sort((x, y) => (x.code === "brecha_cambiaria" ? -1 : y.code === "brecha_cambiaria" ? 1 : 0));
-  const note = (code: string) => code.endsWith("_espejo") ? mirrorNote(hist[code] ?? [], lang === "es") : NOTES[code]?.[lang];
+  // sector externo: primero lo más reciente; la balanza de pagos del BCV (con meses de rezago) queda en «Ver más»
+  if (cat === "externo") rest.sort((x, y) => (y.last_date ?? "").localeCompare(x.last_date ?? ""));
+  if (cat === "precios") rest.sort((x, y) => (x.code === "inflacion_mensual" ? -1 : y.code === "inflacion_mensual" ? 1 : 0));
+  const BOP = new Set(["cuenta_corriente", "exportaciones_bienes", "exportaciones_petroleras", "exportaciones_no_petroleras", "importaciones_bienes", "transferencias_corrientes", "inversion_directa_pais"]);
+  const note = (code: string) => code.endsWith("_espejo") ? mirrorNote(hist[code] ?? [], lang === "es") : NOTES[code]?.[lang]
+    ?? (BOP.has(code) ? (lang === "es" ? "Balanza de pagos del BCV, en millones de US$ por trimestre. El BCV la publica con unos 6 meses de rezago: el último trimestre disponible es el que se muestra." : "BCV balance of payments, US$ million per quarter. The BCV publishes it with about a 6-month lag: the latest available quarter is shown.") : undefined);
   const infl2026 = cat === "precios" ? cumulative(hist.inflacion_mensual ?? [], "2026-01") : [];
   // inflación de EE.UU. interanual (para comparar con la inflación en dólares)
   const cpi = hist.ipc_eeuu ?? [];
@@ -107,6 +110,9 @@ export default async function CategoryPage({ params }: { params: { lang: Lang; c
   // producción: EIA hasta dic-2024 y fuente primaria (comunicación directa a la OPEP) desde ene-2025
   const prod = [...(hist.petroleo_prod_eia ?? []).filter((p) => p[0] < "2025-01-01"), ...(hist.petroleo_prod_opep_cd ?? []).filter((p) => p[0] >= "2025-01-01")];
   const es = lang === "es";
+  const VISIBLE = cat === "commodities" ? 6 : VISIBLE_DEF;
+  const gcls = cat === "commodities" ? "g3" : "g2";
+  const ch = cat === "commodities" ? 170 : undefined;
 
   return (
     <>
@@ -122,7 +128,7 @@ export default async function CategoryPage({ params }: { params: { lang: Lang; c
 
       {cat === "cambiario" && (
         <>
-          <div className="grid g3">{featured.map((c) => <Kpi key={c} s={by[c]} points={hist[c] ?? []} lang={lang} />)}</div>
+          <div className="grid g4">{featured.filter((c) => by[c]).map((c) => <Kpi key={c} s={by[c]} points={hist[c] ?? []} lang={lang} />)}</div>
           <div className="section">
           <ChartCard lang={lang} title={es ? "Dólar oficial, mercado alternativo y euro oficial" : "Official dollar, alternative market and official euro"} date="Bs" decimals={2} height={340}
             allowLog labels={chartLabels(lang)} rangeLabels={d.range} initial="1A" gap={{ a: 0, b: 1, label: es ? "Brecha" : "Gap" }}
@@ -178,23 +184,24 @@ export default async function CategoryPage({ params }: { params: { lang: Lang; c
 
       {lead && by[lead] && (
         <div style={{ marginBottom: 20 }}>
-          <SeriesCard s={by[lead]} points={hist[lead] ?? []} lang={lang} height={320} note={note(lead) ?? (es
+          <SeriesCard s={by[lead]} points={hist[lead] ?? []} lang={lang} height={320} initial={lead === "reservas_internacionales" ? "1A" : undefined} allowLog={lead === "reservas_internacionales"}
+            note={note(lead) ?? (lead === "reservas_internacionales" ? (es ? "Reservas internacionales del BCV en millones de US$, dato diario. Es el colchón en divisas del país: respalda la intervención cambiaria y la capacidad de pago externo." : "BCV international reserves, US$ million, daily. The country's FX cushion: it backs FX intervention and external payment capacity.") : es
             ? "Cuántos bolívares de liquidez (M2) genera cada bolívar de base monetaria. Si sube, los bancos están prestando más por cada bolívar que emite el BCV; si baja, el encaje o la cautela bancaria frenan la creación de dinero."
             : "How many bolivars of money supply (M2) each bolivar of monetary base generates. Rising means banks lend more per bolivar issued by the BCV; falling means reserve requirements or bank caution are curbing money creation.")} />
         </div>
       )}
 
       {/* para no tener que bajar tanto: se ven 4 tarjetas y el resto queda en un desplegable */}
-      <div className={`grid g2 ${cat === "cambiario" ? "section" : ""}`}>
-        {rest.slice(0, VISIBLE).map((s) => <SeriesCard key={s.code} s={s} points={hist[s.code] ?? []} lang={lang} bars={BARS.has(s.code)}
+      <div className={`grid ${gcls} ${cat === "cambiario" ? "section" : ""}`}>
+        {rest.slice(0, VISIBLE).map((s) => <SeriesCard key={s.code} s={s} points={hist[s.code] ?? []} lang={lang} bars={BARS.has(s.code)} height={ch}
           allowLog={LOG.has(s.code)} note={note(s.code)} ranges={RANGES[s.code]} initial={INITIAL[s.code]} hiLo={HILO.has(s.code)} />)}
       </div>
       {rest.length > VISIBLE && (
         <details className="card fold" style={{ marginTop: 20 }}>
           <summary><h3 style={{ display: "inline" }}>{es ? `Ver ${rest.length - VISIBLE} indicadores más` : `Show ${rest.length - VISIBLE} more indicators`}</h3>
             <span className="muted"> · {rest.slice(VISIBLE).map((x) => (es ? x.name_es : x.name_en)).slice(0, 4).join(", ")}{rest.length - VISIBLE > 4 ? "…" : ""}</span></summary>
-          <div className="grid g2">
-            {rest.slice(VISIBLE).map((s) => <SeriesCard key={s.code} s={s} points={hist[s.code] ?? []} lang={lang} bars={BARS.has(s.code)}
+          <div className={`grid ${gcls}`}>
+            {rest.slice(VISIBLE).map((s) => <SeriesCard key={s.code} s={s} points={hist[s.code] ?? []} lang={lang} bars={BARS.has(s.code)} height={ch}
               allowLog={LOG.has(s.code)} note={note(s.code)} ranges={RANGES[s.code]} initial={INITIAL[s.code]} hiLo={HILO.has(s.code)} />)}
           </div>
         </details>
@@ -226,21 +233,6 @@ export default async function CategoryPage({ params }: { params: { lang: Lang; c
             ))}
           </div>
         </section>
-      )}
-      {cat === "petroleo" && (
-        <>
-          <details className="card fold" style={{ marginTop: 24 }}>
-            <summary><h3 style={{ display: "inline" }}>{es ? "Materias primas" : "Commodities"}</h3> <span className="muted">· {es ? "oro, hierro, aluminio, granos, café, cacao, fertilizantes" : "gold, iron ore, aluminum, grains, coffee, cocoa, fertilizers"}</span></summary>
-            <div className="grid g2">
-              {comm.filter((s) => (commHist[s.code] ?? []).length > 0).map((s) => <SeriesCard key={s.code} s={s} points={commHist[s.code] ?? []} lang={lang}
-                allowLog={LOG.has(s.code)} note={note(s.code)} hiLo={HILO.has(s.code)} bars={BARS.has(s.code)} />)}
-            </div>
-          </details>
-          <details className="card fold" style={{ marginTop: 16 }}>
-            <summary><h3 style={{ display: "inline" }}>Agro</h3> <span className="muted">· {es ? "producción, importaciones y consumo por campaña (USDA)" : "production, imports and consumption by season (USDA)"}</span></summary>
-            <AgroBody lang={lang} embed />
-          </details>
-        </>
       )}
     </>
   );

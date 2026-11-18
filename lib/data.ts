@@ -178,9 +178,21 @@ export async function sp500Map(): Promise<{ updated: string; rows: import("@/com
   } catch { return null; }
 }
 
-export type FedMeeting = { date: string; rate: number; delta_bp: number; hike: number; cut: number };
+export type Earning = { date: string; symbol: string; name: string; time: "pre" | "post" | ""; eps: string | null; quarter: string | null };
+/** Fechas de resultados de las mayores empresas del S&P 500 (robot eeuu → reportes/mercado/earnings.json). */
+export async function earningsCal(): Promise<Earning[]> {
+  if (!url) return [];
+  try {
+    const r = await fetch(`${url.replace(/\/$/, "")}/storage/v1/object/public/reportes/mercado/earnings.json`, { next: { revalidate: 3600, tags: ["datos"] } });
+    return r.ok ? ((await r.json()).items ?? []) : [];
+  } catch { return []; }
+}
+
+export type FedRange = { lo: number; hi: number; p: number };
+export type FedMeeting = { date: string; rate: number; delta_bp: number; hike: number; cut: number; hold?: number; big?: number;
+  moves?: Record<string, number>; ranges?: FedRange[]; top?: FedRange };
 /** Probabilidades de la Fed por reunión (robot eeuu → reportes/mercado/fed.json). */
-export async function fedMarket(): Promise<{ updated: string; start: number; meetings: FedMeeting[] } | null> {
+export async function fedMarket(): Promise<{ updated: string; start: number; meetings: FedMeeting[]; current?: { lo: number; hi: number } | null; last_meeting?: string } | null> {
   if (!url) return null;
   try {
     const r = await fetch(`${url.replace(/\/$/, "")}/storage/v1/object/public/reportes/mercado/fed.json`, { next: { revalidate: 600, tags: ["datos"] } });

@@ -70,8 +70,7 @@ export default async function BVC({ params }: { params: { lang: Lang } }) {
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
           {dailyUrl && <a className="btn primary" href={dailyUrl} target="_blank" rel="noreferrer">⬇ {es ? "Informe de cierre (PDF)" : "Closing report (PDF)"}</a>}
           {pdfUrl && <a className="btn primary" href={pdfUrl} target="_blank" rel="noreferrer">⬇ {es ? "Informe mkt cap (PDF)" : "Market cap report (PDF)"}</a>}
-          <a className="btn" href={`/api/export?bvc=RV&format=xlsx&lang=${lang}`}>⬇ Excel</a>
-          <a className="btn" href={`/api/export?bvc=RV&format=csv&lang=${lang}`}>CSV</a>
+          <a className="btn" href="#descargas">📥 {es ? "Descargas: informes PDF y Excel" : "Downloads: PDF reports and Excel"}</a>
         </div>
       </div>
       {/* 1) IBC a todo el ancho */}
@@ -131,7 +130,12 @@ export default async function BVC({ params }: { params: { lang: Lang } }) {
 
       <div className="card">
         <CardScope initial="1M">
-          <div className="card-top"><h3>{d.equities}</h3><span className="date">{es ? "clic en una fila para ver la acción" : "click a row to open the stock"}</span></div>
+          <div className="card-top" style={{ flexWrap: "wrap" }}><h3>{d.equities}</h3>
+            <span style={{ display: "inline-flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+              <span className="date">{es ? "clic en una fila para ver la acción" : "click a row to open the stock"}</span>
+              <a className="btn" href={`/api/export?bvc=RV&format=xlsx&lang=${lang}`} title={es ? "Descarga esta tabla (última sesión) en Excel" : "Download this table (last session) to Excel"}>⬇ Excel</a>
+              <a className="btn" href={`/api/export?bvc=RV&format=csv&lang=${lang}`}>CSV</a>
+            </span></div>
           <CardControls lang={lang} money ranges={null} rangeLabels={d.range} />
           {rv.length ? <QuoteTable rows={rv} lang={lang} showCap labels={labels} />
             : <div className="empty">{d.noData}</div>}
@@ -148,8 +152,8 @@ export default async function BVC({ params }: { params: { lang: Lang } }) {
         </CardScope>
       </details>
 
-      <section className="section">
-        <SectionHead label={es ? "Informes para descargar" : "Reports to download"} />
+      <section className="section" id="descargas">
+        <SectionHead label={es ? "Descargas: informes PDF y datos en Excel" : "Downloads: PDF reports and Excel data"} />
         <Downloads lang={lang} />
       </section>
 

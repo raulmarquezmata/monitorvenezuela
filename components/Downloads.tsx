@@ -28,6 +28,9 @@ export default async function Downloads({ lang, compact = false }: { lang: Lang;
   return (
     <div className="card">
       <div className="card-top"><h3>{es ? "Informes para descargar" : "Reports to download"}</h3><span className="date">PDF</span></div>
+      <p className="muted" style={{ fontSize: 14, margin: "6px 0 0" }}>{es
+        ? "Informes listos para leer, imprimir o reenviar a clientes: se generan solos con los datos del día. Para trabajar los números (filtrar, graficar, cruzar), use los archivos Excel de abajo."
+        : "Ready-to-read reports to print or forward to clients, generated automatically from the day's data. To work with the numbers (filter, chart, combine), use the Excel files below."}</p>
       <div className={compact ? "dl-list compact" : "dl-list"}>
         {docs.map((x) => (
           <div key={x.t} className="dl-item">
@@ -41,9 +44,20 @@ export default async function Downloads({ lang, compact = false }: { lang: Lang;
           <StockReportPicker items={companies} lang={lang} />
         </div>
       </div>
+      <div className="card-top" style={{ marginTop: 22 }}><h3>{es ? "Datos en Excel" : "Excel data"}</h3><span className="date">XLSX · CSV</span></div>
+      <div className={compact ? "dl-list compact" : "dl-list"}>
+        {[
+          { t: es ? "Acciones: última sesión" : "Equities: last session", d: es ? "Precio, variación, volumen, monto y capitalización de cada acción. Para armar su propia tabla o filtrar." : "Price, change, volume, amount and market cap for every stock. Build your own table or filter.", h: `/api/export?bvc=RV&format=xlsx&lang=${lang}` },
+          { t: es ? "Capitalización por empresa" : "Market cap by company", d: es ? "Ranking de empresas (clases A y B sumadas) en Bs y en US$ oficial y alternativo, con su peso." : "Company ranking (A and B classes combined) in Bs and official and alternative US$, with weights.", h: `/api/export?bvc=mktcap&format=xlsx&lang=${lang}` },
+          { t: es ? "Renta fija: última sesión" : "Fixed income: last session", d: es ? "Papeles comerciales, obligaciones y títulos de participación negociados." : "Commercial paper, bonds and participation notes traded.", h: `/api/export?bvc=RF&format=xlsx&lang=${lang}` },
+          { t: es ? "Índices y montos (histórico)" : "Indices and turnover (history)", d: es ? "IBC, índices sectoriales y monto negociado diario desde 2020." : "IBC, sector indices and daily turnover since 2020.", h: `/api/export?category=mercados&format=xlsx&lang=${lang}` },
+        ].map((x) => (
+          <div key={x.t} className="dl-item"><div><b>{x.t}</b><p className="muted">{x.d}</p></div><a className="btn" href={x.h}>⬇ Excel</a></div>
+        ))}
+      </div>
       <p className="muted" style={{ fontSize: 13, margin: "14px 0 0" }}>📊 {es
-        ? "Además, todas las series y tablas del Radar se pueden descargar en Excel con el botón «⬇ Excel» de cada gráfico o tabla."
-        : "Every series and table in the Radar can also be downloaded to Excel with the «⬇ Excel» button on each chart or table."}</p>
+        ? "El histórico de precios de una acción está en su ficha (clic en la fila de la tabla → «⬇ Excel»). Además, cada gráfico del Radar tiene su propio botón «⬇ Excel» abajo a la derecha."
+        : "A stock's price history is on its page (click its row → «⬇ Excel»). Every chart in the Radar also has its own «⬇ Excel» button at the bottom right."}</p>
     </div>
   );
 }
