@@ -32,7 +32,7 @@ export default async function Downloads({ lang, compact = false }: { lang: Lang;
         {docs.map((x) => (
           <div key={x.t} className="dl-item">
             <div><b>{x.t}</b><p className="muted">{x.d}</p></div>
-            {x.url ? <span style={{ display: "inline-flex", gap: 8, alignItems: "center" }}><a className="btn primary" href={x.url} target="_blank" rel="noreferrer">⬇ PDF</a><ShareWA text={`${x.t} · Radar Grupo Solfin`} url={x.url} label="" /></span>
+            {x.url ? <span style={{ display: "inline-flex", gap: 8, alignItems: "center" }}><a className="btn primary" href={x.url} target="_blank" rel="noreferrer">⬇ PDF</a><ShareWA text={`${x.t} · Radar Solfin`} url={x.url} label="" /></span>
               : <span className="muted" style={{ fontSize: 13 }}>{x.t === (es ? "Radar semanal" : "Weekly Radar") ? (es ? "Sale el viernes, tras el cierre" : "Out Friday, after the close") : (es ? "Disponible tras el cierre" : "Available after the close")}</span>}
           </div>
         ))}
