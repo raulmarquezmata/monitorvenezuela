@@ -8,6 +8,8 @@ import { defaultPeriods } from "@/lib/stats";
 import { CardControls, CardScope } from "./CardScope";
 import { isBsUnit } from "@/lib/money";
 import SeriesBody from "./SeriesBody";
+import { insight } from "@/lib/insight";
+import { dl } from "@/lib/dl";
 import type { Period } from "@/lib/stats";
 import type { Range } from "./Range";
 
@@ -41,9 +43,9 @@ export function SectionHead({ label, href, more }: { label: string; href?: strin
 }
 
 /** Tarjeta de serie: nombre, último valor, gráfico (rango global), fuente y descarga. */
-export function SeriesCard({ s, points, lang, allowLog = false, bars = false, area = false, height = 220, ranges, initial, stats = true, logDefault = false, note, hiLo = false, clip = false, extra }: {
+export function SeriesCard({ s, points, lang, allowLog = false, bars = false, area = false, height = 220, ranges, initial, stats = true, logDefault = false, note, hiLo = false, clip = false, extra, reading = true }: {
   s: Latest; points: Point[]; lang: Lang; allowLog?: boolean; bars?: boolean; area?: boolean; height?: number;
-  ranges?: Range[]; initial?: Range; stats?: boolean; logDefault?: boolean; note?: string; hiLo?: boolean; clip?: boolean; extra?: React.ReactNode;
+  ranges?: Range[]; initial?: Range; stats?: boolean; logDefault?: boolean; note?: string; hiLo?: boolean; clip?: boolean; extra?: React.ReactNode; reading?: boolean;
 }) {
   const d = t(lang);
   const unit = lang === "es" ? s.unit_es : s.unit_en;
@@ -52,6 +54,7 @@ export function SeriesCard({ s, points, lang, allowLog = false, bars = false, ar
       <CardScope initial={initial ?? initialRange(s.frequency)}>
       <div className="card-top"><h3>{lang === "es" ? s.name_es : s.name_en}</h3>
         <span className="date">{s.last_date ? fmtDateFor(s.last_date, s.frequency, lang) : ""}</span></div>
+      {reading && (() => { const txt = insight(points, s.frequency, s.unit_es === "%", lang); return txt ? <p className="insight">{txt}</p> : null; })()}
       <CardControls lang={lang} money={isBsUnit(s.unit_es)} ranges={ranges} rangeLabels={d.range} />
       <SeriesBody name={lang === "es" ? s.name_es : s.name_en} points={points} unitEs={s.unit_es} unit={unit ?? ""} decimals={s.decimals}
         lang={lang} height={height} allowLog={allowLog} bars={bars} area={area} logDefault={logDefault} hiLo={hiLo} clip={clip}
@@ -66,7 +69,7 @@ export function SeriesCard({ s, points, lang, allowLog = false, bars = false, ar
         {s.method !== "auto" && <span className={`method ${s.method}`}>{d.method[s.method]}</span>}
         {points.length > 0 && <span style={{ display: "inline-flex", gap: 10, alignItems: "center" }}>
           <ShareWA text={`${lang === "es" ? s.name_es : s.name_en}${s.last_value != null ? `: ${num(s.last_value, lang, s.decimals)} ${(lang === "es" ? s.unit_es : s.unit_en) ?? ""}` : ""} · Radar Solfin`} hash={s.code} />
-          <a className="dl" href={`/api/export?codes=${s.code}&format=xlsx&lang=${lang}`}>⬇ Excel</a></span>}
+          <a className="dl" href={dl(`/api/export?codes=${s.code}&format=xlsx&lang=${lang}`, `serie:${s.code}`)}>⬇ Excel</a></span>}
       </div>
     </div>
   );
