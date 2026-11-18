@@ -5,6 +5,7 @@ import { chartLabels, NotConfigured } from "@/components/ui";
 import empresas from "@/config/bvc_empresas.json";
 import { bvcEvents, bvcSymbol, companyClasses, configured, history, stockReportUrl, symbolNews } from "@/lib/data";
 import { compact, date, dateTime, num } from "@/lib/format";
+import { dl } from "@/lib/dl";
 import { t, type Lang } from "@/lib/i18n";
 import { adjustPrices, splitEvents, splitLabel } from "@/lib/splits";
 import { change, PERIOD_LABEL, type Period, type Point } from "@/lib/stats";
@@ -98,10 +99,10 @@ export default async function SymbolPage({ params }: { params: { lang: Lang; sym
         </div>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
           {pdfEs && <>
-            <a className="btn on" href={es ? pdfEs : pdfEn!} target="_blank" rel="noreferrer">⬇ {es ? "Informe PDF al día" : "Up-to-date PDF report"}</a>
+            <a className="btn on" href={dl((es ? pdfEs : pdfEn)!, `pdf:empresa ${symbol}`)} target="_blank" rel="noreferrer">⬇ {es ? "Informe PDF al día" : "Up-to-date PDF report"}</a>
             <a className="btn" href={es ? pdfEn! : pdfEs} target="_blank" rel="noreferrer">{es ? "English" : "Español"}</a>
           </>}
-          <a className="btn" href={`/api/export?symbol=${encodeURIComponent(symbol)}&format=xlsx&lang=${lang}`} title={es ? "Todos los precios diarios en Bs y en US$" : "All daily prices in Bs and US$"}>⬇ {es ? "Histórico en Excel" : "History (Excel)"}</a>
+          <a className="btn" href={dl(`/api/export?symbol=${encodeURIComponent(symbol)}&format=xlsx&lang=${lang}`, `historico:${symbol}`)} title={es ? "Todos los precios diarios en Bs y en US$" : "All daily prices in Bs and US$"}>⬇ {es ? "Histórico en Excel" : "History (Excel)"}</a>
         </div>
       </div>
       {desc && <p className="stock-desc">{desc}</p>}
