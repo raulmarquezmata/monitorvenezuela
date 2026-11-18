@@ -435,3 +435,40 @@ ul.agenda .d { min-width: 92px; color: var(--text-3); text-transform: capitalize
 .map-panel .mp-row { font-size: 13px; border-bottom: 1px solid #262a32; }
 .map-panel .mp-price { text-align: right; }
 .map-panel .mp-up { text-align: right; color: #30cc5a; font-weight: 600; } .map-panel .mp-dn { text-align: right; color: #f63538; font-weight: 600; }
+
+/* ---------------- Grillas sin huecos: la última fila se reparte el ancho completo */
+.span-all { grid-column: 1 / -1 !important; }
+.g2 > :last-child:nth-child(odd) { grid-column: 1 / -1; }
+.g3 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.g3 > * { grid-column: span 2; }
+.g3 > :last-child:nth-child(3n+1) { grid-column: span 6; }
+.g3 > :nth-last-child(2):nth-child(3n+1), .g3 > :last-child:nth-child(3n+2) { grid-column: span 3; }
+.g4 { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+.g4 > * { grid-column: span 3; }
+.g4 > :last-child:nth-child(4n+1) { grid-column: span 12; }
+.g4 > :nth-last-child(2):nth-child(4n+1), .g4 > :last-child:nth-child(4n+2) { grid-column: span 6; }
+.g4 > :nth-last-child(3):nth-child(4n+1), .g4 > :nth-last-child(2):nth-child(4n+2), .g4 > :last-child:nth-child(4n+3) { grid-column: span 4; }
+@media (max-width: 1100px) {
+  .g4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .g4 > :nth-child(n):nth-child(n) { grid-column: auto; }
+  .g4 > :last-child:nth-child(odd):nth-child(n) { grid-column: 1 / -1; }
+}
+@media (max-width: 980px) {
+  .g3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .g3 > :nth-child(n):nth-child(n) { grid-column: auto; }
+  .g3 > :last-child:nth-child(odd):nth-child(n) { grid-column: 1 / -1; }
+  .g2 > :last-child:nth-child(odd) { grid-column: auto; }
+}
+@media (max-width: 620px) { .g3 { grid-template-columns: 1fr; } .g3 > :nth-child(n):nth-child(n):nth-child(n) { grid-column: auto; } }
+@media (max-width: 560px) { .g4 { grid-template-columns: 1fr; } .g4 > :nth-child(n):nth-child(n):nth-child(n) { grid-column: auto; } }
+
+/* ---------------- Guía de Macro */
+.macro-guide { margin: 4px 0 14px; font-size: 14px; }
+.macro-guide > summary { cursor: pointer; color: var(--text-2); font-weight: 500; list-style: none; }
+.macro-guide > summary::before { content: "ⓘ "; }
+.macro-guide[open] > summary { margin-bottom: 10px; }
+.macro-guide-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; background: var(--surface); border-radius: var(--radius); padding: 18px 20px; }
+.macro-guide-grid ul { list-style: none; padding: 0; margin: 6px 0 0; }
+.macro-guide-grid li { margin: 0 0 6px; line-height: 1.35; }
+@media (max-width: 980px) { .macro-guide-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .macro-guide-grid { grid-template-columns: 1fr; } }
