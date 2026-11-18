@@ -113,6 +113,14 @@ def refresh_site() -> None:
     site = os.environ.get("SITE_URL", "").rstrip("/")
     if DRY_RUN or not site:
         return
+    # cada aviso hace que Vercel reescriba las páginas en su caché (el plan gratuito permite 200.000 escrituras al mes):
+    # en horario de mercado (8 a. m.–5 p. m. VET, lunes a viernes) se avisa en cada corrida; fuera de él, una vez por hora
+    import datetime as dt
+    now = dt.datetime.now(dt.timezone.utc)
+    market = now.weekday() < 5 and 12 <= now.hour < 21
+    if not market and now.minute >= 20:
+        log.info("Fuera de horario de mercado: la web se avisa una vez por hora")
+        return
     try:
         from .common import http
         r = http.post(f"{site}/api/refresh", timeout=20)
