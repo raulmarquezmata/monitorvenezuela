@@ -173,7 +173,19 @@ def gather_extra(rules: list[dict], daily: bool = False) -> dict:
     tipos = {r["tipo"] for r in rules}
     ex: dict = {"hist": {}}
     need = {c for r in rules if r["tipo"] in ("cierre_semana", "cierre_mes") for c in r.get("series", [])} if daily else set()
-    if any(r["tipo"] == "resumen_mercado" for r in rules):
+    # el resumen del cierre necesita 400 días de 10 series: se cargan solo dentro de su ventana y si no salió hoy
+    for r_ in rules:
+        if r_["tipo"] != "resumen_mercado":
+            continue
+        now_ = dt.datetime.now(VET)
+        hh, mm = map(int, r_["hora"].split(":"))
+        m_ = now_.hour * 60 + now_.minute
+        if r_.get("dias_habiles") and now_.weekday() >= 5:
+            continue
+        if not (hh * 60 + mm - r_.get("adelanto", 0) <= m_ < hh * 60 + mm + r_.get("ventana", 360)):
+            continue
+        if select("alerts_log", {"select": "key", "key": f"eq.{r_['id']}:{now_.date().isoformat()}"}):
+            continue
         need |= set(MERCADO)
     if need:
         since = (today_caracas() - dt.timedelta(days=400)).isoformat()
@@ -521,7 +533,7 @@ def send_email(text: str) -> bool:
     if not (user and pw and to):
         return False
     msg = MIMEText(plain(text), "plain", "utf-8")
-    msg["Subject"] = "Radar Grupo Solfin · " + plain(text).splitlines()[0][:80]
+    msg["Subject"] = "Radar Solfin · " + plain(text).splitlines()[0][:80]
     msg["From"], msg["To"] = user, to
     with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=30) as s:
         s.login(user, pw)
