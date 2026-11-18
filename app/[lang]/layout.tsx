@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { SolfinLogo } from "@/components/Logo";
+import { SolfinIso } from "@/components/Logo";
 import { BRAND } from "@/lib/brand";
 import { notFound } from "next/navigation";
 import { LangSwitch, MainNav, ThemeSwitch } from "@/components/Nav";
@@ -56,7 +56,7 @@ export default async function LangLayout({ children, params }: { children: React
         <div className="wrap">
           <Link prefetch={false} href={L} className="brand">
             {BRAND === "solfin" ? (
-              <><SolfinLogo height={30} /><span className="brand-sep" aria-hidden /><span className="brand-app">Radar</span></>
+              <><SolfinIso size={30} /><span className="brand-app">Radar Solfin</span></>
             ) : (<><i aria-hidden />{d.site}</>)}
           </Link>
           <MainNav items={items} />
