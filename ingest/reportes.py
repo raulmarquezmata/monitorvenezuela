@@ -51,7 +51,7 @@ T = {
         may="Mayo 2025", lastd="Último dato ({d})", of_s="oficial", par_s="alternativo",
         ch2="Tipo de cambio (Bs./US$)", ch2_sub="Oficial y mercado alternativo utilizados para la conversión.", l_ofx="Oficial", l_parx="Alternativo",
         cls_common="común", cls_a="Clase A", cls_b="Clase B", about="LA EMPRESA", kicker="RADAR · INFORME DE ACCIÓN",
-        src=("Fuente: Bolsa de Valores de Caracas (cierres diarios SIBE{syms}) y tipo de cambio del Radar Grupo Solfin: tasa oficial BCV "
+        src=("Fuente: Bolsa de Valores de Caracas (cierres diarios SIBE{syms}) y tipo de cambio del Radar Solfin: tasa oficial BCV "
              "y referencia del mercado alternativo (P2P). Días sin dato de tipo de cambio: se usa el último disponible. Valoración: acciones en circulación "
              "(BVC) × último cierre ÷ tipo de cambio del mercado alternativo. Metodología: precio en US$ = precio en Bs. del día ÷ tipo de cambio del día. "
              "Informe generado automáticamente el {now} — no constituye recomendación de inversión."),
@@ -70,7 +70,7 @@ T = {
         may="May 2025", lastd="Latest ({d})", of_s="official", par_s="alternative",
         ch2="Exchange rate (Bs./US$)", ch2_sub="Official and alternative-market rates used for the conversion.", l_ofx="Official", l_parx="Alternative",
         cls_common="common", cls_a="Class A", cls_b="Class B", about="THE COMPANY", kicker="RADAR · STOCK REPORT",
-        src=("Source: Caracas Stock Exchange (daily SIBE closes{syms}) and Radar Grupo Solfin exchange rates: BCV official rate and the "
+        src=("Source: Caracas Stock Exchange (daily SIBE closes{syms}) and Radar Solfin exchange rates: BCV official rate and the "
              "alternative-market (P2P) reference. Days without an exchange-rate print use the latest available. Valuation: shares outstanding (BVC) × "
              "last close ÷ alternative-market rate. Methodology: US$ price = Bs. price of the day ÷ exchange rate of the day. "
              "Report generated automatically on {now} — not investment advice."),
@@ -489,7 +489,7 @@ TM = {
                k1="TOTAL · US$ ALTERNATIVO", k2="TOTAL · US$ OFICIAL BCV", k3="TOTAL · BOLÍVARES", k4="EMPRESAS",
                mm="MM", rate="Bs. {r}/US$", top="Peso de cada empresa en la capitalización total", multi="Clases sumadas", nodata="s/d = sin acciones en circulación publicadas", rank="Ranking completo",
                h=["#", "Símbolo", "Emisor", "Precio<br>Bs.", "Precio<br>US$ alt.", "Acciones en<br>circulación", "Cap. alternativo<br>US$ MM", "Cap. oficial<br>US$ MM", "Peso"],
-               total="Total", src="Fuente: Bolsa de Valores de Caracas (acciones en circulación y último cierre SIBE) y tipo de cambio del Radar Grupo Solfin: "
+               total="Total", src="Fuente: Bolsa de Valores de Caracas (acciones en circulación y último cierre SIBE) y tipo de cambio del Radar Solfin: "
                "mercado alternativo Bs. {par}/US$ y oficial BCV Bs. {of}/US$ al {fd}. Capitalización = acciones en circulación × último cierre ÷ tipo de cambio. "
                "Informe generado automáticamente el {now} — no constituye recomendación de inversión."),
     "en": dict(kicker="RADAR · BVC MARKET CAP", title="Market capitalization of the Caracas Stock Exchange",
@@ -497,7 +497,7 @@ TM = {
                k1="TOTAL · US$ ALTERNATIVE", k2="TOTAL · US$ BCV OFFICIAL", k3="TOTAL · BOLIVARS", k4="COMPANIES",
                mm="MM", rate="Bs. {r}/US$", top="Weight of each company in total market cap", multi="Classes combined", nodata="n/a = shares outstanding not published", rank="Full ranking",
                h=["#", "Symbol", "Issuer", "Price<br>Bs.", "Price<br>US$ alt.", "Shares<br>outstanding", "Cap. alternative<br>US$ MM", "Cap. official<br>US$ MM", "Weight"],
-               total="Total", src="Source: Caracas Stock Exchange (shares outstanding and last SIBE close) and Radar Grupo Solfin exchange rates: "
+               total="Total", src="Source: Caracas Stock Exchange (shares outstanding and last SIBE close) and Radar Solfin exchange rates: "
                "alternative market Bs. {par}/US$ and BCV official Bs. {of}/US$ as of {fd}. Market cap = shares outstanding × last close ÷ exchange rate. "
                "Report generated automatically on {now} — not investment advice."),
 }
@@ -624,7 +624,7 @@ TD = {
                k_ibc="IBC", k_of="US$ OFICIAL BCV", k_par="US$ MERCADO ALTERNATIVO", k_monto="MONTO NEGOCIADO (US$ ALT.)",
                ibc_m="día {d} · semana {w}", h=["Símbolo", "Emisor", "Apertura<br>Bs.", "Cierre<br>Bs.", "Var. día<br>Bs.", "Cierre<br>US$ alt.",
                "Var. día<br>US$ alt.", "Semana<br>US$ alt.", "Monto<br>US$ alt."], rank="Acciones que operaron · de mayor a menor variación del día",
-               src="Fuente: Bolsa de Valores de Caracas (SIBE) y tipo de cambio del Radar Grupo Solfin: oficial BCV Bs. {of}/US$ y mercado alternativo Bs. {par}/US$. "
+               src="Fuente: Bolsa de Valores de Caracas (SIBE) y tipo de cambio del Radar Solfin: oficial BCV Bs. {of}/US$ y mercado alternativo Bs. {par}/US$. "
                "Columnas en US$ alt.: cada precio se convierte con la tasa del mercado alternativo de su fecha. Semana: cierre de hoy frente al último cierre de la semana anterior ({base}). Monto: monto negociado del día ÷ tasa alternativa de hoy. "
                "Informe generado automáticamente el {now} — no constituye recomendación de inversión.", nobase="—"),
     "en": dict(kicker="RADAR · BVC CLOSE", title="Caracas Stock Exchange close · {d}",
@@ -633,7 +633,7 @@ TD = {
                k_ibc="IBC", k_of="US$ BCV OFFICIAL", k_par="US$ ALTERNATIVE MARKET", k_monto="TRADED AMOUNT (ALT. US$)",
                ibc_m="day {d} · week {w}", h=["Symbol", "Issuer", "Open<br>Bs.", "Close<br>Bs.", "Day chg.<br>Bs.", "Close<br>US$ alt.",
                "Day chg.<br>US$ alt.", "Week<br>US$ alt.", "Amount<br>US$ alt."], rank="Stocks traded · sorted by daily change",
-               src="Source: Caracas Stock Exchange (SIBE) and Radar Grupo Solfin exchange rates: BCV official Bs. {of}/US$ and alternative market Bs. {par}/US$. "
+               src="Source: Caracas Stock Exchange (SIBE) and Radar Solfin exchange rates: BCV official Bs. {of}/US$ and alternative market Bs. {par}/US$. "
                "US$ alt. columns: each price is converted at the alternative-market rate of its own date. Week: today's close vs. the last close of the previous week ({base}). Amount: traded amount ÷ today's alternative rate. "
                "Report generated automatically on {now} — not investment advice.", nobase="—"),
 }
@@ -782,6 +782,16 @@ def run_daily(force: bool = False):
         if not force and (now.weekday() > 4 or (now.hour, now.minute) < (13, 30)):
             r.log.info("Antes del cierre o fin de semana: nada que hacer")
             return
+        # primero lo barato: ¿hay sesión de hoy y ya se envió? (antes se cargaban 18 meses de datos en cada corrida de la tarde)
+        if not force:
+            last = select("bvc_latest", {"select": "date", "market": "eq.RV", "order": "date.desc", "limit": 1})
+            ses = last[0]["date"] if last else None
+            if ses != now.date().isoformat():
+                r.log.info("Sin sesión de hoy todavía")
+                return
+            if select("alerts_log", {"select": "key", "key": f"eq.pdf_cierre:{ses}"}):
+                r.log.info("El informe de cierre de hoy ya se envió")
+                return
         fx = {c: [(x["date"], x["value"]) for x in select("observations", {"select": "date,value", "series_code": f"eq.{c}", "date": "gte.2025-06-01", "order": "date"})]
               for c in ("usd_bcv", "usd_paralelo", "ibc")}
         dd = daily_data(fx)
