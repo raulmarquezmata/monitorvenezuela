@@ -93,6 +93,7 @@ def macro(r: Run) -> None:
         if data.get("ipc"):
             r.rows += save_obs("eeuu_ipc_interanual", keep(yoy(data["ipc"])), "BLS")
             r.rows += save_obs("eeuu_ipc_mensual", keep(yoy(data["ipc"], 1)), "BLS")
+            r.rows += save_obs("ipc_eeuu", keep(data["ipc"]), "BLS")  # nivel del índice (inflación en dólares, Precios)
         if data.get("sub"):
             r.rows += save_obs("eeuu_ipc_subyacente", keep(yoy(data["sub"])), "BLS")
         if data.get("nfp"):
@@ -103,7 +104,7 @@ def macro(r: Run) -> None:
     # tasa objetivo de la Fed (techo del rango), de la Fed de Nueva York: una vez al día, o tras cada FOMC
     tl = select("observations", {"select": "date", "series_code": "eq.fed_tasa_objetivo", "order": "date.desc", "limit": 1})
     tl = tl[0]["date"] if tl else None
-    fomc_hoy = now.date().isoformat() in FOMC and now.hour >= 19
+    fomc_hoy = now.date().isoformat() in fomc_dates() and now.hour >= 19
     if not tl or (now.hour == 16 and now.minute < 30) or (fomc_hoy and tl < now.date().isoformat()):
         start = "2016-03-01" if not tl else (now.date() - dt.timedelta(days=10)).isoformat()
         j = fetch(NYFED, params={"startDate": start, "endDate": now.date().isoformat()}, timeout=40, retries=2).json()
@@ -171,7 +172,8 @@ def fedwatch(day: str, meetings: list[str], rates: dict[tuple[int, int], dict[st
 
 def fed_probs(r: Run) -> None:
     today = dt.date.today()
-    future = [m for m in FOMC if m > today.isoformat()]
+    allm = fomc_dates()
+    future = [m for m in allm if m > today.isoformat()]
     if not future:
         r.note("Agregar las fechas del FOMC del año siguiente en ingest/eeuu.py")
         return
@@ -189,7 +191,7 @@ def fed_probs(r: Run) -> None:
     first = dt.date.fromisoformat(future[0])
     before = rates.get(month_add(first.year, first.month, -1)) or {}
     days = sorted(before)
-    last_meeting = max(m for m in FOMC if m <= today.isoformat())
+    last_meeting = max(m for m in allm if m <= today.isoformat())
     hike, cut, exp = [], [], []
     table = []
     for day in days:
@@ -237,7 +239,7 @@ UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.3
 
 
 def kval(x: str) -> float | None:
-    x = (x or "").strip().upper().replace(",", "")
+    x = (x or "").strip().upper().replace(",", "").replace("%", "")
     mult = 1000.0 if x.endswith("M") else 1.0
     x = x.rstrip("KM")
     try:
@@ -246,26 +248,38 @@ def kval(x: str) -> float | None:
         return None
 
 
-def nfp_consensus(r: Run) -> None:
-    """Nómina no agrícola: lo esperado por el mercado (consenso) frente al dato publicado ese día (primera
-    lectura, antes de revisiones). Fuente: calendario de FX Blue (unos 3 años de historia)."""
+# (página de FX Blue, serie esperada, serie publicada, fuente de la publicada)
+CONSENSO = [
+    ("Nonfarm_Payrolls_US", "eeuu_nfp_esperado", "eeuu_nfp_publicado", "BLS, primera publicación (vía FX Blue)"),
+    ("Consumer_Price_Index_YoY_US", "eeuu_ipc_esperado", "eeuu_ipc_publicado", "BLS, dato publicado (vía FX Blue)"),
+]
+
+
+def consensus(r: Run) -> None:
+    """Lo esperado por el mercado (consenso) frente al dato publicado ese día (primera lectura, antes de
+    revisiones), para la nómina no agrícola y la inflación interanual. Fuente: calendario de FX Blue (~3 años)."""
     import re
-    html = fetch(FXBLUE, headers={"User-Agent": UA["User-Agent"]}, timeout=40, retries=2).text
-    rows = re.findall(r'ts="(\d+)"[^>]*>[^<]*</span></div>\s*<div[^>]*title="Forecast"[^>]*>([^<]*)</div>\s*<div[^>]*title="Actual"[^>]*>([^<]*)</div>', html)
-    exp, act = {}, {}
-    for ts, f, a in sorted(rows, key=lambda x: int(x[0])):
-        d = dt.datetime.fromtimestamp(int(ts) / 1000, dt.timezone.utc).date()
-        y, m = month_add(d.year, d.month, -1)  # se publica el mes siguiente al de referencia
-        ref = f"{y}-{m:02d}-01"
-        if kval(f) is not None:
-            exp[ref] = kval(f)
-        if kval(a) is not None:
-            act[ref] = kval(a)
-    if not act:
-        r.note("Consenso de nómina no agrícola: la página no trajo filas")
-        return
-    r.rows += save_obs("eeuu_nfp_esperado", sorted(exp.items()), "FX Blue (consenso)")
-    r.rows += save_obs("eeuu_nfp_publicado", sorted(act.items()), "BLS, primera publicación (vía FX Blue)")
+    for item, c_exp, c_act, src in CONSENSO:
+        try:
+            html = fetch(f"https://api.fxblue.com/calendar/item/{item}", headers={"User-Agent": UA["User-Agent"]}, timeout=40, retries=2).text
+        except Exception as e:  # noqa: BLE001
+            r.note(f"Consenso {item}: {str(e)[:80]}")
+            continue
+        rows = re.findall(r'ts="(\d+)"[^>]*>[^<]*</span></div>\s*<div[^>]*title="Forecast"[^>]*>([^<]*)</div>\s*<div[^>]*title="Actual"[^>]*>([^<]*)</div>', html)
+        exp, act = {}, {}
+        for ts, f, a in sorted(rows, key=lambda x: int(x[0])):
+            d = dt.datetime.fromtimestamp(int(ts) / 1000, dt.timezone.utc).date()
+            y, m = month_add(d.year, d.month, -1)  # se publica el mes siguiente al de referencia
+            ref = f"{y}-{m:02d}-01"
+            if kval(f) is not None:
+                exp[ref] = kval(f)
+            if kval(a) is not None:
+                act[ref] = kval(a)
+        if not act:
+            r.note(f"Consenso {item}: la página no trajo filas")
+            continue
+        r.rows += save_obs(c_exp, sorted(exp.items()), "FX Blue (consenso)")
+        r.rows += save_obs(c_act, sorted(act.items()), src)
 
 
 def earnings_stale(hours: int = 26) -> bool:
@@ -312,6 +326,122 @@ def earnings(r: Run, days: int = 100) -> None:
     r.rows += len(items)
 
 
+MESES_ES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"]
+MONTHS_EN = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+FED_CAL = "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm"
+BLS_ICS = "https://www.bls.gov/schedule/news_release/bls.ics"
+_CAL: list | None = None
+
+
+def _storage_json(path: str):
+    import os
+    return fetch(f"{os.environ.get('SUPABASE_URL', '').rstrip('/')}/storage/v1/object/public/{BUCKET}/{path}", timeout=20, retries=1).json()
+
+
+def cal_items() -> list[dict]:
+    """Calendario automático (Fed y BLS) guardado por calendario(); vacío si aún no existe."""
+    global _CAL
+    if _CAL is None:
+        try:
+            _CAL = _storage_json("mercado/calendario.json").get("items") or []
+        except Exception:  # noqa: BLE001
+            _CAL = []
+    return _CAL
+
+
+def fomc_dates() -> list[str]:
+    return sorted(set(FOMC) | {x["fecha"] for x in cal_items() if x.get("tipo") == "fed"})
+
+
+def dia_eeuu(d: dt.date) -> bool:
+    """¿Hoy publica el BLS el IPC o el empleo? (calendario automático o, si falta, config/agenda.json)."""
+    iso_d = d.isoformat()
+    if any(x["fecha"] == iso_d and x["tipo"] == "eeuu" for x in cal_items()):
+        return True
+    try:
+        from pathlib import Path
+        ag = json.loads((Path(__file__).resolve().parent.parent / "config" / "agenda.json").read_text())
+        return any(e.get("fecha") == iso_d and e.get("tipo") == "eeuu" for e in ag.get("fechas", []))
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def fed_calendar(html: str) -> list[str]:
+    """Fechas de decisión del FOMC (último día de cada reunión) desde la página de calendarios de la Fed."""
+    import re
+    out = []
+    parts = re.split(r"(\d{4}) FOMC Meetings", html)
+    for i in range(1, len(parts) - 1, 2):
+        year, chunk = int(parts[i]), parts[i + 1]
+        for mt in re.finditer(r'fomc-meeting__month[^>]*>\s*<strong>([A-Za-z/]+)</strong>.*?fomc-meeting__date[^>]*>\s*([0-9]{1,2}(?:-[0-9]{1,2})?)([^<]{0,40})', chunk, re.S):
+            mon, days, tail = mt.groups()
+            if re.search(r"notation|unscheduled", tail, re.I):
+                continue  # votos por notación y reuniones extraordinarias no son reuniones de política programadas
+            ms = [m[:3].lower() for m in mon.split("/")]
+            idx = [k for k, m in enumerate(MONTHS_EN) if m[:3].lower() in ms]
+            if not idx:
+                continue
+            last_day = int(days.split("-")[-1])
+            m = idx[-1] + 1
+            try:
+                out.append(dt.date(year, m, last_day).isoformat())
+            except ValueError:
+                continue
+    return sorted(set(out))
+
+
+def bls_calendar(ics: str) -> list[dict]:
+    """IPC y empleo (Employment Situation) desde el calendario .ics del BLS."""
+    import re
+    items = []
+    for ev in ics.split("BEGIN:VEVENT")[1:]:
+        summ = re.search(r"SUMMARY[^:]*:(.+)", ev)
+        start = re.search(r"DTSTART[^:]*:(\d{8})", ev)
+        if not summ or not start:
+            continue
+        t = summ.group(1).strip()
+        mref = re.search(r"for ([A-Z][a-z]+) (\d{4})", t)
+        if not mref or mref.group(1) not in MONTHS_EN:
+            continue
+        f = f"{start.group(1)[:4]}-{start.group(1)[4:6]}-{start.group(1)[6:8]}"
+        mes_es, mes_en = MESES_ES[MONTHS_EN.index(mref.group(1))], mref.group(1)
+        y = mref.group(2)
+        if t.startswith("Consumer Price Index"):
+            items.append({"fecha": f, "tipo": "eeuu", "es": f"EE.UU.: inflación (IPC) de {mes_es} {y}, 8:30 a. m. NY", "en": f"US: CPI for {mes_en} {y}, 8:30 a.m. ET"})
+        elif t.startswith("Employment Situation"):
+            items.append({"fecha": f, "tipo": "eeuu", "es": f"EE.UU.: empleo (nómina no agrícola) de {mes_es} {y}, 8:30 a. m. NY", "en": f"US: nonfarm payrolls for {mes_en} {y}, 8:30 a.m. ET"})
+    return items
+
+
+def calendario(r: Run) -> None:
+    """Calendario de EE.UU. sin carga manual: reuniones del FOMC (Fed) e IPC y empleo (BLS) → mercado/calendario.json."""
+    hdr = {"User-Agent": UA["User-Agent"], "Accept": "text/html,text/calendar,*/*", "Accept-Language": "en-US,en;q=0.9"}
+    items, ok = [], []
+    try:
+        for d in fed_calendar(fetch(FED_CAL, headers=hdr, timeout=40, retries=2).text):
+            items.append({"fecha": d, "tipo": "fed", "es": "Fed: decisión de tasas (FOMC)", "en": "Fed: rate decision (FOMC)"})
+        ok.append("Fed")
+    except Exception as e:  # noqa: BLE001
+        r.note(f"Calendario de la Fed: {str(e)[:80]}")
+    try:
+        items += bls_calendar(fetch(BLS_ICS, headers=hdr, timeout=40, retries=2).text)
+        ok.append("BLS")
+    except Exception as e:  # noqa: BLE001
+        r.note(f"Calendario del BLS: {str(e)[:80]}")
+    if not items:
+        return
+    prev = cal_items()
+    if "Fed" not in ok:  # se conserva lo anterior de la fuente que falló
+        items += [x for x in prev if x["tipo"] == "fed"]
+    if "BLS" not in ok:
+        items += [x for x in prev if x["tipo"] == "eeuu"]
+    items = sorted({(x["fecha"], x["es"]): x for x in items}.values(), key=lambda x: x["fecha"])
+    ensure_bucket(BUCKET)
+    storage_upload(BUCKET, "mercado/calendario.json", json.dumps({"updated": dt.datetime.now(dt.timezone.utc).isoformat(), "fuentes": ok, "items": items},
+                   ensure_ascii=False).encode(), content_type="application/json", max_age=3600)
+    r.rows += len(items)
+
+
 def run(force: bool = False):
     with Run("eeuu") as r:
         now = dt.datetime.now(dt.timezone.utc)
@@ -329,12 +459,14 @@ def run(force: bool = False):
             r.note(f"Probabilidades de la Fed: {str(e)[:120]}")
         # consenso de la nómina (una vez al día y los días de publicación) y resultados del S&P (una vez al día)
         from .common import select
-        sin_nfp = not select("observations", {"select": "date", "series_code": "eq.eeuu_nfp_publicado", "limit": 1})
-        if force or sin_nfp or (now.hour == 16 and now.minute < 30) or (now.weekday() == 4 and 13 <= now.hour < 16):
+        sin_nfp = not select("observations", {"select": "date", "series_code": "eq.eeuu_ipc_publicado", "limit": 1})
+        if force or sin_nfp or (now.hour == 16 and now.minute < 30) or (13 <= now.hour < 16 and dia_eeuu(now.date())):
+            consensus(r)
+        if force or (now.hour == 14 and now.minute < 30) or not cal_items():
             try:
-                nfp_consensus(r)
+                calendario(r)
             except Exception as e:  # noqa: BLE001
-                r.note(f"Consenso NFP: {str(e)[:100]}")
+                r.note(f"Calendario: {str(e)[:100]}")
         if force or (now.hour == 15 and now.minute < 30) or earnings_stale():
             try:
                 earnings(r)
