@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { informes } from "@/lib/data";
+import { dl } from "@/lib/dl";
 import { date } from "@/lib/format";
 import { t, type Lang } from "@/lib/i18n";
 
@@ -79,10 +80,10 @@ export default async function Informes({ params, searchParams }: { params: { lan
             {g.items.map((x) => (
               <article className="card informe" key={x.key}>
                 {x.thumb && (
-                  <a href={x.href} target="_blank" rel="noreferrer" className="portada">
+                  <Link prefetch={false} href={`/${lang}/informes/${x.key}`} className="portada">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={x.thumb} alt="" loading="lazy" />
-                  </a>
+                  </Link>
                 )}
                 <div className="m muted" style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", fontSize: 13 }}>
                   {x.date && <span>{month(x.date).replace(/^./, (c) => c.toUpperCase())}</span>}
@@ -91,12 +92,12 @@ export default async function Informes({ params, searchParams }: { params: { lan
                   {x.pages ? <span>{x.pages} {es ? (x.pages === 1 ? "pág." : "págs.") : x.pages === 1 ? "page" : "pages"}</span> : null}
                 </div>
                 <h3 style={{ margin: "8px 0 6px", lineHeight: 1.3 }}>
-                  <a href={x.href} target="_blank" rel="noreferrer" style={{ textDecoration: "none" }}>{x.title}</a>
+                  <Link prefetch={false} href={`/${lang}/informes/${x.key}`} style={{ textDecoration: "none" }}>{x.title}</Link>
                 </h3>
                 {x.summary && <p className="resumen">{x.summary}</p>}
                 <p style={{ marginBottom: 0, marginTop: "auto", display: "flex", gap: 6, flexWrap: "wrap" }}>
-                  <a href={x.href} className="btn" target="_blank" rel="noreferrer">{es ? "Abrir PDF" : "Open PDF"}</a>
-                  <a href={`${x.href}${x.href.includes("?") ? "&" : "?"}download=`} className="btn">⬇ {es ? "Descargar" : "Download"}</a>
+                  <a href={dl(x.href, `informe:${x.title}`)} className="btn" target="_blank" rel="noreferrer">{es ? "Abrir PDF" : "Open PDF"}</a>
+                  <Link prefetch={false} href={`/${lang}/informes/${x.key}`} className="btn">{es ? "Compartir con clientes" : "Share with clients"}</Link>
                 </p>
               </article>
             ))}

@@ -1,5 +1,5 @@
 import { NotConfigured } from "@/components/ui";
-import { configured, freshness, latest, newsSources, status, type Latest } from "@/lib/data";
+import { configured, downloadStats, freshness, latest, newsSources, status, type Latest } from "@/lib/data";
 import { date, dateTime, num } from "@/lib/format";
 import { CATEGORIES, t, type Lang } from "@/lib/i18n";
 
@@ -16,7 +16,7 @@ export default async function Datos({ params }: { params: { lang: Lang } }) {
   const d = t(lang);
   const es = lang === "es";
   if (!configured) return <NotConfigured />;
-  const [series, { runs, files }, feeds] = await Promise.all([latest(), status(), newsSources()]);
+  const [series, { runs, files }, feeds, dls] = await Promise.all([latest(), status(), newsSources(), downloadStats()]);
   const count = (m: string) => series.filter((s) => s.method === m).length;
   const stale = series.filter((s) => freshness(s) !== "fresh");
 
@@ -115,6 +115,16 @@ export default async function Datos({ params }: { params: { lang: Lang } }) {
           <tr><td>{d.nav.bvc} · {d.equities}</td><td><a className="btn" href={`/api/export?bvc=RV&format=xlsx&lang=${lang}`}>Excel</a> <a className="btn" href={`/api/export?bvc=RV&format=csv&lang=${lang}`}>CSV</a></td></tr>
           <tr><td><b>{es ? "Todas las series" : "All series"}</b></td><td><a className="btn" href={`/api/export?format=xlsx&lang=${lang}`}>Excel</a> <a className="btn" href={`/api/export?format=csv&lang=${lang}`}>CSV</a></td></tr>
         </tbody></table>
+      </div>
+
+      <h2 style={{ marginTop: 40 }}>{es ? "Lo más descargado (últimos 30 días)" : "Most downloaded (last 30 days)"}</h2>
+      <div className="card tbl-wrap" style={{ marginTop: 12 }}>
+        {dls.length ? (
+          <table>
+            <thead><tr><th className="l">{es ? "Archivo" : "File"}</th><th>{es ? "Descargas" : "Downloads"}</th><th>{es ? "Última" : "Latest"}</th></tr></thead>
+            <tbody>{dls.map((x) => <tr key={x.archivo}><td className="l">{x.archivo.replace(/^(pdf|excel|csv|serie|informe|historico):/, (m) => ({ "pdf:": "PDF · ", "excel:": "Excel · ", "csv:": "CSV · ", "serie:": "Serie · ", "informe:": "Informe · ", "historico:": "Histórico · " } as Record<string, string>)[m] ?? m)}</td><td>{x.n}</td><td>{dateTime(x.ultima, lang)}</td></tr>)}</tbody>
+          </table>
+        ) : <p className="muted" style={{ margin: 0 }}>{es ? "Todavía no hay descargas registradas: el conteo empezó el 18 de noviembre de 2026." : "No downloads recorded yet: counting started on 18 November 2026."}</p>}
       </div>
 
       <h2 style={{ marginTop: 40 }}>{es ? "Archivos detectados (BCV, OPEP, SUNAVAL, SUDEBAN)" : "Detected files (BCV, OPEC, SUNAVAL, SUDEBAN)"}</h2>

@@ -9,9 +9,9 @@ type Fx = { bcv: Point[]; par: Point[] };
 const Ctx = createContext<{ cur: Cur; setCur: (c: Cur) => void; fx: Fx }>({ cur: "BS", setCur: () => {}, fx: { bcv: [], par: [] } });
 
 /** Moneda de presentación global: bolívares o dólares (al oficial BCV o al paralelo de cada fecha). */
-export function CurrencyProvider({ fx, children }: { fx?: Fx; children: React.ReactNode }) {
+export function CurrencyProvider({ fx, children, initial = "BS" }: { fx?: Fx; children: React.ReactNode; initial?: Cur }) {
   const parent = useContext(Ctx);
-  const [cur, setCur] = useState<Cur>("BS");
+  const [cur, setCur] = useState<Cur>(initial);
   return <Ctx.Provider value={{ cur, setCur, fx: fx ?? parent.fx }}>{children}</Ctx.Provider>;
 }
 export const useCurrency = () => useContext(Ctx);

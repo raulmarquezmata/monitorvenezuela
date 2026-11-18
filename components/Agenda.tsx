@@ -1,5 +1,5 @@
 import agenda from "@/config/agenda.json";
-import { upcomingEvents } from "@/lib/data";
+import { calendarioAuto, upcomingEvents } from "@/lib/data";
 import type { Lang } from "@/lib/i18n";
 
 export type Item = { date: string; es: string; en: string; tipo: string };
@@ -10,7 +10,11 @@ export default async function Agenda({ lang, days = 30, tipos, title, max = 8, e
   const es = lang === "es";
   const today = new Date(Date.now() - 4 * 3600e3).toISOString().slice(0, 10);
   const until = new Date(Date.now() + days * 864e5).toISOString().slice(0, 10);
-  const items: Item[] = [...agenda.fechas.map((x) => ({ date: x.fecha, es: x.es, en: x.en, tipo: x.tipo })), ...extra];
+  // EE.UU. y la Fed: calendario automático del robot (Fed y BLS); el archivo manual solo cubre lo que falte
+  const auto = await calendarioAuto();
+  const autoMax = auto.reduce((m, x) => (x.fecha > m ? x.fecha : m), "");
+  const manual = agenda.fechas.filter((x) => !auto.length || !["eeuu", "fed"].includes(x.tipo) || x.fecha > autoMax);
+  const items: Item[] = [...manual.map((x) => ({ date: x.fecha, es: x.es, en: x.en, tipo: x.tipo })), ...auto.map((x) => ({ date: x.fecha, es: x.es, en: x.en, tipo: x.tipo })), ...extra];
   // cada viernes: Radar semanal
   for (let t = Date.parse(today); !tipos && t <= Date.parse(until); t += 864e5) {
     const d = new Date(t);

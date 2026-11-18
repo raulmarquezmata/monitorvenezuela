@@ -1,10 +1,10 @@
 "use client";
-import { CurrencyButtons, CurrencyProvider } from "./Currency";
+import { CurrencyButtons, CurrencyProvider, type Cur } from "./Currency";
 import { RangeButtons, RangeProvider, RANGES, type Range } from "./Range";
 
 /** Cada tarjeta lleva su propio rango y, si la serie está en bolívares, su propia moneda. */
-export function CardScope({ children, initial = "1A" }: { children: React.ReactNode; initial?: Range }) {
-  return <RangeProvider initial={initial}><CurrencyProvider>{children}</CurrencyProvider></RangeProvider>;
+export function CardScope({ children, initial = "1A", cur }: { children: React.ReactNode; initial?: Range; cur?: Cur }) {
+  return <RangeProvider initial={initial}><CurrencyProvider initial={cur}>{children}</CurrencyProvider></RangeProvider>;
 }
 
 export function CardControls({ lang, money = false, ranges = RANGES, rangeLabels }: {
