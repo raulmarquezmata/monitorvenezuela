@@ -65,7 +65,7 @@ export function SeriesCard({ s, points, lang, allowLog = false, bars = false, ar
           {points.length > 0 && <> · {lang === "es" ? "serie" : "series"} {fmtDateFor(points[0][0], s.frequency, lang)} – {fmtDateFor(points[points.length - 1][0], s.frequency, lang)}</>}</span>
         {s.method !== "auto" && <span className={`method ${s.method}`}>{d.method[s.method]}</span>}
         {points.length > 0 && <span style={{ display: "inline-flex", gap: 10, alignItems: "center" }}>
-          <ShareWA text={`${lang === "es" ? s.name_es : s.name_en}${s.last_value != null ? `: ${num(s.last_value, lang, s.decimals)} ${(lang === "es" ? s.unit_es : s.unit_en) ?? ""}` : ""} · Radar Grupo Solfin`} hash={s.code} />
+          <ShareWA text={`${lang === "es" ? s.name_es : s.name_en}${s.last_value != null ? `: ${num(s.last_value, lang, s.decimals)} ${(lang === "es" ? s.unit_es : s.unit_en) ?? ""}` : ""} · Radar Solfin`} hash={s.code} />
           <a className="dl" href={`/api/export?codes=${s.code}&format=xlsx&lang=${lang}`}>⬇ Excel</a></span>}
       </div>
     </div>
