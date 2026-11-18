@@ -122,15 +122,21 @@ def run_frankfurt(force: bool = False):
         if not force and (now.weekday() > 4 or not (7 <= now.hour < 18)):
             r.log.info("Fuera del horario de Frankfurt")
             return
-        have = select("bond_prices", {"select": "date", "source": f"eq.{FRA_SRC}", "limit": 1})
-        days = 10 if have else (now.date() - dt.date(2025, 1, 1)).days
+        # historia completa si falta el cierre de fin de año (base del «en el año»), si no, últimos 10 días
+        have = select("bond_prices", {"select": "date", "source": f"eq.{FRA_SRC}",
+                                      "and": f"(date.gte.{now.year - 1}-12-20,date.lte.{now.year - 1}-12-31)", "limit": 1})
+        # …o si quedan precios de la captura puntual de Bloomberg en bonos que cotizan en Frankfurt (se reemplazan una vez)
+        tick = ",".join('"' + meta(t)["ticker"] + '"' for t in FRA)
+        cap = select("bond_prices", {"select": "date", "source": "like.Bloomberg (captura*", "ticker": f"in.({tick})", "limit": 1})
+        days = 10 if (have and not cap) else (now.date() - dt.date(2025, 1, 1)).days
         rows = frankfurt(days)
         if not rows:
             r.note("Frankfurt no devolvió precios")
             return
-        # Bloomberg manda en las fechas donde ya hay precio suyo
+        # Bloomberg (archivo bloomberg.xlsx) manda en las fechas donde ya hay precio suyo. La captura puntual del 28-oct
+        # («Bloomberg (captura…)») se reemplaza por Frankfurt, para que %día, %semana y %año comparen la misma fuente.
         since = (now.date() - dt.timedelta(days=days)).isoformat()
-        bbg = {(x["ticker"], x["date"]) for x in select("bond_prices", {"select": "ticker,date", "date": f"gte.{since}", "source": f"neq.{FRA_SRC}"})}
+        bbg = {(x["ticker"], x["date"]) for x in select("bond_prices", {"select": "ticker,date", "date": f"gte.{since}", "source": "eq.Bloomberg"})}
         prices = {(t, d): {"ticker": meta(t)["ticker"], "date": d, "price": v, "source": src} for t, d, v, src in rows if (t, d) not in bbg}
         upsert("bonds", [dict(meta(t)) for t in FRA], "ticker")
         r.rows += upsert("bond_prices", list(prices.values()), "ticker,date")
@@ -141,6 +147,11 @@ def run_frankfurt(force: bool = False):
             n = len([t for t in FRA if meta(t)["issuer"] == issuer])
             pts = [(d, sum(v) / len(v)) for d, v in by[issuer].items() if len(v) >= max(1, n // 2)]
             r.rows += save_obs(code, sorted(pts), "Börse Frankfurt · promedio simple")
+        if cap and len(prices) > 1000:
+            # quedan puntos de la captura (estimados a partir de %1D/%semana/%año) en fechas sin cotización de Frankfurt:
+            # se quitan para no mezclar fuentes en la misma serie (los dos bonos que no cotizan en Frankfurt los conservan)
+            from .common import delete
+            delete("bond_prices", {"source": "like.Bloomberg (captura*", "ticker": f"in.({tick})"})
         r.log.info("Frankfurt: %d precios (%d días)", len(prices), days)
 
 
