@@ -2,15 +2,15 @@ import agenda from "@/config/agenda.json";
 import { upcomingEvents } from "@/lib/data";
 import type { Lang } from "@/lib/i18n";
 
-type Item = { date: string; es: string; en: string; tipo: string };
-const ICON: Record<string, string> = { opep: "🛢️", fed: "🏛️", eeuu: "🇺🇸", bcv: "🏦", bvc: "📈", otro: "🗞️" };
+export type Item = { date: string; es: string; en: string; tipo: string };
+const ICON: Record<string, string> = { opep: "🛢️", fed: "🏛️", eeuu: "🇺🇸", empresa: "💼", bcv: "🏦", bvc: "📈", otro: "🗞️" };
 
 /** Próximas fechas: calendario fijo (config/agenda.json), asambleas de emisores y el Radar semanal de cada viernes. */
-export default async function Agenda({ lang, days = 30, tipos, title, max = 8 }: { lang: Lang; days?: number; tipos?: string[]; title?: string; max?: number }) {
+export default async function Agenda({ lang, days = 30, tipos, title, max = 8, extra = [], plain = false }: { lang: Lang; days?: number; tipos?: string[]; title?: string; max?: number; extra?: Item[]; plain?: boolean }) {
   const es = lang === "es";
   const today = new Date(Date.now() - 4 * 3600e3).toISOString().slice(0, 10);
   const until = new Date(Date.now() + days * 864e5).toISOString().slice(0, 10);
-  const items: Item[] = agenda.fechas.map((x) => ({ date: x.fecha, es: x.es, en: x.en, tipo: x.tipo }));
+  const items: Item[] = [...agenda.fechas.map((x) => ({ date: x.fecha, es: x.es, en: x.en, tipo: x.tipo })), ...extra];
   // cada viernes: Radar semanal
   for (let t = Date.parse(today); !tipos && t <= Date.parse(until); t += 864e5) {
     const d = new Date(t);
@@ -23,7 +23,7 @@ export default async function Agenda({ lang, days = 30, tipos, title, max = 8 }:
     .filter((x) => { const k = x.date + x.es; if (seen.has(k)) return false; seen.add(k); return true; }).slice(0, max);
   const fmt = (d: string) => new Intl.DateTimeFormat(es ? "es-VE" : "en-US", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" }).format(new Date(`${d}T00:00:00Z`));
   return (
-    <div className="card">
+    <div className={plain ? "" : "card"}>
       <div className="card-top"><h3>{title ?? (es ? "Próximas fechas" : "Upcoming dates")}</h3><span className="date">{es ? `próximos ${days} días` : `next ${days} days`}</span></div>
       {list.length ? (
         <ul className="agenda">{list.map((x) => <li key={x.date + x.es}><span className="d">{fmt(x.date)}</span><span>{ICON[x.tipo] ?? "•"} {es ? x.es : x.en}</span></li>)}</ul>
