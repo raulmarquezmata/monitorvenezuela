@@ -55,7 +55,7 @@ export default async function Internacional({ params }: { params: { lang: Lang }
       <p className="muted" style={{ fontSize: 13, marginTop: 10 }}>{es ? "Toque cualquier tarjeta para ver su gráfico con toda la historia (desde 2016)." : "Tap any card to see its full-history chart (since 2016)."} <Link prefetch={false} href={`/${lang}/internacional/graficos`}>{es ? "Ver todos los gráficos →" : "See all charts →"}</Link></p>
 
       {map?.rows?.length ? (
-        <section className="section">
+        <section className="section" id="mapa">
           <SectionHead label={es ? "Mapa del S&P 500 por sector" : "S&P 500 map by sector"} />
           <div className="card">
             <p className="muted" style={{ fontSize: 13, margin: "0 0 10px" }}>{es
@@ -120,7 +120,7 @@ export default async function Internacional({ params }: { params: { lang: Lang }
       })()}
 
       {RATES.some(has) && (
-        <section className="section">
+        <section className="section" id="tesoro">
           <SectionHead label={es ? "Tasas del Tesoro de EE.UU." : "US Treasury yields"} />
           <div className="card split">
             <div>
