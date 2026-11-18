@@ -78,6 +78,16 @@ _S = [
     ("argentina_argt", "internacional", "Acciones Argentina (ETF ARGT)", "Argentina equities (ARGT ETF)", "US$", "US$", "D", "Yahoo Finance", "https://finance.yahoo.com/quote/ARGT", 2, 32),
     ("ipc_mexico", "internacional", "IPC (México)", "IPC (Mexico)", "puntos", "points", "D", "Yahoo Finance", "https://finance.yahoo.com/", 0, 33),
     ("chile_ech", "internacional", "Acciones Chile (ETF ECH)", "Chile equities (ECH ETF)", "US$", "US$", "D", "Yahoo Finance", "https://finance.yahoo.com/quote/ECH", 2, 34),
+    # EE.UU.: inflación, empleo y la Fed (robot eeuu)
+    ("eeuu_ipc_interanual", "internacional", "EE.UU.: inflación interanual (IPC)", "US CPI inflation (YoY)", "%", "%", "M", "BLS vía FRED", "https://fred.stlouisfed.org/series/CPIAUCSL", 1, 40),
+    ("eeuu_ipc_mensual", "internacional", "EE.UU.: inflación mensual (IPC)", "US CPI inflation (MoM)", "%", "%", "M", "BLS vía FRED", "https://fred.stlouisfed.org/series/CPIAUCSL", 1, 41),
+    ("eeuu_ipc_subyacente", "internacional", "EE.UU.: inflación subyacente interanual", "US core CPI inflation (YoY)", "%", "%", "M", "BLS vía FRED", "https://fred.stlouisfed.org/series/CPILFESL", 1, 42),
+    ("eeuu_nomina_no_agricola", "internacional", "EE.UU.: empleos creados (nómina no agrícola)", "US nonfarm payrolls (monthly change)", "miles", "thousand", "M", "BLS vía FRED", "https://fred.stlouisfed.org/series/PAYEMS", 0, 43),
+    ("eeuu_desempleo", "internacional", "EE.UU.: tasa de desempleo", "US unemployment rate", "%", "%", "M", "BLS vía FRED", "https://fred.stlouisfed.org/series/UNRATE", 1, 44),
+    ("fed_tasa_objetivo", "internacional", "Fed: tasa objetivo (techo del rango)", "Fed funds target (upper bound)", "%", "%", "D", "Reserva Federal vía FRED", "https://fred.stlouisfed.org/series/DFEDTARU", 2, 45),
+    ("fed_prob_subida", "internacional", "Fed: probabilidad de subida en la próxima reunión", "Fed: probability of a hike at the next meeting", "%", "%", "D", "CME (futuros de fondos federales) · método FedWatch", "https://www.cmegroup.com/markets/interest-rates/cme-fedwatch-tool.html", 1, 46),
+    ("fed_prob_baja", "internacional", "Fed: probabilidad de baja en la próxima reunión", "Fed: probability of a cut at the next meeting", "%", "%", "D", "CME (futuros de fondos federales) · método FedWatch", "https://www.cmegroup.com/markets/interest-rates/cme-fedwatch-tool.html", 1, 47),
+    ("fed_tasa_esperada", "internacional", "Fed: tasa esperada tras la próxima reunión", "Fed: expected rate after the next meeting", "%", "%", "D", "CME (futuros de fondos federales) · método FedWatch", "https://www.cmegroup.com/markets/interest-rates/cme-fedwatch-tool.html", 3, 48),
 
     # ---------------- Petróleo y gas
     ("petroleo_prod_opep_fs", "petroleo", "Producción de crudo · OPEP fuentes secundarias", "Crude output · OPEC secondary sources", "miles b/d", "kb/d", "M", "OPEP MOMR", OPEP, 0, 10),
@@ -217,6 +227,11 @@ for code in ("sp500", "nasdaq", "dow_jones", "vix", "dxy", "oro_diario", "bitcoi
     PLAN[code] = (A, 5, "Robot global cada 10 min en horario de mercado (Yahoo Finance).")
 for code in ("ust_2a", "ust_5a", "ust_10a", "ust_20a", "ust_30a"):
     PLAN[code] = (A, 5, "Robot global cada 10 min en horario de mercado (curva diaria del Tesoro de EE.UU.; respaldo FRED/Yahoo).")
+for code in ("eeuu_ipc_interanual", "eeuu_ipc_mensual", "eeuu_ipc_subyacente", "eeuu_nomina_no_agricola", "eeuu_desempleo"):
+    PLAN[code] = (A, 45, "Robot eeuu (FRED): entra minutos después de que el BLS publica, a las 8:30 a. m. de Nueva York.")
+PLAN["fed_tasa_objetivo"] = (A, 5, "Robot eeuu (FRED, serie DFEDTARU).")
+for code in ("fed_prob_subida", "fed_prob_baja", "fed_tasa_esperada"):
+    PLAN[code] = (A, 5, "Robot eeuu: futuros de fondos federales a 30 días (CME vía Yahoo) con el método de CME FedWatch.")
 PLAN["henry_hub"] = (A, 4, "Spot diario de la EIA desde 1997 + futuro del primer mes para los días más recientes.")
 
 _KEYS = ["code", "category", "name_es", "name_en", "unit_es", "unit_en", "frequency", "source", "source_url", "decimals", "sort"]
