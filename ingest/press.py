@@ -314,7 +314,9 @@ def from_headlines(days: int = 4) -> int:
     """Datos oficiales anunciados en los titulares que ya captó el robot de noticias (PIB e inflación).
     Corre cada 20 minutos junto con las noticias: si llega la noticia, el dato entra a la página al mismo tiempo."""
     since = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=days)).isoformat()
-    rows = select("news", {"select": "url,source,title,title_es,summary,published_at", "published_at": f"gte.{since}", "order": "published_at"})
+    recent = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(hours=3)).isoformat()  # solo lo que entró hace poco (ahorra tráfico)
+    rows = select("news", {"select": "url,source,title,title_es,summary,published_at", "published_at": f"gte.{since}", "created_at": f"gte.{recent}",
+                           "order": "published_at"})
     posts = [{"title": x.get("title_es") or x["title"], "excerpt": x.get("summary") or "", "date": x["published_at"][:10],
               "url": x.get("url"), "source": x.get("source")} for x in rows]
     # solo cifras de Venezuela (fuera titulares de PIB o inflación de otros países)
