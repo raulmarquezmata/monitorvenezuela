@@ -4,6 +4,7 @@ from __future__ import annotations
 import datetime as dt
 import re
 import calendar
+import os
 import json
 import pathlib
 import time
@@ -99,7 +100,7 @@ ECON = re.compile(r"econom|crec|\bpib\b|inflaci|precio|d[oó]lar|bol[ií]vares\b
 # anuncios de dirigentes, polémicas) se descarta salvo que sea una medida económica concreta.
 POL_OK = re.compile(r"design|nombra|nombramiento|juramenta|nuev[oa] (ministr|president|canciller|embajador|director|gobernador|vicepresident)|"
                     r"asume (como|la presidencia|el ministerio|el cargo)|ministr[oa] (de|para)|embajad|canciller|diplom|visita oficial|gira (por|oficial)|"
-                    r"cumbre|bilateral|reuni[oó]n con|cooperaci[oó]n|memorando|aprueb|aprobad|aprobaci[oó]n|sancion[oó] la ley|sancionad[oa] la ley|promulg|"
+                    r"cumbre|bilateral|reuni[oó]n con|se re[uú]nen? con|cooperaci[oó]n|memorando|aprueb|aprobad|aprobaci[oó]n|sancion[oó] la ley|sancionad[oa] la ley|promulg|"
                     r"\bley (de|del|org[aá]nica)|reforma (de la )?ley|(primera|segunda) discusi[oó]n|restablec|relaciones con|ofac|sanci[oó]n(es)?\b|licencia general|"
                     r"appoint|named|ambassador|embassy|diplomat|summit|state visit|sanction|general license", re.I)
 ECON_POLICY = re.compile(r"decreto|gaceta oficial|arancel|impuest|export|import|inversi|hidrocarbur|miner|bonos?\b|deuda|presupuesto|salari|"
@@ -336,7 +337,7 @@ def keep_first_seen(items: list[dict]) -> list[dict]:
         return fresh
     now = dt.datetime.now(dt.timezone.utc)
     try:
-        old = select("news", {"select": "title,published_at", "published_at": f"gte.{(now - dt.timedelta(days=30)).isoformat()}",
+        old = select("news", {"select": "title,published_at", "published_at": f"gte.{(now - dt.timedelta(days=14)).isoformat()}",
                               "created_at": f"lt.{(now - dt.timedelta(days=3)).isoformat()}", "category": "neq.global"})
     except Exception:  # noqa: BLE001
         old = []
@@ -395,11 +396,12 @@ def run():
         try:
             # repaso de lo ya guardado con las reglas actuales: completo (45 y 30 días) una vez al día, a las
             # 5 a. m. (9 UTC); en las demás corridas solo los últimos 2 días (ahorra tráfico de Supabase)
-            deep = dt.datetime.now(dt.timezone.utc).hour == 9
-            n = cleanup(45 if deep else 2)
-            if n:
-                r.log.info("Noticias fuera de tema retiradas: %d", n)
-            r.rows += recategorize(30 if deep else 2)
+            # (lo que entra en cada corrida ya pasó el filtro actual: el repaso solo hace falta cuando cambian las reglas)
+            if dt.datetime.now(dt.timezone.utc).hour == 9 or os.environ.get("NEWS_DEEP"):
+                n = cleanup(45)
+                if n:
+                    r.log.info("Noticias fuera de tema retiradas: %d", n)
+                r.rows += recategorize(30)
         except Exception as e:  # noqa: BLE001
             r.log.info("recategorizar: %s", e)
         try:  # titulares en español e inglés para la web
