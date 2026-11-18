@@ -429,6 +429,27 @@ def evaluate(rules: list[dict], meta: dict[str, dict], data: dict[str, list[dict
                 if rx.search(n["title"]):
                     out.append((f"{rule['id']}:{n['url'][-120:]}", rule["texto"].format(titulo=n.get("title_es") or n["title"], fuente=n.get("source") or "", url="")
                                 + foot(lk("Leer la noticia", n["url"]), lk("Más noticias", site("/es/noticias")))))
+        elif t == "rss":
+            # comunicados y discursos (p. ej. la Fed): cada entrada nueva de los feeds, una sola vez
+            import calendar as _cal
+            import re as _re
+            import feedparser
+            rx = _re.compile(rule["patron"], _re.I) if rule.get("patron") else None
+            lim = dt.datetime.now(dt.timezone.utc) - dt.timedelta(hours=rule.get("horas", 12))
+            for feed in rule["feeds"]:
+                try:
+                    fp = feedparser.parse(http.get(feed["url"], timeout=30).content)
+                except Exception:  # noqa: BLE001
+                    continue
+                for e in fp.entries[:15]:
+                    tp = e.get("published_parsed") or e.get("updated_parsed")
+                    if not tp or dt.datetime.fromtimestamp(_cal.timegm(tp), dt.timezone.utc) < lim:
+                        continue
+                    title = _re.sub(r"\s+", " ", e.get("title") or "").strip()
+                    if not title or (rx and not rx.search(title)):
+                        continue
+                    out.append((f"{rule['id']}:{(e.get('link') or title)[-120:]}", rule["texto"].format(tipo=feed["nombre"], titulo=title)
+                                + foot(lk("Leer en la Fed", e.get("link")), lk("Ver la Fed en el Radar", site("/es/internacional#fed")))))
         elif t == "ofac":
             for a in extra.get("ofac", []):
                 out.append((f"{rule['id']}:{a['url'][-120:]}", rule["texto"].format(titulo=a["title"], fecha=fecha_txt(a["date"]), url="")
