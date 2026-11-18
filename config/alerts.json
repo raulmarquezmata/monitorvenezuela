@@ -115,6 +115,33 @@
       "texto": "💱 **Intervención cambiaria** · {nombre}\n**{valor} {unidad}** · {fecha}"
     },
     {
+      "id": "eeuu_ipc",
+      "tipo": "nuevo_dato",
+      "series": [
+        "eeuu_ipc_interanual"
+      ],
+      "texto": "🇺🇸 **Inflación de EE.UU. (IPC)** · {fecha}\nInteranual: **{valor}%**"
+    },
+    {
+      "id": "eeuu_empleo",
+      "tipo": "nuevo_dato",
+      "series": [
+        "eeuu_nomina_no_agricola"
+      ],
+      "texto": "🇺🇸 **Empleo de EE.UU. (nómina no agrícola)** · {fecha}\n**{valor} mil** empleos en el mes"
+    },
+    {
+      "id": "fed_comunicados",
+      "tipo": "rss",
+      "horas": 12,
+      "feeds": [
+        {"nombre": "Comunicado de política monetaria", "url": "https://www.federalreserve.gov/feeds/press_monetary.xml"},
+        {"nombre": "Discurso", "url": "https://www.federalreserve.gov/feeds/speeches.xml"},
+        {"nombre": "Comparecencia", "url": "https://www.federalreserve.gov/feeds/testimony.xml"}
+      ],
+      "texto": "🏛️ **Fed · {tipo}**\n{titulo}"
+    },
+    {
       "id": "bancos",
       "tipo": "nuevo_dato",
       "series": [
