@@ -28,7 +28,9 @@ export function Kpi({ s, points, lang, href, periods, extra, name }: { s?: Lates
   if (!s) return null;
   const d = t(lang);
   const m = kpiMeta(s, lang, href);
-  return <KpiCard m={name ? { ...m, name } : m} points={points} lang={lang} noData={d.noData} rangeLabels={d.range} periods={periods} extra={extra} />;
+  const cut = new Date(Date.now() - 3 * 365 * 864e5).toISOString().slice(0, 10);
+  const pts = points.length > 400 ? points.filter((p) => p[0] >= cut) : points;
+  return <KpiCard m={name ? { ...m, name } : m} points={pts} lang={lang} noData={d.noData} rangeLabels={d.range} periods={periods} extra={extra} />;
 }
 
 /** Rango inicial según la frecuencia: diarias 3M, semanales y mensuales 1A, trimestrales y anuales todo. */
