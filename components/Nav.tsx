@@ -20,7 +20,7 @@ export function MainNav({ items }: { items: Item[] }) {
         return (
           <div key={i.href} className={`navitem ${i.groups ? "has-menu" : ""} ${wide ? "mega" : ""} ${open === i.href ? "open" : ""}`}
             onMouseEnter={() => i.groups && setOpen(i.href)} onMouseLeave={() => setOpen(null)}>
-            <Link prefetch={false} href={i.href} className={on ? "on" : ""} aria-haspopup={i.groups ? "true" : undefined}
+            <Link href={i.href} className={on ? "on" : ""} aria-haspopup={i.groups ? "true" : undefined}
               aria-expanded={i.groups ? open === i.href : undefined}>{i.label}{i.groups && <span className="caret" aria-hidden>▾</span>}</Link>
             {i.groups && (
               <div className={`navmenu ${wide ? "wide" : ""}`} role="menu">
@@ -64,7 +64,7 @@ export function SubNav({ items }: { items: { href: string; label: string; exact?
   const path = usePathname();
   return (
     <nav className="subnav">
-      {items.map((i) => <Link prefetch={false} key={i.href} href={i.href} className={(i.exact ? path === i.href : path.startsWith(i.href)) ? "on" : ""}>{i.label}</Link>)}
+      {items.map((i) => <Link key={i.href} href={i.href} className={(i.exact ? path === i.href : path.startsWith(i.href)) ? "on" : ""}>{i.label}</Link>)}
     </nav>
   );
 }
@@ -135,7 +135,7 @@ export function MobileNav({ items, lang }: { items: Item[]; lang: string }) {
                   {i.label}<span aria-hidden>{exp ? "−" : "+"}</span>
                 </button>
               ) : (
-                <Link prefetch={false} href={i.href} className="dsec-t" onClick={() => setOpen(false)}>{i.label}</Link>
+                <Link href={i.href} className="dsec-t" onClick={() => setOpen(false)}>{i.label}</Link>
               )}
               {i.groups && exp && (
                 <div className="dsec-b">
@@ -143,7 +143,7 @@ export function MobileNav({ items, lang }: { items: Item[]; lang: string }) {
                     <div key={k}>
                       {g.label && <div className="navgroup-label">{g.label}</div>}
                       {g.items.map((x) => (
-                        <Link prefetch={false} key={x.href} href={x.href} onClick={() => setOpen(false)}>
+                        <Link key={x.href} href={x.href} onClick={() => setOpen(false)}>
                           <b>{x.label}</b>{x.d && <small>{x.d}</small>}
                         </Link>))}
                     </div>))}
@@ -173,7 +173,7 @@ export function TabBar({ tabs }: { tabs: { href: string; label: string; icon: st
       {tabs.map((t) => {
         const on = t.match.some((m) => (m.split("/").length === 2 ? path === m : path.startsWith(m)));
         return (
-          <Link prefetch={false} key={t.href} href={t.href} className={on ? "on" : ""} aria-current={on ? "page" : undefined}>
+          <Link key={t.href} href={t.href} className={on ? "on" : ""} aria-current={on ? "page" : undefined}>
             <svg viewBox="0 0 24 24" aria-hidden fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">{ICONS[t.icon]}</svg>
             <span>{t.label}</span>
           </Link>
