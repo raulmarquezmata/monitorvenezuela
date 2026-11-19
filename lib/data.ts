@@ -91,8 +91,10 @@ async function history_(codes: string[], sinceYears = 12): Promise<Record<string
 
 async function bvcLatest_(market: "RV" | "RF" = "RV"): Promise<Quote[]> {
   if (!sb) return [];
-  const { data } = await sb.from("bvc_latest").select("*").eq("market", market).order("amount", { ascending: false, nullsFirst: false });
-  return (data as Quote[]) ?? [];
+  const { data, error } = await sb.from("bvc_latest").select("*").eq("market", market).order("amount", { ascending: false, nullsFirst: false });
+  // una respuesta vacía o con error no se guarda en caché (si no, la tabla quedaría vacía varios minutos)
+  if (error || !data?.length) throw new Error(`bvc_latest ${market}: ${error?.message ?? "vacío"}`);
+  return data as Quote[];
 }
 
 async function bvcQuotes_(symbol: string, until?: string, since?: string): Promise<Quote[]> {
@@ -380,7 +382,10 @@ async function bankSample_(): Promise<BankRow[]> {
 // (así cada corrida no obliga a reescribir tablas grandes en la caché de Vercel, que cobra por escritura)
 export const latest = cached(latest_, "latest", 300);
 export const history = history_; // caché por tramos (histLong/histTail): ninguna entrada pasa de 2 MB
-export const bvcLatest = cached(bvcLatest_, "bvcLatest", 120);
+const bvcLatestC = cached(bvcLatest_, "bvcLatest", 120);
+export const bvcLatest = async (market: "RV" | "RF" = "RV"): Promise<Quote[]> => {
+  try { return await bvcLatestC(market); } catch { return []; }
+};
 export const bvcSymbol = bvcSymbol_; // caché por tramos (quotesLong/quotesTail)
 export const news = cached(news_, "news", 120);
 export const trade = cached(trade_, "trade", 3600, "lento");

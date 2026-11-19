@@ -2,7 +2,7 @@ import Link from "next/link";
 import { SolfinIso } from "@/components/Logo";
 import { BRAND } from "@/lib/brand";
 import { notFound } from "next/navigation";
-import { HashOpener, LangSwitch, MainNav, ThemeSwitch } from "@/components/Nav";
+import { HashOpener, LangSwitch, MainNav, MobileNav, TabBar, ThemeSwitch } from "@/components/Nav";
 import { CurrencyProvider } from "@/components/Currency";
 import { RangeProvider } from "@/components/Range";
 import { history, lastRun } from "@/lib/data";
@@ -103,6 +103,7 @@ export default async function LangLayout({ children, params }: { children: React
           <div className="spacer" />
           <LangSwitch lang={lang} />
           <ThemeSwitch label={d.darkMode} />
+          <MobileNav items={items} lang={lang} />
         </div>
       </header>
       <div className="statusbar">
@@ -120,6 +121,13 @@ export default async function LangLayout({ children, params }: { children: React
         </div>
         {d.disclaimer} · © {new Date().getFullYear()} {d.site}
       </div></footer>
+      <TabBar tabs={[
+        { href: L, label: d.nav.home, icon: "home", match: [L] },
+        { href: `${L}/bvc`, label: es ? "Bolsa" : "Stocks", icon: "bvc", match: [`${L}/bvc`] },
+        { href: `${L}/internacional`, label: es ? "Mundo" : "Global", icon: "intl", match: [`${L}/internacional`] },
+        { href: `${L}/indicadores/cambiario`, label: "Macro", icon: "macro", match: [`${L}/indicadores`, `${L}/comercio`, `${L}/agro`] },
+        { href: `${L}/informes`, label: es ? "Informes" : "Reports", icon: "research", match: [`${L}/informes`, `${L}/research`] },
+      ]} />
     </RangeProvider>
     </CurrencyProvider>
   );
