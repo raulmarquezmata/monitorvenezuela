@@ -1,9 +1,21 @@
 "use client";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 /** Teléfono: bloque plegable con título y un dato de resumen; en computadora se ve siempre abierto. */
-export function Fold({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
+export function Fold({ title, hint, children, anchor }: { title: string; hint?: string; children: React.ReactNode; anchor?: string }) {
   const [open, setOpen] = useState(false);
+  // si la dirección apunta a esta sección (p. ej. /internacional#fed desde el menú), se abre sola
+  useEffect(() => {
+    if (!anchor) return;
+    const chk = () => {
+      if (decodeURIComponent(window.location.hash.slice(1)) !== anchor) return;
+      setOpen(true);
+      setTimeout(() => document.getElementById(anchor)?.scrollIntoView({ block: "start" }), 60);
+    };
+    chk();
+    window.addEventListener("hashchange", chk);
+    return () => window.removeEventListener("hashchange", chk);
+  }, [anchor]);
   return (
     <div className={`mfold ${open ? "open" : ""}`}>
       <button className="mfold-h" aria-expanded={open} onClick={() => setOpen(!open)}>
