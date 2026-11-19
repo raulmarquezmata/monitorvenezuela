@@ -222,6 +222,23 @@ def gather_extra(rules: list[dict], daily: bool = False) -> dict:
             ex["files"] = select("source_files", {"select": "url,page,filename,first_seen,last_seen", "order": "last_seen.desc", "limit": 200})
         except Exception:  # noqa: BLE001
             ex["files"] = []
+    if "consenso" in tipos:  # consenso del mercado (FX Blue): el valor esperado para la misma fecha del dato publicado
+        ex["consenso"] = {}
+        for r_ in rules:
+            if r_["tipo"] == "consenso":
+                c = r_["esperado"]
+                ex["consenso"][c] = {x["date"]: x["value"] for x in select("observations", {
+                    "select": "date,value", "series_code": f"eq.{c}", "order": "date.desc", "limit": 6})}
+    if tipos & {"fed_decision", "fed_prob", "eeuu_agenda"}:  # calendario automático (Fed y BLS) y resultados del S&P 500
+        ex["calendario"] = storage_json("mercado/calendario.json").get("items") or []
+        ex["fomc"] = sorted({x["fecha"] for x in ex["calendario"] if x.get("tipo") == "fed"})
+    if "eeuu_agenda" in tipos:
+        ex["earnings"] = storage_json("mercado/earnings.json").get("items") or []
+    if "fed_decision" in tipos:  # lo que esperaba el mercado antes de la reunión (último dato anterior a hoy)
+        hoy_ = dt.datetime.now(dt.timezone.utc).date().isoformat()
+        ex["fed_antes"] = {c: (select("observations", {"select": "date,value", "series_code": f"eq.{c}", "date": f"lt.{hoy_}",
+                                                     "order": "date.desc", "limit": 1}) or [{}])[0].get("value")
+                           for c in ("fed_prob_subida", "fed_prob_baja")}
     if "ofac" in tipos:
         ex["ofac"] = select("ofac_actions", {"select": "url,date,title", "order": "date.desc", "limit": 10})
     if "robots" in tipos:
@@ -236,6 +253,78 @@ def gather_extra(rules: list[dict], daily: bool = False) -> dict:
 def fmt(v: float, dec: int = 2) -> str:
     s = f"{v:,.{dec}f}"
     return s.replace(",", "X").replace(".", ",").replace("X", ".")
+
+
+def storage_json(path: str, bucket: str = "reportes") -> dict:
+    """JSON público que dejan otros robots en Storage (p. ej. reportes/mercado/calendario.json)."""
+    from .common import SUPABASE_URL
+    try:
+        return http.get(f"{SUPABASE_URL}/storage/v1/object/public/{bucket}/{path}", timeout=20).json() or {}
+    except Exception:  # noqa: BLE001
+        return {}
+
+
+def frac_pct(s: str) -> float:
+    """Notación de la Fed: «4-1/4» → 4.25, «3/4» → 0.75, «4» → 4."""
+    tot = 0.0
+    for part in s.strip().split("-"):
+        if "/" in part:
+            a, b = part.split("/")
+            tot += float(a) / float(b)
+        elif part:
+            tot += float(part)
+    return tot
+
+
+FED_PRESS = "https://www.federalreserve.gov/feeds/press_monetary.xml"
+FED_RX = re.compile(r"decided to (raise|lower|maintain|reduce|increase)\s+the target range for the federal funds rate"
+                    r"(?:\s+by\s+([\d\-/]+)\s+percentage points?)?\s+(?:at|to)\s+([\d\-/]+)\s+to\s+([\d\-/]+)\s+percent", re.I)
+
+
+def fed_decision(rule: dict, extra: dict) -> list[tuple[str, str]]:
+    """Decisión del FOMC leída del comunicado oficial, el mismo día, con lo que esperaba el mercado."""
+    import calendar as _cal
+    import html as _html
+    import feedparser
+    hoy = dt.datetime.now(dt.timezone.utc).date()
+    if not any(0 <= (hoy - dt.date.fromisoformat(d)).days <= 1 for d in extra.get("fomc", [])):
+        return []
+    out = []
+    try:
+        fp = feedparser.parse(http.get(FED_PRESS, timeout=30).content)
+    except Exception:  # noqa: BLE001
+        return []
+    lim = dt.datetime.now(dt.timezone.utc) - dt.timedelta(hours=36)
+    for e in fp.entries[:10]:
+        title = e.get("title") or ""
+        tp = e.get("published_parsed") or e.get("updated_parsed")
+        if "FOMC statement" not in title or not tp or dt.datetime.fromtimestamp(_cal.timegm(tp), dt.timezone.utc) < lim:
+            continue
+        try:
+            txt = _html.unescape(re.sub(r"<[^>]+>", " ", http.get(e.link, timeout=30).text))
+        except Exception:  # noqa: BLE001
+            continue
+        txt = re.sub(r"\s+", " ", txt)
+        m = FED_RX.search(txt)
+        if not m:
+            continue
+        acc = {"raise": "subió", "increase": "subió", "lower": "bajó", "reduce": "bajó"}.get(m.group(1).lower(), "mantuvo")
+        lo, hi = frac_pct(m.group(3)), frac_pct(m.group(4))
+        paso = f" {fmt(frac_pct(m.group(2)), 2)} pp" if m.group(2) else ""
+        lines = [f"🏦 **La Fed {acc} la tasa{paso}** · {fecha_txt(hoy.isoformat())}", f"Rango objetivo: **{fmt(lo, 2)}%–{fmt(hi, 2)}%**"]
+        a = extra.get("fed_antes") or {}
+        sube, baja = a.get("fed_prob_subida"), a.get("fed_prob_baja")
+        if sube is not None and baja is not None:
+            mant = max(0.0, 100 - float(sube) - float(baja))
+            prob = {"subió": float(sube), "bajó": float(baja), "mantuvo": mant}[acc]
+            lect = "lo esperaba" if prob >= 60 else "no lo esperaba del todo" if prob >= 30 else "no lo esperaba: sorpresa"
+            lines.append(f"El mercado {lect}: subir {fmt(float(sube), 0)}% · mantener {fmt(mant, 0)}% · bajar {fmt(float(baja), 0)}% (futuros, método FedWatch)")
+        v = re.search(r"Voting against (?:the|this) action (?:was|were):? (.{3,200}?)(?:,? who | who\b|;)", txt)
+        if v:
+            lines.append(f"Votos en contra: {v.group(1).strip()}")
+        out.append((f"{rule['id']}:{e.link[-100:]}", "\n".join(lines)
+                    + foot(lk("Comunicado de la Fed", e.link), lk("Ver la Fed en el Radar", site("/es/internacional#fed")))))
+    return out
 
 
 def last_two(code: str) -> list[dict]:
@@ -446,10 +535,68 @@ def evaluate(rules: list[dict], meta: dict[str, dict], data: dict[str, list[dict
                     if not tp or dt.datetime.fromtimestamp(_cal.timegm(tp), dt.timezone.utc) < lim:
                         continue
                     title = _re.sub(r"\s+", " ", e.get("title") or "").strip()
-                    if not title or (rx and not rx.search(title)):
+                    if not title or (rx and not rx.search(title)) or (rule.get("excluir") and _re.search(rule["excluir"], title, _re.I)):
                         continue
                     out.append((f"{rule['id']}:{(e.get('link') or title)[-120:]}", rule["texto"].format(tipo=feed["nombre"], titulo=title)
                                 + foot(lk("Leer en la Fed", e.get("link")), lk("Ver la Fed en el Radar", site("/es/internacional#fed")))))
+        elif t == "consenso":
+            # dato publicado frente a lo que esperaba el mercado (IPC y empleo de EE.UU.)
+            code = rule["series"][0]
+            obs = data.get(code, [])
+            if not obs:
+                continue
+            cur, dec, u, ud = obs[0], rule.get("dec", 1), rule.get("unidad", ""), rule.get("unidad_dif", rule.get("unidad", ""))
+            esp = (extra.get("consenso") or {}).get(rule["esperado"], {}).get(cur["date"])
+            lines = [f"🇺🇸 **{rule['nombre']}** · {fecha_txt(cur['date'], 'M')}", f"Publicado: **{fmt(cur['value'], dec)}{u}**"]
+            if esp is not None:
+                dif = float(cur["value"]) - float(esp)
+                if abs(dif) < 0.5 * 10 ** -dec:
+                    lines.append(f"Esperado: {fmt(esp, dec)}{u} → ⚪ en línea con lo esperado")
+                else:
+                    lines.append(f"Esperado: {fmt(esp, dec)}{u} → {'▲' if dif > 0 else '▼'} {'por encima' if dif > 0 else 'por debajo'} de lo esperado "
+                                 f"({'+' if dif > 0 else ''}{fmt(dif, dec)}{ud})")
+                    if rule.get("lectura"):
+                        lines.append(rule["lectura"]["arriba" if dif > 0 else "abajo"])
+            if len(obs) > 1:
+                lines.append(f"Mes anterior: {fmt(obs[1]['value'], dec)}{u}")
+            out.append((f"{rule['id']}:{cur['date']}", "\n".join(lines)
+                        + foot(lk("Fuente: BLS", rule.get("fuente")), lk("Ver en el Radar", site(rule.get("pagina", "/es/internacional"))))))
+        elif t == "fed_decision":
+            out += fed_decision(rule, extra)
+        elif t == "fed_prob":
+            # salto fuerte en la probabilidad de un movimiento de la Fed en su próxima reunión (no el día de una reunión)
+            for code, lab in (("fed_prob_subida", "una subida"), ("fed_prob_baja", "una baja")):
+                obs = data.get(code, [])
+                if len(obs) < 2:
+                    continue
+                if any(obs[1]["date"] <= d <= obs[0]["date"] for d in extra.get("fomc", [])):
+                    continue  # tras una reunión cambia la «próxima» reunión: el salto no es noticia
+                ch = float(obs[0]["value"]) - float(obs[1]["value"])
+                if abs(ch) >= rule.get("pp", 20):
+                    out.append((f"{rule['id']}:{code}:{obs[0]['date']}",
+                                f"🏦 **Fed: cambió lo que espera el mercado** · {fecha_txt(obs[0]['date'])}\n"
+                                f"Probabilidad de {lab} en la próxima reunión: **{fmt(obs[0]['value'], 0)}%** "
+                                f"(antes {fmt(obs[1]['value'], 0)}%, {arrow(ch)} {'+' if ch > 0 else ''}{fmt(ch, 0)} pp)"
+                                + foot(lk("Ver la Fed en el Radar", site("/es/internacional#fed")))))
+        elif t == "eeuu_agenda":
+            # en la mañana: lo que publica hoy EE.UU. (Fed, IPC, empleo) y qué grandes empresas del S&P 500 reportan
+            now = dt.datetime.now(VET)
+            hh, mm = map(int, rule["hora"].split(":"))
+            if now.weekday() >= 5 or now.hour * 60 + now.minute < hh * 60 + mm or now.hour >= 18:
+                continue
+            hoy = now.date().isoformat()
+            cal = [x for x in extra.get("calendario", []) if x.get("fecha") == hoy]
+            ern = [x for x in extra.get("earnings", []) if x.get("date") == hoy]
+            if not cal and not ern:
+                continue
+            lines = [f"🇺🇸 **Hoy en EE.UU.** · {fecha_txt(hoy)}"]
+            lines += [f"• {x.get('es') or x.get('en')}" for x in cal]
+            if ern:
+                lines.append("Resultados de las mayores empresas del S&P 500:")
+                cuando = {"pre": " · antes de la apertura", "post": " · después del cierre"}
+                lines += [f"• **{x.get('name') or x['symbol']}** ({x['symbol']}){cuando.get(x.get('time') or '', '')}"
+                          + (f" · BPA esperado {x['eps']}" if x.get("eps") else "") for x in ern]
+            out.append((f"{rule['id']}:{hoy}", "\n".join(lines) + foot(lk("Ver en el Radar", site("/es/internacional")))))
         elif t == "ofac":
             for a in extra.get("ofac", []):
                 out.append((f"{rule['id']}:{a['url'][-120:]}", rule["texto"].format(titulo=a["title"], fecha=fecha_txt(a["date"]), url="")
@@ -568,7 +715,7 @@ TEMAS = {
     "resumen": ("Resúmenes", "buenos días, cierre del día, de la semana y del mes"),
     "cambio": ("Dólar", "saltos del oficial y del alternativo, brecha, reservas e intervención"),
     "bvc": ("Bolsa de Caracas", "IBC, acciones con movimientos fuertes, noticias de emisores y asambleas"),
-    "eeuu": ("EE.UU. y la Fed", "IPC, empleo, comunicados y discursos de la Fed"),
+    "eeuu": ("EE.UU. y la Fed", "decisiones de la Fed y lo que espera el mercado, IPC y empleo frente al consenso, agenda del día y resultados de grandes empresas"),
     "petroleo": ("Petróleo", "Brent, WTI, gas, informe de la OPEP y exportaciones"),
     "materias": ("Materias primas", "oro, cobre, café, cacao, granos y otras"),
     "macro": ("Macro y deuda", "publicaciones del BCV, PIB, banca, riesgo país y OFAC"),
@@ -585,7 +732,7 @@ def tema_de(rule_id: str) -> str | None:
         return "cambio"
     if rid in ("ibc_salto", "accion_salto", "volumen_alto", "bvc_noticia", "bvc_asamblea", "bvc_lote", "sunaval"):
         return "bvc"
-    if rid in ("eeuu_ipc", "eeuu_empleo", "fed_comunicados"):
+    if rid.startswith(("eeuu_", "fed_")):
         return "eeuu"
     if rid in ("momr", "exportaciones", "brent_salto", "wti_salto", "gas_salto"):
         return "petroleo"
@@ -723,7 +870,7 @@ def run(daily: bool = False):
         today = today_caracas().isoformat()
         since30 = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=30)).isoformat()
         recent = [x for x in log_all if (x.get("sent_at") or "") >= since30]
-        TIMED = ("resumen_hora", "resumen_diario", "cierre_semana", "cierre_mes", "una_vez", "robots")
+        TIMED = ("resumen_hora", "resumen_diario", "cierre_semana", "cierre_mes", "una_vez", "robots", "eeuu_agenda")
         # BVC: movimientos fuertes, noticias de emisores y asambleas → un solo mensaje por corrida
         BVC_TYPES = ("acciones", "bvc_noticia", "bvc_asamblea")
         bvc_ids = {x["id"]: x["tipo"] for x in rules if x["tipo"] in BVC_TYPES}
