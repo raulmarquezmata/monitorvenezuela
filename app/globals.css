@@ -623,5 +623,5 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; } /* el iPhone no
   .intl-top .card-top h3 { font-size: 14px; }
   .intl-top .card-top .date, .intl-top .kpi-foot, .intl-top .stats .st:nth-child(n+2) { display: none; }
   .intl-top .big { font-size: 22px; margin: 6px 0 4px; }
-  .intl-top .big small { font-size: 12px; }
+  .intl-top .big small { display: block; margin: 2px 0 0; font-size: 12px; }
 }
