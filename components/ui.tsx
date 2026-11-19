@@ -10,6 +10,7 @@ import { isBsUnit } from "@/lib/money";
 import SeriesBody from "./SeriesBody";
 import { insight } from "@/lib/insight";
 import { dl } from "@/lib/dl";
+import { ChartToggle } from "./Fold";
 import type { Period } from "@/lib/stats";
 import type { Range } from "./Range";
 
@@ -60,6 +61,7 @@ export function SeriesCard({ s, points, lang, allowLog = false, bars = false, ar
         lang={lang} height={height} allowLog={allowLog} bars={bars} area={area} logDefault={logDefault} hiLo={hiLo} clip={clip}
         stats={stats && points.length > 2 ? { periods: defaultPeriods(s.frequency), pctUnit: s.unit_es === "%" } : undefined}
         labels={{ ...chartLabels(lang), noData: s.method !== "auto" ? `${d.noData} · ${d.method[s.method]}` : d.noData }} />
+      {points.length > 1 && <ChartToggle lang={lang} />}
       {note && <p className="muted" style={{ fontSize: 13, marginTop: 8 }}>{note}</p>}
       {extra}
       </CardScope>
