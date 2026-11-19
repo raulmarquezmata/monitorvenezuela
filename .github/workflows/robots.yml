@@ -44,7 +44,7 @@ jobs:
       - name: OCR y fuentes (informes de SUNAVAL y PDF por acción)
         if: ${{ !contains(github.event.schedule, ' 12 * * *') && !contains(github.event.schedule, ' 20 * * 1-5') && inputs.tarea != 'telegram' && inputs.tarea != 'frequent' }}
         continue-on-error: true
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq tesseract-ocr fonts-lato libpango-1.0-0 libpangoft2-1.0-0
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq tesseract-ocr ghostscript fonts-lato libpango-1.0-0 libpangoft2-1.0-0
       - run: pip install -r ingest/requirements.txt
       - name: Elegir tarea
         id: t
