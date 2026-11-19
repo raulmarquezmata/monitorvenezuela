@@ -115,20 +115,48 @@
       "texto": "💱 **Intervención cambiaria** · {nombre}\n**{valor} {unidad}** · {fecha}"
     },
     {
-      "id": "eeuu_ipc",
-      "tipo": "nuevo_dato",
-      "series": [
-        "eeuu_ipc_interanual"
-      ],
-      "texto": "🇺🇸 **Inflación de EE.UU. (IPC)** · {fecha}\nInteranual: **{valor}%**"
+      "id": "eeuu_ipc_consenso",
+      "tipo": "consenso",
+      "series": ["eeuu_ipc_publicado"],
+      "esperado": "eeuu_ipc_esperado",
+      "nombre": "Inflación de EE.UU. (IPC interanual)",
+      "unidad": "%",
+      "unidad_dif": " pp",
+      "dec": 1,
+      "fuente": "https://www.bls.gov/cpi/",
+      "pagina": "/es/internacional",
+      "lectura": {"arriba": "Más inflación de la esperada: presiona a la Fed a mantener o subir tasas.", "abajo": "Menos inflación de la esperada: le da margen a la Fed para no subir tasas."}
     },
     {
-      "id": "eeuu_empleo",
-      "tipo": "nuevo_dato",
-      "series": [
-        "eeuu_nomina_no_agricola"
-      ],
-      "texto": "🇺🇸 **Empleo de EE.UU. (nómina no agrícola)** · {fecha}\n**{valor} mil** empleos en el mes"
+      "id": "eeuu_nfp_consenso",
+      "tipo": "consenso",
+      "series": ["eeuu_nfp_publicado"],
+      "esperado": "eeuu_nfp_esperado",
+      "nombre": "Empleo de EE.UU. (nómina no agrícola)",
+      "unidad": " mil empleos",
+      "unidad_dif": " mil",
+      "dec": 0,
+      "fuente": "https://www.bls.gov/ces/",
+      "pagina": "/es/internacional",
+      "lectura": {"arriba": "Más empleo del esperado: economía fuerte, menos razones para bajar tasas.", "abajo": "Menos empleo del esperado: señal de enfriamiento de la economía."}
+    },
+    {
+      "id": "fed_decision",
+      "tipo": "fed_decision",
+      "_nota": "Decisión de tasas del FOMC leída del comunicado oficial, con la probabilidad que daba el mercado"
+    },
+    {
+      "id": "fed_prob",
+      "tipo": "fed_prob",
+      "series": ["fed_prob_subida", "fed_prob_baja"],
+      "pp": 20,
+      "_nota": "Avisa si la probabilidad de subida o de baja en la próxima reunión cambia 20 puntos o más de un día a otro"
+    },
+    {
+      "id": "eeuu_agenda",
+      "tipo": "eeuu_agenda",
+      "hora": "08:15",
+      "_nota": "En la mañana (días hábiles): lo que publica hoy EE.UU. (Fed, IPC, empleo) y qué grandes empresas del S&P 500 reportan"
     },
     {
       "id": "fed_comunicados",
@@ -139,6 +167,7 @@
         {"nombre": "Discurso", "url": "https://www.federalreserve.gov/feeds/speeches.xml"},
         {"nombre": "Comparecencia", "url": "https://www.federalreserve.gov/feeds/testimony.xml"}
       ],
+      "excluir": "FOMC statement",
       "texto": "🏛️ **Fed · {tipo}**\n{titulo}"
     },
     {
