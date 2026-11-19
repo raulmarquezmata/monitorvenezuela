@@ -513,3 +513,65 @@ ul.agenda .d { min-width: 92px; color: var(--text-3); text-transform: capitalize
 .informe-share { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 32px; align-items: start; }
 .informe-share .portada img { width: 100%; border-radius: var(--radius); box-shadow: 0 8px 24px rgba(0, 0, 0, .18); display: block; }
 @media (max-width: 760px) { .informe-share { grid-template-columns: 1fr; } .informe-share .portada { max-width: 220px; } }
+
+/* ================= Teléfono y app (≤ 900 px): menú ☰, barra inferior y espacios más compactos ================= */
+.burger, .tabbar, .drawer, .drawer-bg { display: none; }
+@media (max-width: 900px) {
+  .top { position: sticky; top: 0; z-index: 40; padding-top: env(safe-area-inset-top); }
+  .top .wrap { flex-wrap: nowrap; gap: 10px; min-height: 54px; padding-top: 0; padding-bottom: 0; }
+  .top .mainnav { display: none; }
+  .brand { gap: 9px; }
+  .brand-app { font-size: 13px; letter-spacing: .1em; }
+  .top .seg > * { padding: 6px 9px; }
+  .burger { display: inline-flex; flex-direction: column; justify-content: center; gap: 4px; width: 40px; height: 40px; padding: 0 10px; margin-right: -8px;
+    background: none; border: 0; cursor: pointer; color: var(--text); }
+  .burger span { display: block; height: 2px; border-radius: 2px; background: currentColor; }
+  .drawer-bg { display: block; position: fixed; inset: 0; z-index: 60; background: rgba(0, 0, 0, .45); }
+  .drawer { display: block; position: fixed; top: 0; right: 0; bottom: 0; z-index: 61; width: min(88vw, 380px); overflow-y: auto; overscroll-behavior: contain;
+    background: var(--bg); border-left: 1px solid var(--line); transform: translateX(100%); transition: transform .22s ease; visibility: hidden;
+    padding: env(safe-area-inset-top) 0 calc(24px + env(safe-area-inset-bottom)); }
+  .drawer.open { transform: none; visibility: visible; }
+  html.drawer-open, html.drawer-open body { overflow: hidden; }
+  html.drawer-open .top { z-index: 70; }
+  .drawer-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--line); }
+  .drawer-x { width: 40px; height: 40px; margin-right: -10px; background: none; border: 0; font-size: 18px; color: var(--text-2); cursor: pointer; }
+  .dsec { border-bottom: 1px solid var(--line); }
+  .dsec-t { display: flex; width: 100%; justify-content: space-between; align-items: center; padding: 15px 18px; background: none; border: 0; font: inherit;
+    font-size: 16px; font-weight: 600; color: var(--text); text-decoration: none; text-align: left; cursor: pointer; }
+  .dsec-t span { font-size: 20px; color: var(--text-3); line-height: 1; }
+  .dsec.on > .dsec-t { color: var(--accent); }
+  .dsec-b { padding: 0 8px 10px; }
+  .dsec-b a { display: block; padding: 10px 12px; border-radius: var(--radius); text-decoration: none; color: var(--text); }
+  .dsec-b a:active { background: var(--surface); }
+  .dsec-b a b { display: block; font-size: 15px; font-weight: 500; }
+  .dsec-b a small { display: block; font-size: 12.5px; color: var(--text-3); margin-top: 1px; line-height: 1.35; }
+
+  .tabbar { display: grid; grid-template-columns: repeat(5, 1fr); position: fixed; left: 0; right: 0; bottom: 0; z-index: 45;
+    background: var(--bg); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom); }
+  .tabbar a { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 7px 2px 6px; font-size: 11px; color: var(--text-3); text-decoration: none; }
+  .tabbar svg { width: 23px; height: 23px; }
+  .tabbar a.on { color: var(--accent); font-weight: 600; }
+  body { padding-bottom: calc(60px + env(safe-area-inset-bottom)); }
+
+  .statusbar .wrap { min-height: 34px; font-size: 12.5px; }
+  main { padding: 20px 0 40px; }
+  h1 { font-size: 24px; line-height: 1.25; }
+  .sub { font-size: 15px; margin-bottom: 18px; }
+  .section { margin-top: 28px; }
+  .grid { gap: 14px; }
+  .ranges button, .seg > *, .seg button { min-height: 34px; }
+  .card-controls { flex-wrap: wrap; row-gap: 8px; }
+  .tbl-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table.compact { display: block; overflow-x: auto; }
+  footer { font-size: 13px; }
+}
+@media (max-width: 620px) {
+  .wrap { padding: 0 14px; }
+  .card { padding: 16px; }
+  .big, .g4 .big { font-size: 30px; margin: 10px 0 8px; }
+  .ticker-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ticker-strip > a { padding: 12px 14px; }
+  .clave-grid { padding: 14px 16px 16px; gap: 16px; }
+  .section-head { flex-wrap: wrap; }
+  ul.agenda .d { min-width: 74px; }
+}
