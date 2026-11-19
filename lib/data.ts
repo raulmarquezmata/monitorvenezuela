@@ -86,6 +86,21 @@ async function history_(codes: string[], sinceYears = 12): Promise<Record<string
   ]);
   const out: Record<string, Point[]> = Object.fromEntries(codes.map((c) => [c, []]));
   for (const part of [...longs, tail]) for (const [c, pts] of Object.entries(part)) out[c]?.push(...pts);
+  for (const c of Object.keys(out)) out[c] = weeklyBefore(out[c], 3);
+  return out;
+}
+
+/** Puntos diarios de hace más de `years` años → uno por semana (el último de cada semana). */
+function weeklyBefore(pts: Point[], years: number): Point[] {
+  if (pts.length < 600) return pts;
+  const cut = new Date(Date.now() - years * 365.25 * 864e5).toISOString().slice(0, 10);
+  const out: Point[] = [];
+  let wk = -1;
+  for (const p of pts) {
+    if (p[0] >= cut) { out.push(p); continue; }
+    const w = Math.floor((Date.parse(`${p[0]}T12:00:00Z`) / 864e5 + 3) / 7);
+    if (w === wk) out[out.length - 1] = p; else { out.push(p); wk = w; }
+  }
   return out;
 }
 

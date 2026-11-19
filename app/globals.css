@@ -588,3 +588,40 @@ td, th { overflow-wrap: normal; word-break: normal; }
   select, input { max-width: 100%; }
 }
 @media (max-width: 620px) { .m-hide { display: none; } }
+
+/* ================= Teléfono: lo esencial a la vista, lo demás plegable ================= */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; } /* el iPhone no agranda las líneas largas */
+.mfold-h, .clamp-btn, .chart-toggle { display: none; }
+@media (max-width: 620px) {
+  .mfold-h { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; text-align: left;
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); color: var(--text); font: inherit; cursor: pointer; }
+  .mfold-h b { display: block; font-size: 16px; font-weight: 600; }
+  .mfold-h small { display: block; font-size: 13px; color: var(--text-2); margin-top: 2px; }
+  .mfold-h i { font-style: normal; font-size: 22px; color: var(--text-3); line-height: 1; }
+  .mfold.open .mfold-h { border-bottom-left-radius: 0; border-bottom-right-radius: 0; border-color: var(--accent); }
+  .mfold:not(.open) .mfold-b { display: none; }
+  .mfold.open .mfold-b { padding-top: 12px; }
+  .section:has(> .mfold) { margin-top: 10px; }
+  .section.split:has(.mfold) { gap: 10px; }
+  .mfold-b > .section-head .label { display: none; }
+  .mfold-b > .section-head { justify-content: flex-end; margin-bottom: 8px; }
+
+  .clamp-btn { display: inline-block; margin-top: 6px; padding: 6px 0; background: none; border: 0; color: var(--accent); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .clamp:not(.open) li:nth-child(n+3) { display: none; }
+  .clave-grid .hl { display: none; }
+  .home .ticker { display: none; }
+
+  .chart-toggle { display: inline-block; margin-top: 10px; padding: 8px 12px; background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--radius);
+    color: var(--text); font: inherit; font-size: 14px; cursor: pointer; }
+  .card:has(.chart-toggle):not(.show-chart) :is(.card-controls, .lc) { display: none; }
+  .mfold { margin-bottom: 10px; }
+  .section:has(> .mfold) + .section:has(> .mfold) { margin-top: 0; }
+
+  /* Mundo: bolsas y activos en dos columnas, solo cifra y variación del día (la tarjeta abre el gráfico completo) */
+  .intl-top { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 10px; }
+  .intl-top > .card { padding: 12px; }
+  .intl-top .card-top h3 { font-size: 14px; }
+  .intl-top .card-top .date, .intl-top .kpi-foot, .intl-top .stats .st:nth-child(n+2) { display: none; }
+  .intl-top .big { font-size: 22px; margin: 6px 0 4px; }
+  .intl-top .big small { display: block; margin: 2px 0 0; font-size: 12px; }
+}

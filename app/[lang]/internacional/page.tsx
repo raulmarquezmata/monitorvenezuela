@@ -1,6 +1,7 @@
 import Link from "next/link";
 import MarketMap, { Movers } from "@/components/MarketMap";
 import { Kpi, NotConfigured, SectionHead, SeriesCard } from "@/components/ui";
+import { Fold } from "@/components/Fold";
 import Agenda, { type Item as AgendaItem } from "@/components/Agenda";
 import { FedNextCard, FedRateCard, FedTable, NfpCard, fedChanges } from "@/components/FedCards";
 import { configured, earningsCal, fedMarket, history, latest, sp500Map } from "@/lib/data";
@@ -51,11 +52,11 @@ export default async function Internacional({ params }: { params: { lang: Lang }
         <Link prefetch={false} className="btn" href={`/${lang}/noticias?cat=global`}>{es ? "Noticias de mercados globales →" : "Global markets news →"}</Link>
       </div>
 
-      <div className="grid g4">{TOP.filter((c) => by[c]).map((c) => <Kpi key={c} s={by[c]} points={hist[c] ?? []} lang={lang} periods={["1D", "1W", "YTD"]} href={`/${lang}/internacional/graficos#${c}`} />)}</div>
+      <div className="grid g4 intl-top">{TOP.filter((c) => by[c]).map((c) => <Kpi key={c} s={by[c]} points={hist[c] ?? []} lang={lang} periods={["1D", "1W", "YTD"]} href={`/${lang}/internacional/graficos#${c}`} />)}</div>
       <p className="muted" style={{ fontSize: 13, marginTop: 10 }}>{es ? "Toque cualquier tarjeta para ver su gráfico con toda la historia (desde 2016)." : "Tap any card to see its full-history chart (since 2016)."} <Link prefetch={false} href={`/${lang}/internacional/graficos`}>{es ? "Ver todos los gráficos →" : "See all charts →"}</Link></p>
 
       {map?.rows?.length ? (
-        <section className="section" id="mapa">
+        <section className="section" id="mapa"><Fold anchor="mapa" title={es ? "Mapa del S&P 500" : "S&P 500 map"} hint={es ? "Rendimiento por sector y mayores alzas y caídas" : "Return by sector, top gainers and losers"}>
           <SectionHead label={es ? "Mapa del S&P 500 por sector" : "S&P 500 map by sector"} />
           <div className="card">
             <p className="muted" style={{ fontSize: 13, margin: "0 0 10px" }}>{es
@@ -67,7 +68,7 @@ export default async function Internacional({ params }: { params: { lang: Lang }
             <div className="card-top"><h3>{es ? "Mayores alzas y caídas del S&P 500" : "S&P 500 top gainers and losers"}</h3></div>
             <Movers rows={map.rows} lang={lang} />
           </div>
-        </section>
+        </Fold></section>
       ) : null}
 
       {(USA.some(has) || FED.some(has)) && (() => {
@@ -77,7 +78,10 @@ export default async function Internacional({ params }: { params: { lang: Lang }
           es: `Resultados de ${e.name} (${e.symbol})${e.time === "pre" ? ", antes de la apertura" : e.time === "post" ? ", tras el cierre" : ""}`,
           en: `${e.name} (${e.symbol}) earnings${e.time === "pre" ? ", before the open" : e.time === "post" ? ", after the close" : ""}` }));
         return (
-        <section className="section" id="fed">
+        <section className="section" id="fed"><Fold anchor="fed" title={es ? "EE.UU.: inflación, empleo y la Fed" : "US: inflation, jobs and the Fed"}
+          hint={[has("eeuu_ipc_interanual") && `${es ? "IPC" : "CPI"} ${num(hist.eeuu_ipc_interanual?.at(-1)?.[1], lang, 1)}%`,
+            has("eeuu_desempleo") && `${es ? "desempleo" : "unemployment"} ${num(hist.eeuu_desempleo?.at(-1)?.[1], lang, 1)}%`,
+            next && `Fed ${dateTime(`${next.date}T12:00:00Z`, lang).split(",")[0]}: ${es ? "subir" : "hike"} ${num(next.hike, lang, 0)}%`].filter(Boolean).join(" · ")}>
           <SectionHead label={es ? "EE.UU.: inflación, empleo y la Fed" : "US: inflation, jobs and the Fed"} />
           <div className="grid g3">
             {USA.filter((c) => by[c] && has(c)).map((c) => (
@@ -115,12 +119,13 @@ export default async function Internacional({ params }: { params: { lang: Lang }
                 </div>} />}
             </div>
           </details>
-        </section>
+        </Fold></section>
         );
       })()}
 
       {RATES.some(has) && (
-        <section className="section" id="tesoro">
+        <section className="section" id="tesoro"><Fold anchor="tesoro" title={es ? "Tasas del Tesoro de EE.UU." : "US Treasury yields"}
+          hint={has("ust_10a") ? `${es ? "10 años" : "10-year"} ${num(hist.ust_10a?.at(-1)?.[1], lang, 2)}%${has("ust_2a") ? ` · ${es ? "2 años" : "2-year"} ${num(hist.ust_2a?.at(-1)?.[1], lang, 2)}%` : ""}` : undefined}>
           <SectionHead label={es ? "Tasas del Tesoro de EE.UU." : "US Treasury yields"} />
           <div className="card split">
             <div>
@@ -144,7 +149,7 @@ export default async function Internacional({ params }: { params: { lang: Lang }
               </svg>
             </div>
           </div>
-        </section>
+        </Fold></section>
       )}
 
       <section className="section">

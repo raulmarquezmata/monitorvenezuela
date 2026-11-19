@@ -2,6 +2,7 @@
 import { CardControls, CardScope } from "./CardScope";
 import { Stats } from "./Kpi";
 import LineChart from "./LineChart";
+import { ChartToggle } from "./Fold";
 import type { Range } from "./Range";
 import type { Period } from "@/lib/stats";
 
@@ -25,6 +26,7 @@ export default function ChartCard({ title, date, series, lang, unit, decimals = 
         <CardControls lang={lang} ranges={ranges} rangeLabels={rangeLabels} />
         <LineChart series={series} lang={lang} unit={unit} decimals={decimals} height={height} allowLog={allowLog} logDefault={logDefault}
           area={area} bars={bars} labels={labels} gap={gap} clip={clip} />
+        <ChartToggle lang={lang} />
         {footer}
       </CardScope>
     </div>

@@ -10,6 +10,7 @@ import { isBsUnit } from "@/lib/money";
 import SeriesBody from "./SeriesBody";
 import { insight } from "@/lib/insight";
 import { dl } from "@/lib/dl";
+import { ChartToggle } from "./Fold";
 import type { Period } from "@/lib/stats";
 import type { Range } from "./Range";
 
@@ -27,7 +28,9 @@ export function Kpi({ s, points, lang, href, periods, extra, name }: { s?: Lates
   if (!s) return null;
   const d = t(lang);
   const m = kpiMeta(s, lang, href);
-  return <KpiCard m={name ? { ...m, name } : m} points={points} lang={lang} noData={d.noData} rangeLabels={d.range} periods={periods} extra={extra} />;
+  const cut = new Date(Date.now() - 3 * 365 * 864e5).toISOString().slice(0, 10);
+  const pts = points.length > 400 ? points.filter((p) => p[0] >= cut) : points;
+  return <KpiCard m={name ? { ...m, name } : m} points={pts} lang={lang} noData={d.noData} rangeLabels={d.range} periods={periods} extra={extra} />;
 }
 
 /** Rango inicial según la frecuencia: diarias 3M, semanales y mensuales 1A, trimestrales y anuales todo. */
@@ -60,6 +63,7 @@ export function SeriesCard({ s, points, lang, allowLog = false, bars = false, ar
         lang={lang} height={height} allowLog={allowLog} bars={bars} area={area} logDefault={logDefault} hiLo={hiLo} clip={clip}
         stats={stats && points.length > 2 ? { periods: defaultPeriods(s.frequency), pctUnit: s.unit_es === "%" } : undefined}
         labels={{ ...chartLabels(lang), noData: s.method !== "auto" ? `${d.noData} · ${d.method[s.method]}` : d.noData }} />
+      {points.length > 1 && <ChartToggle lang={lang} />}
       {note && <p className="muted" style={{ fontSize: 13, marginTop: 8 }}>{note}</p>}
       {extra}
       </CardScope>
