@@ -614,4 +614,14 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; } /* el iPhone no
   .chart-toggle { display: inline-block; margin-top: 10px; padding: 8px 12px; background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--radius);
     color: var(--text); font: inherit; font-size: 14px; cursor: pointer; }
   .card:has(.chart-toggle):not(.show-chart) :is(.card-controls, .lc) { display: none; }
+  .mfold { margin-bottom: 10px; }
+  .section:has(> .mfold) + .section:has(> .mfold) { margin-top: 0; }
+
+  /* Mundo: bolsas y activos en dos columnas, solo cifra y variación del día (la tarjeta abre el gráfico completo) */
+  .intl-top { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 10px; }
+  .intl-top > .card { padding: 12px; }
+  .intl-top .card-top h3 { font-size: 14px; }
+  .intl-top .card-top .date, .intl-top .kpi-foot, .intl-top .stats .st:nth-child(n+2) { display: none; }
+  .intl-top .big { font-size: 22px; margin: 6px 0 4px; }
+  .intl-top .big small { font-size: 12px; }
 }
