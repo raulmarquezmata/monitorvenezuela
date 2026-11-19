@@ -34,12 +34,12 @@ export default function QuoteTable({ rows, lang, labels, showCap = true, initial
   return (
     <div className="tbl-wrap">
       <table>
-        <thead><tr>{th("symbol", labels.symbol)}<th className="l">{labels.company}</th>{th("close", rate ? labels.price.replace("Bs", "US$") : labels.price)}{th("var_pct", labels.change)}{th("volume", labels.volume)}{th("amount", rate ? labels.amount.replace("Bs", "US$") : labels.amount)}{showCap && th("market_cap_bs", `${labels.mcap} (${rate ? "US$" : "Bs"})`)}</tr></thead>
+        <thead><tr>{th("symbol", labels.symbol)}<th className="l m-hide">{labels.company}</th>{th("close", rate ? labels.price.replace("Bs", "US$") : labels.price)}{th("var_pct", labels.change)}{th("volume", labels.volume)}{th("amount", rate ? labels.amount.replace("Bs", "US$") : labels.amount)}{showCap && th("market_cap_bs", `${labels.mcap} (${rate ? "US$" : "Bs"})`)}</tr></thead>
         <tbody>
           {sorted.map((q) => (
             <tr key={q.symbol} className="row-link" onClick={(e) => { if (!(e.target as HTMLElement).closest("a")) router.push(`/${lang}/bvc/${q.symbol}`); }}>
               <td><Link prefetch={false} href={`/${lang}/bvc/${q.symbol}`}>{q.symbol}</Link></td>
-              <td className="l" style={{ maxWidth: 260, overflow: "hidden", textOverflow: "ellipsis" }}>{prettyName(q.company ?? q.name)}</td>
+              <td className="l m-hide" style={{ maxWidth: 260, overflow: "hidden", textOverflow: "ellipsis" }}>{prettyName(q.company ?? q.name)}</td>
               <td>{f(q.close == null ? null : q.close * k, rate ? 4 : 2)}</td>
               <td className={q.var_pct == null ? "" : q.var_pct > 0 ? "up" : q.var_pct < 0 ? "down" : "flat"}>{q.var_pct == null ? "—" : `${q.var_pct > 0 ? "+" : ""}${f(q.var_pct)}%`}</td>
               <td>{f(q.volume, 0)}</td>
