@@ -122,7 +122,7 @@ export default function LineChart({
   };
 
   return (
-    <div ref={box}>
+    <div ref={box} className="lc">
       {hasData && (
         <div className="chart-tools">
           {data.length > 1 && <div className="legend">{data.map((s) => <span key={s.name}><i className="swatch" style={{ background: s.color }} />{s.name}</span>)}</div>}
