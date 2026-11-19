@@ -135,7 +135,7 @@ export default async function Internacional({ params }: { params: { lang: Lang }
             <div>
               <div className="card-top"><h3>{es ? "Curva de rendimientos" : "Yield curve"}</h3></div>
               <div className="legend" style={{ marginTop: 6 }}>{curves.map((c) => <span key={c.name}><i className="swatch" style={{ background: c.c }} />{c.name}</span>)}</div>
-              <svg viewBox={`0 0 ${CW} ${CH}`} style={{ width: "100%", height: "auto" }}>
+              <svg className="ycurve" viewBox={`0 0 ${CW} ${CH}`} style={{ width: "100%", height: "auto" }}>
                 {[lo, (lo + hi) / 2, hi].map((v) => <g key={v} className="axis"><line className="gridline" x1={56} x2={CW - 10} y1={Y(v)} y2={Y(v)} stroke="var(--grid)" strokeDasharray="2 3" /><text x={50} y={Y(v) + 4} textAnchor="end" fontSize={11} fill="var(--text-3)">{num(v, lang, 2)}%</text></g>)}
                 {labelsY.map((l, i) => <text key={l} className="axis" x={X(i)} y={CH - 8} textAnchor="middle" fontSize={11} fill="var(--text-3)">{l}</text>)}
                 {curves.map((c) => { const pts = c.v.map((v, i) => (v == null ? null : [X(i), Y(v)])).filter(Boolean) as number[][]; return pts.length > 1 && (
