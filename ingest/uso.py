@@ -1,7 +1,8 @@
 """Vigilancia del consumo de los planes gratuitos.
 
 - Supabase: tamaño de la base de datos (límite 500 MB) y de Storage (límite 1 GB), con la función uso_plan().
-Si algo pasa del 70 %, avisa por correo (ALERT_EMAILS) y, si existe TELEGRAM_ADMIN_CHAT, por Telegram privado.
+Si algo pasa del 70 %, avisa por correo (ALERT_EMAILS) y, si hay chat de administrador
+(secreto TELEGRAM_ADMIN_CHAT_ID o app_state «tg_admin»), por Telegram privado.
 Guarda la última medición en app_state (clave «uso_plan»).
 """
 from __future__ import annotations
@@ -31,7 +32,11 @@ def avisar(texto: str, r: Run) -> None:
         send_email(texto)
     except Exception as e:  # noqa: BLE001
         r.log.info("Correo: %s", e)
-    chat = os.environ.get("TELEGRAM_ADMIN_CHAT")
+    chat = os.environ.get("TELEGRAM_ADMIN_CHAT_ID") or os.environ.get("TELEGRAM_ADMIN_CHAT")
+    if not chat:  # o el chat privado guardado en app_state (clave «tg_admin»)
+        from .common import select
+        st = select("app_state", {"select": "valor", "clave": "eq.tg_admin"})
+        chat = st[0]["valor"] if st else None
     if chat:
         tg("sendMessage", chat_id=chat.strip(), text=texto)
 
