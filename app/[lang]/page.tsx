@@ -5,6 +5,7 @@ import Downloads from "@/components/Downloads";
 import NewsTicker from "@/components/NewsTicker";
 import Agenda from "@/components/Agenda";
 import { chartLabels, Kpi, NotConfigured, SectionHead } from "@/components/ui";
+import { Clamp, Fold } from "@/components/Fold";
 import { botUser, bvcLatest, configured, fedMarket, history, latest, news } from "@/lib/data";
 import { num, pct, fmtDateFor } from "@/lib/format";
 import { prettyName } from "@/lib/names";
@@ -84,9 +85,19 @@ export default async function Home({ params }: { params: { lang: Lang } }) {
       sub: next && fedTop ? `${new Intl.DateTimeFormat(es ? "es-VE" : "en-US", { day: "numeric", month: "short", timeZone: "UTC" }).format(new Date(`${next.date}T12:00:00Z`)).replace(".", "")}: ${fedTop.l} ${num(fedTop.v, lang, 0)}%` : undefined },
   ];
 
+  // ---- Teléfono: cada bloque plegado muestra un dato para saber si vale la pena abrirlo
+  const chg = (c: string) => { const v = day(c); return v == null ? "" : ` ${v >= 0 ? "▲" : "▼"} ${pct(Math.abs(v), lang, 2, false)}`; };
+  const hints = {
+    kpi: [by.usd_paralelo?.last_value != null && `${es ? "Alternativo" : "Alternative"} Bs ${num(by.usd_paralelo.last_value, lang, 2)}`,
+      by.inflacion_mensual?.last_value != null && `${es ? "inflación" : "inflation"} ${num(by.inflacion_mensual.last_value, lang, 1)}%`,
+      by.merey?.last_value != null && `Merey US$ ${num(by.merey.last_value, lang, 2)}`].filter(Boolean).join(" · "),
+    intl: [by.sp500 && `S&P 500${chg("sp500")}`, by.oro_diario && `${es ? "oro" : "gold"}${chg("oro_diario")}`, by.bitcoin && `bitcoin${chg("bitcoin")}`].filter(Boolean).join(" · "),
+    bvc: `IBC ${num(ibc?.last_value, lang, 2)}${chg("ibc")}`,
+    news: es ? `${headlines.length} titulares${headlines[0] ? ` · último ${time(headlines[0].published_at)}` : ""}` : `${headlines.length} headlines${headlines[0] ? ` · latest ${time(headlines[0].published_at)}` : ""}`,
+  };
   const ticker = groupNews(items.filter((n) => n.category !== "global")).slice(0, 18).map((n) => ({ t: n.title, url: n.url, s: n.source ?? "" }));
   return (
-    <>
+    <div className="home">
       {ticker.length > 0 && <NewsTicker items={ticker} label={es ? "Última hora" : "Latest"} />}
       <section className="section">
         <SectionHead label={es ? "Lo clave hoy" : "Key today"} />
@@ -101,14 +112,15 @@ export default async function Home({ params }: { params: { lang: Lang } }) {
             ))}
           </div>
           <div className="clave-grid">
-            <div><h4>{es ? "Qué pasó hoy" : "What happened today"}</h4><ul>{lines.map((l) => <li key={l}>{l}</li>)}</ul></div>
+            <div><h4>{es ? "Qué pasó hoy" : "What happened today"}</h4>
+              <Clamp more={es ? "Ver más ▾" : "More ▾"} less={es ? "Ver menos ▴" : "Less ▴"}><ul>{lines.map((l) => <li key={l}>{l}</li>)}</ul></Clamp></div>
             <div className="hl"><h4>{es ? "Tres noticias del día" : "Three stories today"}</h4>
               {headlines.slice(0, 3).map((n) => <a key={n.id} href={n.url} target="_blank" rel="noreferrer">{n.title}<small>{n.source} · {time(n.published_at)}</small></a>)}</div>
           </div>
         </div>
       </section>
 
-      <section className="section">
+      <section className="section"><Fold title={d.keyIndicators} hint={hints.kpi}>
         <SectionHead label={d.keyIndicators} href={`/${lang}/indicadores/cambiario`} more={d.seeMacro} />
         <div className="grid g3">
           {KPIS.map((c) => {
@@ -120,10 +132,10 @@ export default async function Home({ params }: { params: { lang: Lang } }) {
             return <Kpi key={c} s={by[c]} points={hist[c] ?? []} lang={lang} href={href(c)} extra={extra} />;
           })}
         </div>
-      </section>
+      </Fold></section>
 
       {INTL.some((c) => by[c]?.last_value != null) && (
-        <section className="section">
+        <section className="section"><Fold title={d.nav.intl} hint={hints.intl}>
           <SectionHead label={d.nav.intl} href={`/${lang}/internacional`} more={es ? "Ver mercados" : "See markets"} />
           <div className="card" style={{ padding: 0 }}>
             <div className="ticker-strip">
@@ -140,11 +152,11 @@ export default async function Home({ params }: { params: { lang: Lang } }) {
               })}
             </div>
           </div>
-        </section>
+        </Fold></section>
       )}
 
       <section className="section grid split">
-        <div>
+        <div><Fold title={d.bvcSection} hint={hints.bvc}>
           <SectionHead label={d.bvcSection} href={`/${lang}/bvc`} more={d.seeMarket} />
           <ChartCard lang={lang} title={es ? "Índice IBC" : "IBC index"} date={ibc?.last_date ? fmtDateFor(ibc.last_date, "D", lang) : ""}
             series={[{ name: "IBC", points: ibcPts }]} unit="pts" height={190} area labels={chartLabels(lang)} rangeLabels={d.range}
@@ -161,8 +173,8 @@ export default async function Home({ params }: { params: { lang: Lang } }) {
               {num(ibc?.last_value, lang, 2)}<small style={{ marginLeft: 0 }}>pts</small>
             </div>
           </ChartCard>
-        </div>
-        <div>
+        </Fold></div>
+        <div><Fold title={d.headlines} hint={hints.news}>
           <SectionHead label={d.headlines} href={`/${lang}/noticias`} more={d.allHeadlines} />
           <ul className="headlines">
             {headlines.map((n) => (
@@ -174,10 +186,10 @@ export default async function Home({ params }: { params: { lang: Lang } }) {
             ))}
             {!items.length && <li className="muted">{d.noData}</li>}
           </ul>
-        </div>
+        </Fold></div>
       </section>
 
-      <section className="section">
+      <section className="section"><Fold title={es ? "Informes, agenda y descargas" : "Reports, calendar and downloads"} hint={es ? "Informes del día, próximas fechas y avisos por Telegram" : "Today's reports, upcoming dates and Telegram alerts"}>
         <SectionHead label={es ? "Informes y descargas" : "Reports and downloads"} href={`/${lang}/informes`} more={es ? "Ver todos los informes" : "See all reports"} />
         <div className="grid home-dl">
           <Downloads lang={lang} compact />
@@ -194,14 +206,14 @@ export default async function Home({ params }: { params: { lang: Lang } }) {
             )}
           </div>
         </div>
-      </section>
+      </Fold></section>
 
-      <section className="section">
+      <section className="section"><Fold title={es ? "Conversor Bs / US$ / €" : "Bs / US$ / € converter"} hint={es ? "A la tasa oficial y a la alternativa" : "At the official and alternative rates"}>
         <SectionHead label={es ? "Conversor Bs / US$ / €" : "Bs / US$ / € converter"} href={`/${lang}/herramientas`} more={es ? "Calculadoras de inflación" : "Inflation calculators"} />
         <div>
           <Calculator only="fx" lang={lang} fx={{ usd_bcv: calc.usd_bcv ?? [], usd_paralelo: calc.usd_paralelo ?? [], eur_bcv: calc.eur_bcv ?? [] }} inflation={calc.inflacion_mensual ?? []} usCpi={calc.ipc_eeuu ?? []} />
         </div>
-      </section>
-    </>
+      </Fold></section>
+    </div>
   );
 }
