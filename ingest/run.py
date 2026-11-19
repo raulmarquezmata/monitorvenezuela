@@ -12,7 +12,7 @@ from __future__ import annotations
 import signal
 import sys
 
-from . import (agro, alerts, bancos_muestra, banking, census, embi, emisores, futures, bcv_stats, bonds, bvc, catalog, commodities, eeuu, events, fx, inflation, uso,
+from . import (agro, alerts, bancos_muestra, banking, census, embi, emisores, futures, bcv_stats, bonds, bvc, catalog, commodities, comprimir, eeuu, events, fx, inflation, uso,
                global_mkts, informes, manual, watchdog, news, ofac, oil, opec, press, reportes, sudeban, sunaval, trade)
 from .common import DRY_RUN, log
 
@@ -20,7 +20,7 @@ JOBS = {
     "catalog": catalog.run, "fx": fx.run, "fx_hist": fx.run_history, "bvc": bvc.run, "bvc_full": lambda: bvc.run(full=True), "news": news.run,
     "bcv_stats": bcv_stats.run, "inflation": inflation.run, "press": press.run, "banking": banking.run,
     "opec": opec.run, "sunaval": sunaval.run, "oil": oil.run, "ofac": ofac.run, "events": events.run,
-    "manual": manual.run, "bonds": bonds.run, "eeuu": eeuu.run, "eeuu_hist": lambda: eeuu.run(force=True), "uso": uso.run, "bonos_frankfurt": bonds.run_frankfurt, "bonos_frankfurt_hist": lambda: bonds.run_frankfurt(force=True), "trade": trade.run, "agro": agro.run, "commodities": commodities.run,
+    "manual": manual.run, "bonds": bonds.run, "eeuu": eeuu.run, "eeuu_hist": lambda: eeuu.run(force=True), "uso": uso.run, "comprimir": comprimir.run, "bonos_frankfurt": bonds.run_frankfurt, "bonos_frankfurt_hist": lambda: bonds.run_frankfurt(force=True), "trade": trade.run, "agro": agro.run, "commodities": commodities.run,
     "sudeban": sudeban.run, "bancos_muestra": bancos_muestra.run, "census": census.run, "trade_mensual": trade.run_monthly, "agro_usda": agro.run_usda, "futuros": futures.run, "ipc": fx.run_cpi, "embi": embi.run, "opec_local": lambda: opec.run(local_only=True), "alerts": alerts.run, "emisores": emisores.run, "reportes": reportes.run, "cierre_pdf": reportes.run_daily, "semanal": reportes.run_weekly, "global": global_mkts.run, "vigilante": watchdog.run, "informes": informes.run, "alerts_daily": lambda: alerts.run(daily=True),
 }
 GROUPS = {
@@ -28,10 +28,10 @@ GROUPS = {
     "telegram": ["fx", "bvc", "alerts", "cierre_pdf"],  # corrida corta para el buenos días y el cierre
     # publicaciones oficiales: cada 2 horas en días hábiles, para cargarlas y avisar apenas salgan
     "oficial": ["bcv_stats", "inflation", "press", "banking", "opec", "sunaval", "embi", "oil", "emisores", "informes", "alerts", "vigilante"],
-    "daily": ["catalog", "fx", "bvc_full", "reportes", "emisores", "informes", "bcv_stats", "inflation", "press", "banking", "opec", "sunaval", "oil", "embi", "trade_mensual", "ipc", "agro_usda",
+    "daily": ["catalog", "fx", "bvc_full", "reportes", "emisores", "comprimir", "informes", "bcv_stats", "inflation", "press", "banking", "opec", "sunaval", "oil", "embi", "trade_mensual", "ipc", "agro_usda",
               "ofac", "events", "alerts_daily", "vigilante", "uso"],
     "weekly": ["catalog", "fx_hist", "trade", "agro", "agro_usda", "commodities", "sudeban"],
-    "files": ["catalog", "opec_local", "manual", "alerts", "bonds", "events", "bancos_muestra", "sunaval", "emisores", "informes", "alerts"],
+    "files": ["catalog", "opec_local", "manual", "alerts", "bonds", "events", "bancos_muestra", "sunaval", "emisores", "comprimir", "informes", "alerts"],
     "acciones": ["reportes", "emisores"],  # manual: informes PDF por acción + noticias y asambleas
 }
 
