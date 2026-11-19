@@ -32,14 +32,14 @@ export default function BondsTable({ lang, list, prices }: { lang: "es" | "en"; 
     <>
       <div className="tbl-wrap" style={{ marginTop: 14 }}>
         <table>
-          <thead><tr><th>{es ? "Bono" : "Bond"}</th><th className="l">Ticker</th><th>{es ? "Último" : "Last"}</th><th>%1D</th><th>{es ? "%Semana" : "%WTD"}</th><th>%YTD</th><th>{es ? "Fecha" : "Date"}</th></tr></thead>
+          <thead><tr><th>{es ? "Bono" : "Bond"}</th><th className="l m-hide">Ticker</th><th>{es ? "Último" : "Last"}</th><th>%1D</th><th>{es ? "%Semana" : "%WTD"}</th><th>%YTD</th><th className="m-hide">{es ? "Fecha" : "Date"}</th></tr></thead>
           {groups.map(([iss, label]) => (
             <tbody key={iss}>
               <tr><td colSpan={7} className="l" style={{ fontWeight: 600, color: "var(--text-2)", paddingTop: 18 }}>{label}</td></tr>
               {rows.filter((r) => r.b.issuer === iss).map((r) => (
                 <tr key={r.b.ticker} onClick={() => setSel(r.b.ticker)} style={{ cursor: "pointer", fontWeight: r.b.ticker === sel ? 600 : 400 }}>
-                  <td className="l">{r.b.name}</td><td className="l muted">{r.b.ticker}</td><td>{nf(r.last?.[1])}</td>
-                  {cell(r.d1)}{cell(r.wtd)}{cell(r.ytd)}<td className="muted">{r.last?.[0] ?? "—"}</td>
+                  <td className="l">{r.b.name}</td><td className="l muted m-hide">{r.b.ticker}</td><td>{nf(r.last?.[1])}</td>
+                  {cell(r.d1)}{cell(r.wtd)}{cell(r.ytd)}<td className="muted m-hide">{r.last?.[0] ?? "—"}</td>
                 </tr>
               ))}
             </tbody>
