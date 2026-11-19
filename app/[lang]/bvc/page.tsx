@@ -5,6 +5,7 @@ import { dl } from "@/lib/dl";
 import ChartCard from "@/components/ChartCard";
 import { CardControls, CardScope } from "@/components/CardScope";
 import { chartLabels, NotConfigured, SectionHead, SeriesCard } from "@/components/ui";
+import { Fold } from "@/components/Fold";
 import { change, PERIOD_LABEL, valueAt, type Period, type Point } from "@/lib/stats";
 import { bvcLatest, configured, dailyReportUrl, history, latest, mktcapReportUrl } from "@/lib/data";
 import { date, num } from "@/lib/format";
@@ -84,6 +85,8 @@ export default async function BVC({ params }: { params: { lang: Lang } }) {
       </div>
 
       {/* 2) Fila de dos cuadros: (rendimiento del IBC + capitalización + descargas) | monto negociado */}
+      <Fold title={es ? "Rendimiento, capitalización y monto negociado" : "Return, market cap and turnover"}
+        hint={(() => { const y = ret.find((r) => r.p === "YTD"); return y ? `${es ? "IBC en el año" : "IBC YTD"}: ${y.bs == null ? "—" : `${y.bs > 0 ? "+" : ""}${num(y.bs, lang, 1)}%`} Bs · ${y.par == null ? "—" : `${y.par > 0 ? "+" : ""}${num(y.par, lang, 1)}%`} ${es ? "US$ alt." : "US$ alt."}` : undefined; })()}>
       <div className="grid g2 eq" style={{ marginBottom: 24 }}>
       <div className="card stack">
         <div>
@@ -128,6 +131,7 @@ export default async function BVC({ params }: { params: { lang: Lang } }) {
                     : "Each bar is one session. An outlier session is cut (↑) so the rest stays readable; hover to see its actual value.")} />
       )}
       </div>
+      </Fold>
 
       <div className="card" id="acciones">
         <CardScope initial="1M" cur="USD_PAR">
@@ -153,10 +157,10 @@ export default async function BVC({ params }: { params: { lang: Lang } }) {
         </CardScope>
       </details>
 
-      <section className="section" id="descargas">
+      <section className="section" id="descargas"><Fold anchor="descargas" title={es ? "Descargas: informes PDF y Excel" : "Downloads: PDF reports and Excel"} hint={es ? "Informe de cierre, capitalización, semanal y datos" : "Closing, market cap and weekly reports, and data"}>
         <SectionHead label={es ? "Descargas: informes PDF y datos en Excel" : "Downloads: PDF reports and Excel data"} />
         <Downloads lang={lang} />
-      </section>
+      </Fold></section>
 
       <details className="card fold" style={{ marginTop: 24 }} id="indices">
         <summary><h3 style={{ display: "inline" }}>{d.cat.mercados}</h3> <span className="muted">· {es ? "índices sectoriales, renta fija, Mercado de Otros Bienes y BOLPRIAVEN" : "sector indices, fixed income, Other Goods Market and BOLPRIAVEN"}</span></summary>
