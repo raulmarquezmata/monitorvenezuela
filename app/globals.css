@@ -575,3 +575,16 @@ ul.agenda .d { min-width: 92px; color: var(--text-3); text-transform: capitalize
   .section-head { flex-wrap: wrap; }
   ul.agenda .d { min-width: 74px; }
 }
+
+/* tablas: nunca partir palabras letra por letra; en el teléfono la 1.ª columna queda fija al desplazar */
+td, th { overflow-wrap: normal; word-break: normal; }
+@media (max-width: 900px) {
+  .tbl-wrap td:first-child, .tbl-wrap th:first-child { position: sticky; left: 0; z-index: 1; background: var(--surface); }
+  td.l, th.l { min-width: 120px; }
+  th, td { padding: 9px 10px; } td { font-size: 14px; }
+  .ycurve text { font-size: 18px; }
+  .card :not(.tbl-wrap) > table { display: block; overflow-x: auto; }
+  .card.split > div, .grid > * { min-width: 0; }
+  select, input { max-width: 100%; }
+}
+@media (max-width: 620px) { .m-hide { display: none; } }
