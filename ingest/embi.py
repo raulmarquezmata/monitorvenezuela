@@ -32,6 +32,34 @@ def bcrp(code: str, start: str, end: str) -> tuple[str, list]:
     return name, pts
 
 
+MESES = {m: i + 1 for i, m in enumerate(["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto",
+                                           "septiembre", "octubre", "noviembre", "diciembre"])}
+
+
+def data_date(t: str, pub: str) -> str | None:
+    """Fecha del DATO, no de la nota: la prensa publica la cifra días después («4.473 puntos al 2 de noviembre»,
+    «cerró octubre en 4.442»). Sin fecha explícita en el texto la cifra no se guarda (antes quedaba con la
+    fecha de publicación y aparecían valores corridos de día)."""
+    pub_d = dt.date.fromisoformat(pub[:10])
+    m = re.search(r"\bal (\d{1,2}) de (" + "|".join(MESES) + r")", t, re.I)
+    if m:
+        mes, dia = MESES[m.group(2).lower()], int(m.group(1))
+        y = pub_d.year - (1 if mes > pub_d.month else 0)
+        try:
+            return dt.date(y, mes, dia).isoformat()
+        except ValueError:
+            return None
+    m = re.search(r"(?:cierre de|cerr[óo]|cierra)\s+(" + "|".join(MESES) + r")", t, re.I)
+    if m:  # último día hábil de ese mes
+        mes = MESES[m.group(1).lower()]
+        y = pub_d.year - (1 if mes > pub_d.month else 0)
+        d = dt.date(y + (mes == 12), mes % 12 + 1, 1) - dt.timedelta(days=1)
+        while d.weekday() > 4:
+            d -= dt.timedelta(days=1)
+        return d.isoformat()
+    return None
+
+
 def from_press() -> list:
     from .press import google_posts, wp_posts
     posts = wp_posts("www.finanzasdigital.com", "riesgo país Venezuela", 2) + wp_posts("www.bancaynegocios.com", "riesgo país", 2)
@@ -44,8 +72,9 @@ def from_press() -> list:
         m = re.search(r"(?:riesgo pa[ií]s|embi)[^.]{0,90}?(\d{1,2}\.\d{3})\s*(?:puntos|pbs|pb\b)", t, re.I)
         if m:
             v = float(m.group(1).replace(".", ""))
-            if 300 <= v <= 40000:
-                out.setdefault(p["date"], v)
+            d = data_date(t[m.end():m.end() + 120], p["date"]) or data_date(t[max(0, m.start() - 80):m.start()], p["date"])
+            if 300 <= v <= 40000 and d:
+                out.setdefault(d, v)
     return sorted(out.items())
 
 
