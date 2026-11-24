@@ -1,5 +1,30 @@
 {
-  "_ayuda": "Ajustes de capital (splits y reverse splits) de las acciones de la BVC. La web y los informes PDF los detectan solos: un salto de precio de 4 veces o más que el mercado no explica. Aquí puedes fijar uno a mano o descartar uno detectado por error. 'ajustes': por símbolo, la fecha del primer precio ya ajustado y el factor (reverse split 100:1 → 100; split 1:10 → 0.1). 'ignorar': por símbolo, fechas que NO son ajustes de capital.",
-  "ajustes": {},
-  "ignorar": {}
+  "_ayuda": "Ajustes de capital (splits y reverse splits) de las acciones de la BVC. La web y los informes PDF los detectan solos: un salto de precio de 4 veces o más que el mercado no explica. Aquí puedes fijar uno a mano o descartar uno detectado por error. 'ajustes': por símbolo, la fecha del primer precio ya ajustado y el factor (reverse split 100:1 → 100; split 1:10 → 0.1). 'ignorar': por símbolo, fechas que NO son ajustes de capital. 'acciones': por símbolo, acciones en circulación vigentes cuando la BVC tarda en actualizarlas (se usan para la capitalización).",
+  "ajustes": {
+    "BPV": [
+      {
+        "fecha": "2026-08-07",
+        "factor": 0.720646,
+        "nota": "aumento de capital con suscripción en efectivo (3.666 millones de acciones nuevas; BVC: precio teórico Bs 86,70 → 62,48)"
+      },
+      {
+        "fecha": "2026-10-22",
+        "factor": 100,
+        "nota": "canje 100 acciones de Bs 0,10 por 1 de Bs 10"
+      },
+      {
+        "fecha": "2026-11-20",
+        "factor": 0.2967,
+        "nota": "dividendo en acciones (310,76 millones de acciones nuevas; BVC: precio teórico Bs 10.750 → 3.189,53)"
+      }
+    ]
+  },
+  "ignorar": {},
+  "acciones": {
+    "BPV": {
+      "desde": "2026-11-20",
+      "acciones": 441860000,
+      "nota": "131,1 millones + 310,76 millones del dividendo en acciones (BVC, 20-nov-2026)"
+    }
+  }
 }
