@@ -122,6 +122,16 @@ def parse_resumen(rows: list[dict], session: str | None, market: str):
     return quotes, metas, monto
 
 
+def _shares_fix() -> dict:
+    """config/bvc_ajustes.json → 'acciones': acciones en circulación vigentes cuando la BVC tarda en actualizarlas."""
+    import json
+    import pathlib
+    try:
+        return json.loads((pathlib.Path(__file__).resolve().parent.parent / "config" / "bvc_ajustes.json").read_text(encoding="utf-8")).get("acciones") or {}
+    except Exception:  # noqa: BLE001
+        return {}
+
+
 def history_for(symbol: str) -> tuple[dict | None, list[dict]]:
     data = post("getHistoricoSimbolo", {"simbolo": symbol})
     enc = (data.get("cur_hist_encab") or [{}])[0]
@@ -132,6 +142,9 @@ def history_for(symbol: str) -> tuple[dict | None, list[dict]]:
                 "shares_outstanding": ve_number(enc.get("ACC_CIRC")) if isinstance(enc.get("ACC_CIRC"), str) else enc.get("ACC_CIRC"),
                 "sector": enc.get("TIPO_INDI_SECTOR") or enc.get("TIPO_INDI"), "market": "RV",
                 "updated_at": dt.datetime.now(dt.timezone.utc).isoformat()}
+        fix = _shares_fix().get(symbol)
+        if fix and dt.date.today().isoformat() >= fix.get("desde", "") and fix.get("acciones"):
+            meta["shares_outstanding"] = fix["acciones"]
     rows = []
     for h in data.get("cur_hist_mov_emisora", []) or []:
         d = parse_date(h.get("FEC", ""))
