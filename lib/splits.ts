@@ -6,7 +6,7 @@
 import ajustes from "@/config/bvc_ajustes.json";
 
 type Point = [string, number];
-export type SplitEvent = { date: string; factor: number; manual: boolean };
+export type SplitEvent = { date: string; factor: number; manual: boolean; nota?: string };
 type Cfg = { ajustes?: Record<string, { fecha: string; factor: number; nota?: string }[]>; ignorar?: Record<string, string[]> };
 const CFG = ajustes as Cfg;
 const NICE = [2, 3, 4, 5, 10, 20, 25, 50, 100, 200, 250, 500, 1000, 2000, 5000, 1e4, 1e5, 1e6];
@@ -19,7 +19,7 @@ function at(pts: Point[], d: string): number | null {
 
 /** Eventos de capital de un símbolo: los fijados a mano y los detectados en la serie de precios. */
 export function splitEvents(symbol: string, prices: Point[], ibc: Point[] = []): SplitEvent[] {
-  const manual = (CFG.ajustes?.[symbol] ?? []).map((a) => ({ date: a.fecha, factor: a.factor, manual: true }));
+  const manual = (CFG.ajustes?.[symbol] ?? []).map((a) => ({ date: a.fecha, factor: a.factor, manual: true, nota: a.nota }));
   const ignore = new Set(CFG.ignorar?.[symbol] ?? []);
   const out: SplitEvent[] = [...manual];
   for (let i = 1; i < prices.length; i++) {
@@ -47,6 +47,7 @@ export function adjustPrices(prices: Point[], events: SplitEvent[]): Point[] {
 }
 
 export function splitLabel(e: SplitEvent, lang: "es" | "en"): string {
+  if (e.nota && lang === "es") return e.nota;  // ajustes fijados a mano: se describe el evento real (dividendo, canje, suscripción)
   const f = e.factor >= 1 ? e.factor : 1 / e.factor;
   const n = new Intl.NumberFormat(lang === "es" ? "es-VE" : "en-US", { maximumFractionDigits: f < 10 ? 2 : 0 }).format(f);
   return e.factor >= 1
