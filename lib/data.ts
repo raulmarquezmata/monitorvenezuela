@@ -67,25 +67,33 @@ async function historyRange_(codes: string[], since: string, until?: string): Pr
   for (const r of rows) out[r.series_code]?.push([r.date, r.value]);
   return out;
 }
-// Ahorro de tráfico (Supabase cobra lo que sale de la base): la historia vieja no cambia, así que se guarda
-// 6 horas en la caché de Vercel (en grupos de 3 series para no pasar de 2 MB por entrada); solo los últimos
-// 10 días se piden de nuevo cada vez que corren los robots.
-const histLong = unstable_cache(historyRange_, ["data", "histLong"], { revalidate: 21600, tags: ["hist"] });
+// Ahorro de tráfico (Supabase cobra lo que sale de la base): la historia vieja casi no cambia, así que se guarda
+// en la caché de Vercel UNA entrada por serie (la misma para todas las páginas, se pide como mucho una vez al día)
+// hasta el corte semanal; solo el tramo desde ese corte (7 a 14 días) se pide de nuevo cuando corren los robots.
+const histLong = unstable_cache(
+  async (code: string, cut: string) => (await historyRange_([code], "1900-01-01", cut))[code] ?? [],
+  ["data", "histLong1"], { revalidate: 86400, tags: ["hist"] });
 const histTail = unstable_cache(historyRange_, ["data", "histTail"], { revalidate: 300, tags: ["datos"] });
+
+/** Lunes de la semana pasada (UTC): fija durante toda la semana, así las claves de caché no cambian a diario. */
+function weekCut(): string {
+  const d = new Date();
+  const back = ((d.getUTCDay() + 6) % 7) + 7;
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - back)).toISOString().slice(0, 10);
+}
 
 async function history_(codes: string[], sinceYears = 12): Promise<Record<string, Point[]>> {
   if (!sb) return Object.fromEntries(codes.map((c) => [c, []]));
   const since = new Date(Date.now() - sinceYears * 365.25 * 864e5).toISOString().slice(0, 10);
-  const cut = new Date(Date.now() - 10 * 864e5).toISOString().slice(0, 10);
+  const cut = weekCut();
   const uniq = Array.from(new Set(codes)).sort();
-  const groups: string[][] = [];
-  for (let i = 0; i < uniq.length; i += 3) groups.push(uniq.slice(i, i + 3));
   const [longs, tail] = await Promise.all([
-    Promise.all(groups.map((g) => histLong(g, since, cut))),
+    Promise.all(uniq.map(async (c) => [c, (await histLong(c, cut)).filter((p) => p[0] >= since)] as const)),
     histTail(uniq, since > cut ? since : cut),
   ]);
   const out: Record<string, Point[]> = Object.fromEntries(codes.map((c) => [c, []]));
-  for (const part of [...longs, tail]) for (const [c, pts] of Object.entries(part)) out[c]?.push(...pts);
+  for (const [c, pts] of longs) out[c]?.push(...pts);
+  for (const [c, pts] of Object.entries(tail)) out[c]?.push(...pts);
   for (const c of Object.keys(out)) out[c] = weeklyBefore(out[c], 3);
   return out;
 }
@@ -120,14 +128,14 @@ async function bvcQuotes_(symbol: string, until?: string, since?: string): Promi
     return q.order("date").range(a, b);
   });
 }
-const quotesLong = unstable_cache(bvcQuotes_, ["data", "quotesLong"], { revalidate: 21600, tags: ["hist"] });
+const quotesLong = unstable_cache(bvcQuotes_, ["data", "quotesLong"], { revalidate: 86400, tags: ["hist"] });
 const quotesTail = unstable_cache(bvcQuotes_, ["data", "quotesTail"], { revalidate: 120, tags: ["datos"] });
 const symbolMeta = unstable_cache(async (symbol: string) => (await sb!.from("bvc_symbols").select("*").eq("symbol", symbol).maybeSingle()).data,
   ["data", "symbolMeta"], { revalidate: 1800, tags: ["datos"] });
 
 async function bvcSymbol_(symbol: string) {
   if (!sb) return { meta: null, quotes: [] as Quote[] };
-  const cut = new Date(Date.now() - 10 * 864e5).toISOString().slice(0, 10);
+  const cut = weekCut();
   const [meta, old, recent] = await Promise.all([symbolMeta(symbol), quotesLong(symbol, cut), quotesTail(symbol, undefined, cut)]);
   return { meta, quotes: [...old, ...recent] };
 }
