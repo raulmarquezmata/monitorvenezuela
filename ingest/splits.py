@@ -32,7 +32,7 @@ def _at(pts: list[tuple[str, float]], d: str) -> float | None:
 
 def events(symbol: str, prices: list[tuple[str, float]], ibc: list[tuple[str, float]]) -> list[dict]:
     cfg = _cfg()
-    manual = [{"date": a["fecha"], "factor": float(a["factor"]), "manual": True} for a in (cfg.get("ajustes") or {}).get(symbol, [])]
+    manual = [{"date": a["fecha"], "factor": float(a["factor"]), "manual": True, "nota": a.get("nota")} for a in (cfg.get("ajustes") or {}).get(symbol, [])]
     ignore = set((cfg.get("ignorar") or {}).get(symbol, []))
     out = list(manual)
     for (d0, p0), (d, p) in zip(prices, prices[1:]):
@@ -63,6 +63,8 @@ def adjust(prices: list[tuple[str, float]], evs: list[dict]) -> list[tuple[str, 
 
 
 def label(e: dict, lang: str = "es") -> str:
+    if e.get("nota"):  # ajustes fijados a mano: se describe el evento real (dividendo, canje, suscripción)
+        return e["nota"] if lang == "es" else "capital change (stock dividend, share exchange or rights issue)"
     f = e["factor"] if e["factor"] >= 1 else 1 / e["factor"]
     n = f"{f:,.0f}".replace(",", ".") if f >= 10 else f"{f:.2f}".rstrip("0").rstrip(".").replace(".", "," if lang == "es" else ".")
     if e["factor"] >= 1:
