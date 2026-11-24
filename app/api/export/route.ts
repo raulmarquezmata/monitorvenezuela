@@ -4,6 +4,7 @@ import { NextRequest } from "next/server";
 import { bvcLatest, bvcSymbol, history, latest } from "@/lib/data";
 import { BS_UNITS, toUsd } from "@/lib/money";
 import { prettyName } from "@/lib/names";
+import { adjustPrices, splitEvents } from "@/lib/splits";
 
 export const dynamic = "force-dynamic";
 
@@ -49,15 +50,19 @@ export async function GET(req: NextRequest) {
   // ---------------- BVC: histórico de una acción (precios en Bs y en US$ a la tasa de cada fecha)
   if (q.get("symbol")) {
     const sym = q.get("symbol")!.toUpperCase().slice(0, 12);
-    const [{ quotes }, fx] = await Promise.all([bvcSymbol(sym), history(["usd_bcv", "usd_paralelo"], 15)]);
+    const [{ quotes }, fx] = await Promise.all([bvcSymbol(sym), history(["usd_bcv", "usd_paralelo", "ibc"], 15)]);
+    const raw = quotes.filter((r) => r.close != null && r.close > 0).map((r) => [r.date, r.close!] as [string, number]);
+    const adj = new Map(adjustPrices(raw, splitEvents(sym, raw, (fx.ibc ?? []) as [string, number][])));
     const at = (pts: [string, number][], d: string) => { let v: number | null = null; for (const p of pts) { if (p[0] <= d) v = p[1]; else break; } return v; };
     const es = lang === "es";
-    const head = es ? ["fecha", "apertura_bs", "maximo_bs", "minimo_bs", "cierre_bs", "var_pct", "volumen", "monto_bs", "operaciones", "cierre_usd_oficial", "cierre_usd_alternativo"]
-      : ["date", "open_bs", "high_bs", "low_bs", "close_bs", "change_pct", "volume", "amount_bs", "trades", "close_usd_official", "close_usd_alternative"];
+    const head = es ? ["fecha", "apertura_bs", "maximo_bs", "minimo_bs", "cierre_bs", "cierre_ajustado_bs", "var_pct", "volumen", "monto_bs", "operaciones", "cierre_ajustado_usd_oficial", "cierre_ajustado_usd_alternativo"]
+      : ["date", "open_bs", "high_bs", "low_bs", "close_bs", "adj_close_bs", "change_pct", "volume", "amount_bs", "trades", "adj_close_usd_official", "adj_close_usd_alternative"];
     const body = quotes.map((r) => { const o = at(fx.usd_bcv ?? [], r.date), p = at(fx.usd_paralelo ?? [], r.date);
-      return [r.date, r.open ?? null, r.high ?? null, r.low ?? null, r.close, r.var_pct, r.volume, r.amount, r.trades ?? null, r.close && o ? r.close / o : null, r.close && p ? r.close / p : null]; });
+      const a = adj.get(r.date) ?? r.close;
+      return [r.date, r.open ?? null, r.high ?? null, r.low ?? null, r.close, a, r.var_pct, r.volume, r.amount, r.trades ?? null, a && o ? a / o : null, a && p ? a / p : null]; });
     return respond(format, lang, `bvc_${sym.replace(/\W/g, "_").toLowerCase()}_historico_${stamp}`, head, body, [[es ? "Fuente" : "Source",
-      es ? "Bolsa de Valores de Caracas; precios sin ajustar por splits; US$ a la tasa de cada fecha (BCV y mercado alternativo)" : "Caracas Stock Exchange; prices not split-adjusted; US$ at each date's rate (BCV and alternative market)"]]);
+      es ? "Bolsa de Valores de Caracas; «cierre_bs» es el precio publicado y «cierre_ajustado_bs» lo lleva a las acciones de hoy (splits, canjes, dividendos en acciones y suscripciones); US$ a la tasa de cada fecha"
+        : "Caracas Stock Exchange; close_bs is the published price and adj_close_bs restates it in today's shares (splits, exchanges, stock dividends and rights issues); US$ at each date's rate"]]);
   }
 
   // ---------------- BVC
