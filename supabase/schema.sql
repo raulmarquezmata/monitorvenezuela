@@ -213,18 +213,18 @@ create table if not exists public.source_files (
 -- ------------------------------------------------------------
 drop view if exists public.latest_observations;
 create view public.latest_observations as
-with ranked as (
-  select o.*, row_number() over (partition by series_code order by date desc) rn
-  from public.observations o
-)
+-- último y penúltimo dato de cada serie con LATERAL + índice (series_code, date): ~10 ms
+-- (la versión con row_number() sobre toda la tabla tardaba 1,5 s y la API cortaba por tiempo)
 select s.code, s.category, s.name_es, s.name_en, s.unit_es, s.unit_en, s.frequency,
        s.source, s.source_url, s.decimals, s.sort, s.is_manual, s.method, s.stale_days, s.howto_es,
        cur.date  as last_date,  cur.value  as last_value,
        prev.date as prev_date,  prev.value as prev_value,
        cur.updated_at
 from public.series s
-left join ranked cur  on cur.series_code  = s.code and cur.rn  = 1
-left join ranked prev on prev.series_code = s.code and prev.rn = 2;
+left join lateral (select o.date, o.value, o.updated_at from public.observations o
+                   where o.series_code = s.code order by o.date desc limit 1) cur on true
+left join lateral (select o.date, o.value from public.observations o
+                   where o.series_code = s.code order by o.date desc offset 1 limit 1) prev on true;
 
 drop view if exists public.bvc_latest;
 create view public.bvc_latest as
