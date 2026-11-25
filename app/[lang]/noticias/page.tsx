@@ -5,22 +5,24 @@ import { configured, news, ofacActions } from "@/lib/data";
 import { date, dateTime } from "@/lib/format";
 import { t, type Lang } from "@/lib/i18n";
 import { balanced, groupNews, isVenezuelan } from "@/lib/newsgroup";
+import { THEMES } from "@/lib/topics";
 
 // los filtros llegan por la URL (?cat=, ?m=…): se renderiza en cada visita
 export const dynamic = "force-dynamic";
 
 const CATS = ["economia", "politica", "petroleo", "mercados", "banca", "deuda", "mineria", "agro", "global"];
 
-export default async function Noticias({ params, searchParams }: { params: { lang: Lang }; searchParams: { cat?: string; o?: string } }) {
+export default async function Noticias({ params, searchParams }: { params: { lang: Lang }; searchParams: { cat?: string; o?: string; tema?: string } }) {
   const { lang } = params;
   const d = t(lang);
   if (!configured) return <NotConfigured />;
   const cat = searchParams.cat && CATS.includes(searchParams.cat) ? searchParams.cat : undefined;
   const origin = searchParams.o === "int" ? "int" : searchParams.o === "ve" ? "ve" : undefined;
   const [raw, ofac] = await Promise.all([news(600, cat, lang), ofacActions(12)]);
-  const grouped = groupNews(raw).filter((n) => !origin || (origin === "ve") === isVenezuelan(n.source));
+  const theme = THEMES.find((x) => x.id === searchParams.tema);
+  const grouped = groupNews(raw).filter((n) => (!origin || (origin === "ve") === isVenezuelan(n.source)) && (!theme || theme.rx.test(n.title)));
   const items = balanced(grouped, origin ? 15 : 10, 150);
-  const q = (o: Record<string, string | undefined>) => { const p = new URLSearchParams(); const v = { cat, o: origin, ...o }; for (const [k, x] of Object.entries(v)) if (x) p.set(k, x); const s = p.toString(); return `/${lang}/noticias${s ? `?${s}` : ""}`; };
+  const q = (o: Record<string, string | undefined>) => { const p = new URLSearchParams(); const v = { cat, o: origin, tema: theme?.id, ...o }; for (const [k, x] of Object.entries(v)) if (x) p.set(k, x); const s = p.toString(); return `/${lang}/noticias${s ? `?${s}` : ""}`; };
   return (
     <>
       <NewsNav lang={lang} />
@@ -28,6 +30,10 @@ export default async function Noticias({ params, searchParams }: { params: { lan
       <p className="sub">{cat === "global"
         ? (lang === "es" ? "Mercados internacionales: Wall Street, tasas, la Fed, petróleo y grandes empresas, de Yahoo Finance, CNBC, MarketWatch, Reuters, Financial Times, Investing.com y Bloomberg Línea." : "Global markets: Wall Street, rates, the Fed, oil and large companies, from Yahoo Finance, CNBC, MarketWatch, Reuters, Financial Times, Investing.com and Bloomberg Línea.")
         : (lang === "es" ? "Titulares de medios venezolanos e internacionales, clasificados automáticamente por tema." : "Headlines from Venezuelan and international media, auto-tagged by topic.")}</p>
+      <div className="chips themes">
+        <span className="muted" style={{ alignSelf: "center", fontSize: 13 }}>{lang === "es" ? "Temas:" : "Topics:"}</span>
+        {THEMES.map((x) => <Link prefetch={false} key={x.id} href={q({ tema: theme?.id === x.id ? undefined : x.id })} className={theme?.id === x.id ? "on" : ""}>{lang === "es" ? x.es : x.en}</Link>)}
+      </div>
       <div className="chips">
         <Link prefetch={false} href={q({ cat: undefined })} className={!cat ? "on" : ""}>{d.all}</Link>
         {CATS.map((c) => <Link prefetch={false} key={c} href={q({ cat: c })} className={cat === c ? "on" : ""}>{d.cats[c]}</Link>)}
