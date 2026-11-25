@@ -28,7 +28,7 @@ function logTicks(min: number, max: number): number[] {
 }
 
 export default function LineChart({
-  series, lang, unit, decimals = 2, height = 240, allowLog = false, labels, area = false, ignoreRange = false, minPoints = 12, bars = false, logDefault = false, gap, clip = false,
+  series, lang, unit, decimals = 2, height = 240, allowLog = false, labels, area = false, ignoreRange = false, minPoints = 12, bars = false, logDefault = false, gap, clip = false, stack = false,
 }: {
   series: S[]; lang: "es" | "en"; unit?: string | null; decimals?: number; height?: number; allowLog?: boolean;
   labels: Labels; area?: boolean; ignoreRange?: boolean; minPoints?: number; bars?: boolean; logDefault?: boolean;
@@ -36,6 +36,8 @@ export default function LineChart({
   gap?: { a: number; b: number; label: string };
   /** Barras: si hay un valor atípico, recorta el eje para que el resto se lea (la barra atípica se marca y su valor real sale al pasar el cursor). */
   clip?: boolean;
+  /** Barras de varias series: apiladas (partes de un total) en vez de una al lado de otra. */
+  stack?: boolean;
 }) {
   const box = useRef<HTMLDivElement>(null);
   const { range } = useRange();
@@ -69,6 +71,8 @@ export default function LineChart({
   const right = data.filter((s) => s.axis === "right").flatMap((s) => s.pts);
   const dual = right.length > 0 && left.length > 0;
   const hasData = all.length > 0;
+  const barSeries = bars ? data.filter((sr) => !sr.tick) : [];
+  const multi = barSeries.length > 1;
   const spanDays = hasData ? (Math.max(...all.map((p) => ts(p[0]))) - Math.min(...all.map((p) => ts(p[0])))) / 864e5 : 0;
   const padL = 56, padR = dual ? 50 : 12, padT = 10, padB = 26;
   const iw = w - padL - padR, ih = height - padT - padB;
@@ -77,6 +81,12 @@ export default function LineChart({
     x0 = Math.min(...all.map((p) => ts(p[0]))); x1 = Math.max(...all.map((p) => ts(p[0])));
     const yAll = dual ? left : all;
     y0 = Math.min(...yAll.map((p) => p[1])); y1 = Math.max(...yAll.map((p) => p[1]));
+    if (bars && stack && multi) {
+      // apiladas: el eje va de la suma de los negativos a la suma de los positivos de cada fecha
+      const pos = new Map<string, number>(), neg = new Map<string, number>();
+      for (const sr of barSeries) for (const p of sr.pts) (p[1] >= 0 ? pos : neg).set(p[0], ((p[1] >= 0 ? pos : neg).get(p[0]) ?? 0) + p[1]);
+      y1 = Math.max(0, ...pos.values()); y0 = Math.min(0, ...neg.values());
+    }
     if (bars) y0 = Math.min(0, y0);
     if (bars && clip && !dual) {
       const vs = yAll.map((p) => p[1]).filter((v) => v > 0).sort((a, b) => a - b);
@@ -87,7 +97,11 @@ export default function LineChart({
   const cap = (v: number) => (bars && clip ? Math.min(v, y1) : v);
   const yt = log ? logTicks(y0, y1) : niceTicks(y0, y1);
   const ylo = log ? y0 : Math.min(y0, yt[0] ?? y0), yhi = log ? y1 : Math.max(y1, yt.at(-1) ?? y1);
-  const bw = bars && data[0]?.pts.length ? Math.max(2, (iw / data[0].pts.length) * 0.7) : 0;
+  const nBars = bars ? Math.max(0, ...data.map((sr) => sr.pts.length)) : 0;
+  const bw = bars && nBars ? Math.max(2, (iw / nBars) * 0.7) : 0;
+  // barras agrupadas (una al lado de otra) o apiladas
+  const slot = multi && !stack ? bw / barSeries.length : bw;
+  const stackBase = new Map<string, { pos: number; neg: number }>();
   const X = (t: number) => padL + bw / 2 + (x1 === x0 ? (iw - bw) / 2 : ((t - x0) / (x1 - x0)) * (iw - bw));
   const Y = (v: number) => {
     if (log) { const a = Math.log10(ylo), b = Math.log10(yhi); return padT + ih - (b === a ? .5 : (Math.log10(v) - a) / (b - a)) * ih; }
@@ -102,7 +116,7 @@ export default function LineChart({
   const Ys = (s: { axis?: "right" }) => (dual && s.axis === "right" ? YR : Y);
   const nX = Math.max(2, Math.min(6, Math.floor(iw / 100)));
   const xt = hasData ? Array.from({ length: nX }, (_, i) => x0 + ((x1 - x0) * i) / (nX - 1)) : [];
-  const base = data[0]?.pts ?? [];
+  const base = data.reduce<Point[]>((a, sr) => (sr.pts.length > a.length ? sr.pts : a), data[0]?.pts ?? []);
   const onMove = (e: React.PointerEvent<SVGRectElement>) => {
     if (!base.length) return;
     const rect = (e.target as SVGRectElement).getBoundingClientRect();
@@ -156,6 +170,20 @@ export default function LineChart({
             </g>
             {data.map((s) => bars && s.tick ? (
               <g key={s.name}>{s.pts.map((p) => <line key={p[0]} x1={X(ts(p[0])) - bw / 2 - 2} x2={X(ts(p[0])) + bw / 2 + 2} y1={Y(p[1])} y2={Y(p[1])} stroke={s.color} strokeWidth={2.5} strokeLinecap="round" />)}</g>
+            ) : bars && multi ? (
+              <g key={s.name}>{s.pts.map((p) => {
+                const k = barSeries.indexOf(s);
+                const cx = X(ts(p[0])) - bw / 2;
+                let lo = 0, hi = p[1];
+                if (stack) {
+                  const b = stackBase.get(p[0]) ?? { pos: 0, neg: 0 };
+                  if (p[1] >= 0) { lo = b.pos; hi = b.pos + p[1]; b.pos = hi; } else { lo = b.neg; hi = b.neg + p[1]; b.neg = hi; }
+                  stackBase.set(p[0], b);
+                }
+                const yTop = Y(Math.max(lo, hi)), yBot = Y(Math.min(lo, hi));
+                return <rect key={p[0]} x={stack ? cx : cx + k * slot} y={yTop} width={Math.max(1, stack ? bw : slot - 1)} height={Math.max(1, yBot - yTop)} rx={2}
+                  fill={s.color} opacity={hp && hp[0] !== p[0] ? .55 : 1} />;
+              })}</g>
             ) : bars ? (
               <g key={s.name}>{s.pts.map((p) => {
                 const v = cap(p[1]), y = Y(Math.max(v, 0)), h = Math.abs(Y(v) - Y(0)), cut = v < p[1];
