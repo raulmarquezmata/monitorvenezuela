@@ -15,9 +15,10 @@ def run(backfill: bool = False):
         if not key:
             r.note("Falta EIA_API_KEY: se omiten producción EIA y Brent/WTI.")
             return
-        have = lambda c: len(select("observations", {"select": "date", "series_code": f"eq.{c}"}))
-        full_prod = backfill or have("petroleo_prod_eia") < 300   # primera vez: toda la serie (desde 1973)
-        full_px = backfill or have("brent") < 2000                 # primera vez: Brent desde 1987, WTI desde 1986
+        # ¿ya hay al menos n datos? (se pide UNA fila en la posición n, no la serie entera: ahorra tráfico)
+        have = lambda c, n: bool(select("observations", {"select": "date", "series_code": f"eq.{c}", "limit": 1, "offset": n - 1}))
+        full_prod = backfill or not have("petroleo_prod_eia", 300)   # primera vez: toda la serie (desde 1973)
+        full_px = backfill or not have("brent", 2000)                 # primera vez: Brent desde 1987, WTI desde 1986
         # Producción de crudo (incluye condensado), miles de b/d
         try:
             j = fetch(f"{API}/international/data/", params={
