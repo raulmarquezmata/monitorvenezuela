@@ -1,5 +1,5 @@
 import { NotConfigured } from "@/components/ui";
-import { configured, downloadStats, freshness, latest, newsSources, status, type Latest } from "@/lib/data";
+import { configured, downloadStats, freshness, latestWithPlan, newsSources, status, type Latest } from "@/lib/data";
 import { date, dateTime, num } from "@/lib/format";
 import { CATEGORIES, t, type Lang } from "@/lib/i18n";
 
@@ -16,7 +16,7 @@ export default async function Datos({ params }: { params: { lang: Lang } }) {
   const d = t(lang);
   const es = lang === "es";
   if (!configured) return <NotConfigured />;
-  const [series, { runs, files }, feeds, dls] = await Promise.all([latest(), status(), newsSources(), downloadStats()]);
+  const [series, { runs, files }, feeds, dls] = await Promise.all([latestWithPlan(), status(), newsSources(), downloadStats()]);
   const count = (m: string) => series.filter((s) => s.method === m).length;
   const stale = series.filter((s) => freshness(s) !== "fresh");
 
