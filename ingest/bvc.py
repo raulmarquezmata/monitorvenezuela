@@ -122,12 +122,13 @@ def parse_resumen(rows: list[dict], session: str | None, market: str):
     return quotes, metas, monto
 
 
-def _shares_fix() -> dict:
-    """config/bvc_ajustes.json → 'acciones': acciones en circulación vigentes cuando la BVC tarda en actualizarlas."""
+def _shares_fix(key: str = "acciones") -> dict:
+    """config/bvc_ajustes.json → 'acciones': acciones en circulación vigentes cuando la BVC tarda en actualizarlas;
+    'capital_total': capital total de la empresa cuando solo cotiza una clase (la capitalización usa este total)."""
     import json
     import pathlib
     try:
-        return json.loads((pathlib.Path(__file__).resolve().parent.parent / "config" / "bvc_ajustes.json").read_text(encoding="utf-8")).get("acciones") or {}
+        return json.loads((pathlib.Path(__file__).resolve().parent.parent / "config" / "bvc_ajustes.json").read_text(encoding="utf-8")).get(key) or {}
     except Exception:  # noqa: BLE001
         return {}
 
@@ -145,6 +146,8 @@ def history_for(symbol: str) -> tuple[dict | None, list[dict]]:
         fix = _shares_fix().get(symbol)
         if fix and dt.date.today().isoformat() >= fix.get("desde", "") and fix.get("acciones"):
             meta["shares_outstanding"] = fix["acciones"]
+        # siempre la misma clave en todos los símbolos (PostgREST exige las mismas columnas en un lote)
+        meta["shares_total"] = (_shares_fix("capital_total").get(symbol) or {}).get("acciones")
     rows = []
     for h in data.get("cur_hist_mov_emisora", []) or []:
         d = parse_date(h.get("FEC", ""))
