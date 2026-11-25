@@ -514,8 +514,13 @@ def evaluate(rules: list[dict], meta: dict[str, dict], data: dict[str, list[dict
         elif t == "noticia":
             import re as _re
             rx = _re.compile(rule["patron"], _re.I)
+            ex_rx = _re.compile(rule["excluir"], _re.I) if rule.get("excluir") else None
+            # noticias de otro país (salario mínimo en Ecuador, bonos de Argentina…): solo si también nombran a Venezuela
+            otro = _re.compile(rule["otro_pais"], _re.I) if rule.get("otro_pais") else None
+            ve = _re.compile(r"venezuel|\bBCV\b|PDVSA|Caracas", _re.I)
             for n in extra.get("news", []):
-                if rx.search(n["title"]):
+                t_ = n["title"]
+                if rx.search(t_) and not (ex_rx and ex_rx.search(t_)) and not (otro and otro.search(t_) and not ve.search(t_)):
                     out.append((f"{rule['id']}:{n['url'][-120:]}", rule["texto"].format(titulo=n.get("title_es") or n["title"], fuente=n.get("source") or "", url="")
                                 + foot(lk("Leer la noticia", n["url"]), lk("Más noticias", site("/es/noticias")))))
         elif t == "rss":
@@ -656,33 +661,64 @@ def evaluate(rules: list[dict], meta: dict[str, dict], data: dict[str, list[dict
 
 
 NEWS_TYPES = ("noticia", "bvc_noticia")
-_STOP = set("para como esta este sobre entre desde hasta tras pero porque cuando donde segun durante contra hacia cada otro otra "
-            "sera fueron tiene tienen hace venezuela venezolano venezolana banca negocios finanzas digital".split())
-
-
 def _norm(t: str) -> str:
     import unicodedata
     return "".join(c for c in unicodedata.normalize("NFD", t or "") if unicodedata.category(c) != "Mn").lower()
-
-
-def same_story(a: str, b: str) -> bool:
-    """¿Dos avisos cuentan la misma noticia? (mismas cifras y palabras clave, aunque el titular cambie de medio a medio)."""
+_STOP = set(("para como esta este sobre entre desde hasta tras pero porque cuando donde segun durante contra hacia cada otro otra "
+ "sera fueron tiene tienen hace venezuela venezolano venezolana venezolanos banca negocios finanzas digital "
+ "los las del con que una uno por sus mas son fue han hay ante sin cual cuales nuevo nueva nuevos dice dijo afirma asegura "
+ "segun reuters bloomberg efe informa anuncia anuncio este esta estos estas pais gobierno").split())
+# sinónimos frecuentes en titulares (se cuentan como la misma palabra)
+_SYN = {}
+for canon, ws in {"mision": "mision comision delegacion equipo personal representantes tecnicos tecnico",
+                  "visita": "visita visitara visitaran visitar viaja viajara llega llegara enviara envia enviar volvera regresa regresara",
+                  "inicio": "principios comienzos inicios inicio comienzo",
+                  "sube": "sube suben subio alza aumenta aumento incrementa incremento repunta",
+                  "baja": "baja bajan bajo cae caen cayo descenso disminuye reduce retrocede"}.items():
+    for w in ws.split():
+        _SYN[w] = canon
+_ENT = set("fmi imf bcv opep opec pdvsa chevron bid caf ofac fed cantv bvc sunaval seniat sudeban citgo bandes conindustria fedecamaras venamcham repsol eni maurel shell".split())
+_WEAK = set("dolar dolares tasa tasas cambio precio precios mercado mercados millones bolivares economia economica economico "
+            "enero febrero marzo abril mayo junio julio agosto septiembre octubre noviembre diciembre".split())
+_WEAK5 = {w[:5] for w in _WEAK}
+def _toks(t: str) -> set:
+    """Palabras clave del titular: sin acentos ni palabras vacías, sinónimos unificados y recortadas a 5 letras
+    (visitará/visitarán, reestructuración/reestructurar cuentan igual); las siglas (FMI, BCV, OPEP…) enteras."""
     import re
-    first = lambda t: _norm(t.split("\n")[0])  # noqa: E731  (solo el titular, sin fuente ni enlace)
+    out = set()
+    for w in re.findall(r"[a-z]{3,}", _norm(t)):
+        if w in _STOP:
+            continue
+        w = _SYN.get(w, w)
+        out.add(w if w in _ENT else w[:5])
+    return out
+def same_story(a: str, b: str) -> bool:
+    """¿Dos avisos cuentan la misma noticia aunque cada medio redacte distinto el titular? Misma cifra, o varias
+    palabras clave en común (las siglas como FMI pesan más; dólar, precio o el mes pesan la mitad)."""
+    import re
+    first = lambda t: t.split("\n")[0]  # noqa: E731  (solo el titular)
     ta, tb = first(a), first(b)
-    wa = {w for w in re.findall(r"[a-z]{4,}", ta) if w not in _STOP}
-    wb = {w for w in re.findall(r"[a-z]{4,}", tb) if w not in _STOP}
-    na, nb = set(re.findall(r"\d+(?:[.,]\d+)?", ta)), set(re.findall(r"\d+(?:[.,]\d+)?", tb))
+    wa, wb = _toks(ta), _toks(tb)
     if not wa or not wb:
         return False
-    shared = len(wa & wb)
-    jac = shared / len(wa | wb)
-    pa = set(re.findall(r"\d+(?:[.,]\d+)?(?=\s?%)", ta))
-    pb = set(re.findall(r"\d+(?:[.,]\d+)?(?=\s?%)", tb))
-    # la misma cifra porcentual (p. ej. 6,2%) con al menos una palabra clave en común = la misma noticia
-    if pa & pb and shared >= 1:
+    shared = wa & wb
+    jac = len(shared) / len(wa | wb)
+    score = sum(0.5 if w in _WEAK5 else 1 for w in shared)
+    num = lambda t: {x.replace(",", ".").split(".")[0] if len(x) > 4 else x  # noqa: E731  (237.544 y 237,500 → 237)
+                     for x in re.findall(r"\d+(?:[.,]\d+)*", t)} - {"2025", "2026", "2027"}
+    na, nb = num(ta), num(tb)
+    pa = set(re.findall(r"\d+(?:[.,]\d+)?(?=\s?%)", ta)); pb = set(re.findall(r"\d+(?:[.,]\d+)?(?=\s?%)", tb))
+    if pa & pb and score >= 1:
         return True
-    return jac >= 0.4 or (bool(na & nb - {"2026", "2025"}) and shared >= 2)
+    if na & nb and score >= 1.5:
+        return True
+    return jac >= 0.4 or score >= 3 or (bool(shared & _ENT) and score >= 2)
+
+
+def near_same(a: str, b: str) -> bool:
+    """Titular casi idéntico (el mismo cable reproducido días después)."""
+    wa, wb = _toks(a.split("\n")[0]), _toks(b.split("\n")[0])
+    return bool(wa and wb) and len(wa & wb) / len(wa | wb) >= 0.6
 
 
 def send_telegram(text: str) -> bool:
@@ -854,8 +890,13 @@ def run(daily: bool = False):
         # la misma noticia en varios medios (o repetida días después): solo se avisa una vez; se compara con lo
         # enviado en los últimos 10 días, porque los medios siguen publicando la misma cifra varios días
         since48 = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=10)).isoformat()
-        recent_news = [x["message"] for x in select("alerts_log", {"select": "message,rule,sent_at,channels", "sent_at": f"gte.{since48}"})
+        # (titular casi idéntico: 10 días; misma historia contada con otras palabras: 3 días, para no tapar
+        # noticias nuevas del mismo tema la semana siguiente)
+        lim3 = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=3)).isoformat()
+        recent_rows = [x for x in select("alerts_log", {"select": "message,rule,sent_at,channels", "sent_at": f"gte.{since48}"})
                        if (x.get("message") or "") and (by_tipo.get(x["rule"]) in NEWS_TYPES or x["rule"] == "bvc_lote")]
+        recent_news = [x["message"] for x in recent_rows if (x.get("sent_at") or "") >= lim3]
+        old_news = [x["message"] for x in recent_rows if (x.get("sent_at") or "") < lim3]
         sent = {x["key"] for x in log_all}
         first_run = not log_all
         known_rules = {x["rule"] for x in log_all}
@@ -863,7 +904,7 @@ def run(daily: bool = False):
         dup_news: set[str] = set()
         for key, text in candidates:
             if by_tipo.get(key.split(":")[0]) in NEWS_TYPES and key not in sent:
-                if any(same_story(text, m) for m in recent_news):
+                if any(same_story(text, m) for m in recent_news) or any(near_same(text, m) for m in old_news):
                     dup_news.add(key)  # ya avisada desde otro medio: se registra sin enviar
                 else:
                     recent_news.append(text)
@@ -924,6 +965,14 @@ def run(daily: bool = False):
             if not silent and n_sent >= 25:
                 continue  # demasiados mensajes en una corrida: el resto sale en la siguiente
             channels = []
+            if not silent and tipo in NEWS_TYPES:
+                # dos corridas en paralelo pueden tomar la misma noticia de medios distintos: se revisa lo enviado
+                # en la última media hora justo antes de mandar
+                lim30 = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(minutes=30)).isoformat()
+                fresh = [x["message"] for x in select("alerts_log", {"select": "message,channels", "sent_at": f"gte.{lim30}", "limit": 60})
+                         if x.get("channels") and x.get("message")]
+                if any(same_story(text, m) for m in fresh + [x["message"] for x in log if x.get("channels")]):
+                    silent = True
             if not silent:
                 try:
                     if send_telegram(text):
@@ -940,6 +989,8 @@ def run(daily: bool = False):
                 except Exception as e:  # noqa: BLE001
                     r.note(f"Correo: {e}")
             log.append({"key": key, "rule": rid, "message": text, "channels": ",".join(channels) or None, "sent_at": dt.datetime.now(dt.timezone.utc).isoformat()})
+            if channels and tipo in NEWS_TYPES:
+                upsert("alerts_log", [log[-1]], "key")  # visible de inmediato para otra corrida en paralelo
         if by_lote:  # cada aviso del lote queda registrado para no repetirlo en la próxima corrida
             now = dt.datetime.now(dt.timezone.utc).isoformat()
             log += [{"key": k, "rule": k.split(":")[0], "message": t, "channels": "lote", "sent_at": now} for k, t in by_lote]
