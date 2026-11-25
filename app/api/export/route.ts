@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
       const k = (r.company ?? r.symbol).trim().toUpperCase();
       const g = groups.get(k) ?? { name: prettyName(r.company ?? r.name ?? r.symbol), syms: [], prices: [], shares: 0, cap: 0 };
       g.syms.push(r.symbol); g.prices.push(r.close != null ? String(r.close) : "—");
-      g.shares += r.shares_outstanding ?? 0; g.cap += r.market_cap_bs ?? 0;
+      g.shares += r.shares_total ?? r.shares_outstanding ?? 0; g.cap += r.market_cap_bs ?? 0;
       groups.set(k, g);
     }
     const list = [...groups.values()].sort((a, b) => b.cap - a.cap);
