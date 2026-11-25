@@ -226,11 +226,16 @@ left join lateral (select o.date, o.value, o.updated_at from public.observations
 left join lateral (select o.date, o.value from public.observations o
                    where o.series_code = s.code order by o.date desc offset 1 limit 1) prev on true;
 
+-- capital total de la empresa cuando solo cotiza una clase (config/bvc_ajustes.json → capital_total)
+alter table public.bvc_symbols add column if not exists shares_total numeric;
 drop view if exists public.bvc_latest;
 create view public.bvc_latest as
+-- capitalización con el capital total cuando solo cotiza una clase (shares_total, p. ej. CANTV)
 with d as (select market, max(date) as date from public.bvc_quotes group by market)
 select q.*, s.company, s.shares_outstanding, s.sector,
-       case when s.shares_outstanding is not null and q.market = 'RV' then q.close * s.shares_outstanding end as market_cap_bs
+       case when coalesce(s.shares_total, s.shares_outstanding) is not null and q.market = 'RV'
+            then q.close * coalesce(s.shares_total, s.shares_outstanding) end as market_cap_bs,
+       s.shares_total
 from public.bvc_quotes q
 join d on q.date = d.date and q.market = d.market
 left join public.bvc_symbols s on s.symbol = q.symbol;
