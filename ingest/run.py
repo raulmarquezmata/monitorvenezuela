@@ -113,13 +113,18 @@ def refresh_site() -> None:
     site = os.environ.get("SITE_URL", "").rstrip("/")
     if DRY_RUN or not site:
         return
-    # cada aviso hace que Vercel reescriba las páginas en su caché (el plan gratuito permite 200.000 escrituras al mes):
-    # en horario de mercado (8 a. m.–5 p. m. VET, lunes a viernes) se avisa en cada corrida; fuera de él, una vez por hora
+    # cada aviso hace que la web vuelva a pedir a Supabase todos sus datos (y eso es tráfico que Supabase cobra):
+    # en horario de mercado (8 a. m.–5 p. m. VET, lunes a viernes) se avisa como mucho cada media hora
+    # (corridas de los minutos :00–:09 y :30–:39); fuera de él, cada 3 horas. Entre avisos, las páginas
+    # igual se renuevan solas cuando vence su caché (5 minutos o más, según el dato).
     import datetime as dt
     now = dt.datetime.now(dt.timezone.utc)
     market = now.weekday() < 5 and 12 <= now.hour < 21
-    if not market and now.minute >= 20:
-        log.info("Fuera de horario de mercado: la web se avisa una vez por hora")
+    if market and now.minute % 30 >= 10:
+        log.info("Horario de mercado: la web se avisa cada media hora")
+        return
+    if not market and (now.hour % 3 or now.minute >= 20):
+        log.info("Fuera de horario de mercado: la web se avisa cada 3 horas")
         return
     try:
         from .common import http
