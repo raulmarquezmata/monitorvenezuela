@@ -321,7 +321,7 @@ def keep_first_seen(items: list[dict]) -> list[dict]:
     - Enlace ya guardado → no se vuelve a escribir (conserva su fecha original).
     - Enlace nuevo que cuenta una historia ya guardada hace más de 3 días → se guarda con la fecha de la primera."""
     from .common import select
-    from .alerts import same_story
+    from .alerts import near_same as same_story  # titular casi idéntico: una noticia nueva del mismo tema no se re-fecha
     if not items:
         return items
     known: set[str] = set()
