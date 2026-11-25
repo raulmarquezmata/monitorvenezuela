@@ -23,6 +23,7 @@ export type Quote = {
   date: string; symbol: string; name: string | null; open: number | null; high: number | null; low: number | null;
   close: number | null; var_abs: number | null; var_pct: number | null; volume: number | null; amount: number | null;
   trades: number | null; market: string; company: string | null; shares_outstanding: number | null; sector: string | null; market_cap_bs: number | null;
+  shares_total?: number | null;
 };
 export type News = { id: number; url: string; title: string; source: string | null; published_at: string; summary: string | null; category: string | null; lang: string;
   title_es?: string | null; title_en?: string | null; orig_lang?: string };
@@ -165,12 +166,13 @@ async function companyClasses_(company: string | null | undefined, symbol: strin
     const { data } = await sb.from("bvc_latest").select("*").eq("symbol", symbol);
     return (data as Quote[]) ?? [];
   }
-  const { data: syms } = await sb.from("bvc_symbols").select("symbol,shares_outstanding,company").eq("company", company).eq("market", "RV");
+  const { data: syms } = await sb.from("bvc_symbols").select("symbol,shares_outstanding,shares_total,company").eq("company", company).eq("market", "RV");
   const out: Quote[] = [];
-  for (const s of (syms ?? []) as { symbol: string; shares_outstanding: number | null; company: string }[]) {
+  for (const s of (syms ?? []) as { symbol: string; shares_outstanding: number | null; shares_total: number | null; company: string }[]) {
+    const sh = s.shares_total ?? s.shares_outstanding; // capital total si solo cotiza una clase
     const { data } = await sb.from("bvc_quotes").select("*").eq("symbol", s.symbol).gt("close", 0).order("date", { ascending: false }).limit(1);
     const q = (data?.[0] as Quote | undefined);
-    if (q) out.push({ ...q, company: s.company, shares_outstanding: s.shares_outstanding, sector: null, market_cap_bs: s.shares_outstanding && q.close ? s.shares_outstanding * q.close : null });
+    if (q) out.push({ ...q, company: s.company, shares_outstanding: s.shares_outstanding, sector: null, market_cap_bs: sh && q.close ? sh * q.close : null });
   }
   return out.sort((a, b) => a.symbol.localeCompare(b.symbol));
 }
