@@ -7,10 +7,10 @@ import type { Period } from "@/lib/stats";
 type Point = [string, number];
 
 /** Valor actual + gráfico de una serie; respeta la moneda global (Bs o US$). */
-export default function SeriesBody({ name, points, unitEs, unit, decimals, lang, height, allowLog, bars, area, labels, stats, logDefault = false, hiLo = false, clip = false }: {
+export default function SeriesBody({ name, points, unitEs, unit, decimals, lang, height, allowLog, bars, area, labels, stats, logDefault = false, hiLo = false, clip = false, invert = false }: {
   name: string; points: Point[]; unitEs: string | null; unit: string; decimals: number; lang: "es" | "en"; height: number;
   allowLog: boolean; bars: boolean; clip?: boolean; area: boolean; labels: { logScale: string; table: string; chart: string; date: string; noData: string };
-  stats?: { periods: Period[]; pctUnit: boolean }; logDefault?: boolean; hiLo?: boolean;
+  stats?: { periods: Period[]; pctUnit: boolean }; logDefault?: boolean; hiLo?: boolean; invert?: boolean;
 }) {
   const m = useMoney(points, unitEs, unit, lang);
   const last = m.points.at(-1);
@@ -20,7 +20,7 @@ export default function SeriesBody({ name, points, unitEs, unit, decimals, lang,
     <>
       <div className="big" style={{ fontSize: 34, margin: "12px 0 4px" }}>{last ? nf(last[1]) : "—"}<small>{m.unit}</small></div>
       {m.converted && <div className="muted" style={{ fontSize: 13 }}>{m.note}</div>}
-      {stats && <Stats points={m.points} periods={stats.periods} pctUnit={stats.pctUnit} lang={lang} />}
+      {stats && <Stats points={m.points} periods={stats.periods} pctUnit={stats.pctUnit} lang={lang} invert={invert} />}
       {hiLo && last && (() => {
         const cut = new Date(Date.parse(`${last[0]}T00:00:00Z`) - 365 * 864e5).toISOString().slice(0, 10);
         const yr = m.points.filter((p) => p[0] >= cut);

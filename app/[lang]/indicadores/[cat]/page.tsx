@@ -3,7 +3,11 @@ import BondsTable from "@/components/BondsTable";
 import ChartCard from "@/components/ChartCard";
 import MacroNav from "@/components/MacroNav";
 import { BarList, chartLabels, Kpi, NotConfigured, SectionHead, SeriesCard } from "@/components/ui";
-import { bankRanking, bankSample, bankSystem, bonds, configured, history, latest } from "@/lib/data";
+import { bankRanking, bankSample, bankSystem, bonds, configured, history, latest, news } from "@/lib/data";
+import Tabs from "@/components/Tabs";
+import { TOPIC_RX } from "@/lib/topics";
+import { groupNews } from "@/lib/newsgroup";
+import type { Latest } from "@/lib/data";
 import BankExplorer from "@/components/BankExplorer";
 import { num } from "@/lib/format";
 import { cumulative, valueAt } from "@/lib/stats";
@@ -24,7 +28,7 @@ const INTRO: Record<Category, { es: string; en: string }> = {
   banca: { es: "Cartera de créditos y captaciones del sistema bancario, en bolívares y en dólares, y ranking por banco.", en: "Banking system loans and deposits in bolivars and dollars, and bank ranking." },
   petroleo: { es: "Producción de crudo (OPEP y EIA), cesta Merey y precios de referencia (Brent, WTI y gas Henry Hub). Las materias primas y el agro tienen su propio botón arriba.", en: "Crude output (OPEC and EIA), Merey basket and benchmark prices." },
   mercados: { es: "Índices y volúmenes de la Bolsa de Valores de Caracas y BOLPRIAVEN.", en: "Caracas Stock Exchange and BOLPRIAVEN indices and volumes." },
-  actividad: { es: "PIB real del BCV por trimestre (total, petrolero y no petrolero), variaciones anuales (se actualizan al cierre de cada año) y recaudación del SENIAT. En «Ver más»: PIB en dólares, población, desempleo y cuentas fiscales anuales del Plan Venezuela Renace.", en: "BCV real GDP (quarterly and annual; total, oil and non-oil) and SENIAT tax collection." },
+  actividad: { es: "PIB real del BCV por trimestre (total, petrolero y no petrolero), variaciones anuales (se actualizan al cierre de cada año) y recaudación del SENIAT. Por pestañas: PIB y crecimiento (incluido el PIB en dólares), cuentas fiscales y población y empleo, con las cifras anuales del Plan Venezuela Renace.", en: "BCV real GDP (quarterly and annual; total, oil and non-oil) and SENIAT tax collection. Tabs: GDP and growth (including GDP in dollars), public finances, and population and jobs, with annual figures from Plan Venezuela Renace." },
   deuda: { es: "Riesgo país (EMBI de JPMorgan) y bonos de la República y de PDVSA (precio en % del valor nominal).", en: "Country risk (JPMorgan EMBI) and Republic and PDVSA bonds (price as % of par)." },
   commodities: { es: "Precios internacionales de materias primas relevantes para Venezuela (Banco Mundial, desde 1960).", en: "International prices of commodities relevant to Venezuela (World Bank, since 1960)." },
 };
@@ -69,6 +73,43 @@ const RANGES: Record<string, Range[]> = {
 };
 const INITIAL: Record<string, Range> = { inflacion_interanual: "1A", merey: "MAX", intervencion_bcv_mensual: "1A", recaudacion_seniat: "YTD", recaudacion_seniat_usd: "YTD" };
 const HILO = new Set(["brent", "wti", "henry_hub", "oro", "plata", "cobre", "aluminio", "mineral_hierro", "cafe", "cacao", "azucar", "maiz_cbot", "trigo_kc", "soya_cbot", "embi_venezuela"]);
+
+/** Pestañas por tema en las páginas con muchas tarjetas (lo que no encaja en ninguna va a la última). */
+const GROUPS: Partial<Record<Category, { id: string; es: string; en: string; rx: RegExp }[]>> = {
+  actividad: [
+    { id: "pib", es: "PIB y crecimiento", en: "GDP and growth", rx: /^pib_/ },
+    { id: "fiscal", es: "Cuentas fiscales", en: "Public finances", rx: /^(fiscal_|recaudacion_)/ },
+    { id: "poblacion", es: "Población y empleo", en: "Population and jobs", rx: /^(poblacion|desempleo)$/ },
+  ],
+  externo: [
+    { id: "reciente", es: "Comercio reciente", en: "Recent trade", rx: /espejo_mensual$|_bd$|_sem$|^eeuu_/ },
+    { id: "balanza", es: "Balanza de pagos", en: "Balance of payments", rx: /^(cuenta_corriente|exportaciones_bienes|exportaciones_petroleras|exportaciones_no_petroleras|importaciones_bienes|transferencias_corrientes|inversion_directa_pais)$|^bp_/ },
+    { id: "anual", es: "Comercio anual por socios", en: "Annual trade by partner", rx: /espejo$/ },
+  ],
+  petroleo: [
+    { id: "crudo", es: "Crudo y precios", en: "Crude and prices", rx: /^(merey|brent|wti|henry_hub|taladros_venezuela|petroleo_)/ },
+    { id: "gas", es: "Gas e inversión", en: "Gas and investment", rx: /^(gas_|capex_)/ },
+  ],
+};
+
+/** Gráficas combinadas: series hermanas en una sola lectura (las series sueltas quedan en «Ver cada serie por separado»). */
+type Combo = { group: string; id: string; es: string; en: string; codes: string[]; mode: "stack" | "group" | "line"; unit_es: string; unit_en: string; decimals: number; note_es?: string; note_en?: string; annual?: boolean };
+const COMBOS: Combo[] = [
+  { group: "pib", id: "c-pib-sector", es: "PIB nominal en US$: hidrocarburos y resto de la economía", en: "Nominal GDP in US$: hydrocarbons and the rest", codes: ["pib_nominal_hidroc_usd", "pib_nominal_no_hidroc_usd"], mode: "stack", unit_es: "miles de millones US$", unit_en: "US$ bn", decimals: 1, annual: true,
+    note_es: "La suma de las dos barras es el PIB total. Plan Venezuela Renace (nov-2026).", note_en: "The two bars add up to total GDP. Plan Venezuela Renace (Nov-2026)." },
+  { group: "pib", id: "c-pib-real", es: "PIB real: total y sin hidrocarburos (2012 = 100)", en: "Real GDP: total and non-hydrocarbon (2012 = 100)", codes: ["pib_real_indice", "pib_real_no_hidroc_indice"], mode: "line", unit_es: "índice", unit_en: "index", decimals: 1, annual: true },
+  { group: "pib", id: "c-pib-anual", es: "Crecimiento anual del PIB: total, petrolero y no petrolero", en: "Annual GDP growth: total, oil and non-oil", codes: ["pib_anual_var", "pib_petrolero_anual_var", "pib_no_petrolero_anual_var"], mode: "group", unit_es: "%", unit_en: "%", decimals: 1, annual: true },
+  { group: "fiscal", id: "c-fiscal-ig", es: "Ingresos y gasto del gobierno central (% del PIB)", en: "Central government revenue and spending (% of GDP)", codes: ["fiscal_ingresos_gc_pib", "fiscal_gastos_gc_pib"], mode: "group", unit_es: "% del PIB", unit_en: "% of GDP", decimals: 1, annual: true },
+  { group: "fiscal", id: "c-fiscal-origen", es: "De dónde vienen los ingresos: hidrocarburos y resto (% del PIB)", en: "Where revenue comes from: hydrocarbons and the rest (% of GDP)", codes: ["fiscal_ingresos_hidroc_pib", "fiscal_ingresos_no_hidroc_pib"], mode: "stack", unit_es: "% del PIB", unit_en: "% of GDP", decimals: 1, annual: true },
+  { group: "fiscal", id: "c-fiscal-saldo", es: "Saldo primario: gobierno central, PDVSA y sector público (% del PIB)", en: "Primary balance: central government, PDVSA and public sector (% of GDP)", codes: ["fiscal_saldo_primario_gc_pib", "fiscal_resultado_pdvsa_pib", "fiscal_saldo_primario_spnf_pib"], mode: "group", unit_es: "% del PIB", unit_en: "% of GDP", decimals: 1, annual: true,
+    note_es: "Gobierno central + PDVSA = sector público no financiero. El resultado de PDVSA descuenta los subsidios a gasolina, diésel y gas.", note_en: "Central government + PDVSA = non-financial public sector. PDVSA's result nets out fuel and gas subsidies." },
+  { group: "fiscal", id: "c-fiscal-impuestos", es: "Recaudación en US$: IVA, ISLR, aranceles y regalías", en: "Collection in US$: VAT, income tax, tariffs and royalties", codes: ["fiscal_iva_usd", "fiscal_islr_usd", "fiscal_aranceles_usd", "fiscal_regalias_usd"], mode: "group", unit_es: "miles de millones US$", unit_en: "US$ bn", decimals: 1, annual: true },
+  { group: "gas", id: "c-gas", es: "Producción de gas natural: asociado y no asociado", en: "Natural gas output: associated and non-associated", codes: ["gas_asociado", "gas_no_asociado"], mode: "stack", unit_es: "miles de millones de pies³/d", unit_en: "bcf/d", decimals: 2, annual: true,
+    note_es: "El gas asociado sale junto con el petróleo; el no asociado, de yacimientos de gas libre. Plan Venezuela Renace (nov-2026).", note_en: "Associated gas comes out with oil; non-associated gas from free-gas fields. Plan Venezuela Renace (Nov-2026)." },
+  { group: "balanza", id: "c-bop-x", es: "Exportaciones de bienes: petroleras y no petroleras (trimestral)", en: "Goods exports: oil and non-oil (quarterly)", codes: ["exportaciones_petroleras", "exportaciones_no_petroleras"], mode: "stack", unit_es: "millones US$", unit_en: "US$ million", decimals: 0 },
+  { group: "balanza", id: "c-bop-xm", es: "Exportaciones e importaciones de bienes (trimestral)", en: "Goods exports and imports (quarterly)", codes: ["exportaciones_bienes", "importaciones_bienes"], mode: "line", unit_es: "millones US$", unit_en: "US$ million", decimals: 0 },
+  { group: "balanza", id: "c-bop-fin", es: "Cuenta financiera: inversión de cartera y otra inversión (anual)", en: "Financial account: portfolio and other investment (annual)", codes: ["bp_inversion_cartera", "bp_otra_inversion"], mode: "group", unit_es: "millones US$", unit_en: "US$ million", decimals: 0, annual: true },
+];
 
 /** Años sin dato y años parciales en las series espejo de Comtrade. */
 function mirrorNote(pts: [string, number][], es: boolean) {
@@ -122,6 +163,32 @@ export default async function CategoryPage({ params }: { params: { lang: Lang; c
   const VISIBLE = cat === "commodities" ? 6 : VISIBLE_DEF;
   const gcls = cat === "commodities" ? "g3" : "g2";
   const ch = cat === "commodities" ? 170 : undefined;
+
+  const card = (x: Latest) => <SeriesCard key={x.code} s={x} points={hist[x.code] ?? []} lang={lang} bars={BARS.has(x.code)} height={ch}
+    allowLog={LOG.has(x.code)} note={note(x.code)} ranges={RANGES[x.code]} initial={INITIAL[x.code]} hiLo={HILO.has(x.code)} />;
+  const combo = (c: Combo) => {
+    const ser = c.codes.filter((k) => (hist[k] ?? []).length).map((k) => ({ name: by[k] ? (es ? by[k].name_es : by[k].name_en).replace(/ \(anual\)| en US\$| \(% del PIB\)/g, "") : k, points: hist[k] ?? [] }));
+    const lastD = ser.map((x) => x.points.at(-1)?.[0] ?? "").sort().at(-1);
+    return <ChartCard key={c.id} id={c.id} lang={lang} title={es ? c.es : c.en} date={lastD ? (c.annual ? lastD.slice(0, 4) : lastD.slice(0, 7)) : ""} unit={es ? c.unit_es : c.unit_en}
+      decimals={c.decimals} height={250} labels={chartLabels(lang)} rangeLabels={d.range} ranges={c.annual ? [] : ["1A", "MAX"]} initial="MAX"
+      bars={c.mode !== "line"} stack={c.mode === "stack"} series={ser}
+      footer={<p className="muted" style={{ marginTop: 10, fontSize: 13 }}>{(es ? c.note_es : c.note_en) ?? ""}{(es ? c.note_es : c.note_en) ? " " : ""}{es ? `En ${c.unit_es}.` : `In ${c.unit_en}.`}</p>} />;
+  };
+  const groups = GROUPS[cat] ? (() => {
+    const defs = GROUPS[cat]!;
+    const pick = (x: Latest) => { const i = defs.findIndex((g) => g.rx.test(x.code)); return i < 0 ? defs.length - 1 : i; };
+    const all = [...rest, ...series.filter((x) => HIDDEN.has(x.code) && COMBOS.some((c) => c.codes.includes(x.code)))];
+    return defs.map((g, i) => {
+      const combos = COMBOS.filter((c) => c.group === g.id && c.codes.filter((k) => (hist[k] ?? []).length).length >= 2);
+      const inCombo = new Set(combos.flatMap((c) => c.codes));
+      const mine = all.filter((x) => pick(x) === i);
+      return { id: g.id, label: es ? g.es : g.en, combos,
+        cards: mine.filter((x) => !inCombo.has(x.code) && !HIDDEN.has(x.code)), covered: mine.filter((x) => inCombo.has(x.code)) };
+    }).filter((g) => g.cards.length + g.combos.length > 0);
+  })() : null;
+  // noticias recientes del tema de la página (la misma lista en caché que usa la portada: no suma consultas)
+  const rx = TOPIC_RX[cat];
+  const related = rx ? groupNews((await news(150, undefined, lang)).filter((n) => n.category !== "global" && rx.test(n.title))).slice(0, 5) : [];
 
   return (
     <>
@@ -200,20 +267,34 @@ export default async function CategoryPage({ params }: { params: { lang: Lang; c
         </div>
       )}
 
-      {/* para no tener que bajar tanto: se ven 4 tarjetas y el resto queda en un desplegable */}
-      <div className={`grid ${gcls} ${cat === "cambiario" ? "section" : ""}`}>
-        {rest.slice(0, VISIBLE).map((s) => <SeriesCard key={s.code} s={s} points={hist[s.code] ?? []} lang={lang} bars={BARS.has(s.code)} height={ch}
-          allowLog={LOG.has(s.code)} note={note(s.code)} ranges={RANGES[s.code]} initial={INITIAL[s.code]} hiLo={HILO.has(s.code)} />)}
-      </div>
-      {rest.length > VISIBLE && (
-        <details className="card fold" style={{ marginTop: 20 }}>
-          <summary><h3 style={{ display: "inline" }}>{es ? `Ver ${rest.length - VISIBLE} indicadores más` : `Show ${rest.length - VISIBLE} more indicators`}</h3>
-            <span className="muted"> · {rest.slice(VISIBLE).map((x) => (es ? x.name_es : x.name_en)).slice(0, 4).join(", ")}{rest.length - VISIBLE > 4 ? "…" : ""}</span></summary>
-          <div className={`grid ${gcls}`}>
-            {rest.slice(VISIBLE).map((s) => <SeriesCard key={s.code} s={s} points={hist[s.code] ?? []} lang={lang} bars={BARS.has(s.code)} height={ch}
-              allowLog={LOG.has(s.code)} note={note(s.code)} ranges={RANGES[s.code]} initial={INITIAL[s.code]} hiLo={HILO.has(s.code)} />)}
-          </div>
-        </details>
+      {groups ? (
+        <Tabs tabs={groups.map((g) => ({ id: g.id, label: g.label, count: g.cards.length + g.combos.length }))}>
+          {groups.map((g) => (
+            <div key={g.id}>
+              {g.combos.length > 0 && <div className={`grid ${gcls}`} style={{ marginBottom: 20 }}>{g.combos.map(combo)}</div>}
+              <div className={`grid ${gcls}`}>{g.cards.map(card)}</div>
+              {g.covered.length > 0 && (
+                <details className="card fold" style={{ marginTop: 20 }}>
+                  <summary><h3 style={{ display: "inline" }}>{es ? `Ver cada serie por separado (${g.covered.length})` : `Show each series separately (${g.covered.length})`}</h3>
+                    <span className="muted"> · {es ? "con su tabla, variaciones y descarga" : "with table, changes and download"}</span></summary>
+                  <div className={`grid ${gcls}`}>{g.covered.map(card)}</div>
+                </details>
+              )}
+            </div>
+          ))}
+        </Tabs>
+      ) : (
+        <>
+          {/* para no tener que bajar tanto: se ven 4 tarjetas y el resto queda en un desplegable */}
+          <div className={`grid ${gcls} ${cat === "cambiario" ? "section" : ""}`}>{rest.slice(0, VISIBLE).map(card)}</div>
+          {rest.length > VISIBLE && (
+            <details className="card fold" style={{ marginTop: 20 }}>
+              <summary><h3 style={{ display: "inline" }}>{es ? `Ver ${rest.length - VISIBLE} indicadores más` : `Show ${rest.length - VISIBLE} more indicators`}</h3>
+                <span className="muted"> · {rest.slice(VISIBLE).map((x) => (es ? x.name_es : x.name_en)).slice(0, 4).join(", ")}{rest.length - VISIBLE > 4 ? "…" : ""}</span></summary>
+              <div className={`grid ${gcls}`}>{rest.slice(VISIBLE).map(card)}</div>
+            </details>
+          )}
+        </>
       )}
 
       {cat === "precios" && usInfl.length > 0 && (
@@ -240,6 +321,22 @@ export default async function CategoryPage({ params }: { params: { lang: Lang; c
                 </div>
               </div>
             ))}
+          </div>
+        </section>
+      )}
+      {related.length > 0 && (
+        <section className="section">
+          <SectionHead label={es ? "Noticias relacionadas" : "Related news"} href={`/${lang}/noticias`} more={es ? "Todas las noticias" : "All news"} />
+          <div className="card" style={{ paddingTop: 8 }}>
+            <ul className="headlines" style={{ borderTop: 0 }}>
+              {related.map((n) => (
+                <li key={n.id}>
+                  <div className="m"><span>{n.source} · {new Intl.DateTimeFormat(es ? "es-VE" : "en-US", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Caracas" }).format(new Date(n.published_at))}</span></div>
+                  <a className="t" href={n.url} target="_blank" rel="noreferrer">{n.title}</a>
+                  {n.also.length > 0 && <p className="also">{es ? "También en: " : "Also in: "}{n.also.slice(0, 4).map((a, k) => <span key={a.url}>{k > 0 && " · "}<a href={a.url} target="_blank" rel="noreferrer">{a.source}</a></span>)}</p>}
+                </li>
+              ))}
+            </ul>
           </div>
         </section>
       )}

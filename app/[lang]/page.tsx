@@ -69,18 +69,25 @@ export default async function Home({ params }: { params: { lang: Lang } }) {
   if (by.merey?.last_value) lines.push(es ? `La cesta Merey promedió US$ ${num(by.merey.last_value, lang, 2)} en ${fmtDateFor(by.merey.last_date!, "M", lang)} (OPEP).` : `The Merey basket averaged US$ ${num(by.merey.last_value, lang, 2)} in ${fmtDateFor(by.merey.last_date!, "M", lang)} (OPEC).`);
 
   // ---- Lo clave hoy: seis cifras en una línea
-  const arrow = (v: number | null, inv = false) => (v == null ? undefined : { sub: `${v >= 0 ? "▲" : "▼"} ${pct(Math.abs(v), lang, 2, false)} ${es ? "hoy" : "today"}`, cls: (inv ? v <= 0 : v >= 0) ? "up" : "down" });
+  // «hoy» solo si el dato es de hoy; si no, la fecha del dato (p. ej. el riesgo país sale con días de rezago)
+  const todayVE = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Caracas" }).format(new Date());
+  const when = (c: string) => {
+    const dd = by[c]?.last_date;
+    if (!dd || dd >= todayVE) return es ? "hoy" : "today";
+    return `${es ? "al" : "as of"} ${new Intl.DateTimeFormat(es ? "es-VE" : "en-US", { day: "numeric", month: "short", timeZone: "UTC" }).format(new Date(`${dd}T12:00:00Z`)).replace(".", "")}`;
+  };
+  const arrow = (v: number | null, inv = false, c?: string) => (v == null ? undefined : { sub: `${v >= 0 ? "▲" : "▼"} ${pct(Math.abs(v), lang, 2, false)} ${c ? when(c) : (es ? "hoy" : "today")}`, cls: (inv ? v <= 0 : v >= 0) ? "up" : "down" });
   const next = fed?.meetings?.[0];
   const fedTop = next ? [{ l: es ? "subir" : "hike", v: next.hike }, { l: es ? "mantener" : "hold", v: next.hold ?? Math.max(0, 100 - next.hike - next.cut) }, { l: es ? "bajar" : "cut", v: next.cut }].reduce((a, b) => (b.v > a.v ? b : a)) : null;
   const ftar = last(hist.fed_tasa_objetivo);
   const dsh = (v: number | null | undefined, dd = 2) => (v == null ? "—" : num(v, lang, dd));
   const clave: { k: string; n: string; v: string; href: string; sub?: string; cls?: string }[] = [
-    { k: "usd", n: es ? "Dólar oficial BCV" : "Official dollar (BCV)", v: `Bs ${dsh(by.usd_bcv?.last_value)}`, href: `/${lang}/indicadores/cambiario`, ...arrow(day("usd_bcv"), true) },
+    { k: "usd", n: es ? "Dólar oficial BCV" : "Official dollar (BCV)", v: `Bs ${dsh(by.usd_bcv?.last_value)}`, href: `/${lang}/indicadores/cambiario`, ...arrow(day("usd_bcv"), true, "usd_bcv") },
     { k: "brecha", n: es ? "Brecha con el alternativo" : "Gap vs. alternative", v: `${dsh(by.brecha_cambiaria?.last_value, 1)}%`, href: `/${lang}/indicadores/cambiario`,
       sub: by.usd_paralelo?.last_value ? `${es ? "Alternativo" : "Alternative"} Bs ${num(by.usd_paralelo.last_value, lang, 2)}` : undefined },
-    { k: "ibc", n: "IBC", v: dsh(ibc?.last_value), href: `/${lang}/bvc`, ...arrow(day("ibc")) },
-    { k: "brent", n: "Brent", v: `US$ ${dsh(by.brent?.last_value)}`, href: `/${lang}/indicadores/petroleo`, ...arrow(day("brent")) },
-    { k: "embi", n: es ? "Riesgo país (EMBI)" : "Country risk (EMBI)", v: `${dsh(by.embi_venezuela?.last_value, 0)} pb`, href: `/${lang}/indicadores/deuda`, ...arrow(day("embi_venezuela"), true) },
+    { k: "ibc", n: "IBC", v: dsh(ibc?.last_value), href: `/${lang}/bvc`, ...arrow(day("ibc"), false, "ibc") },
+    { k: "brent", n: "Brent", v: `US$ ${dsh(by.brent?.last_value)}`, href: `/${lang}/indicadores/petroleo`, ...arrow(day("brent"), false, "brent") },
+    { k: "embi", n: es ? "Riesgo país (EMBI)" : "Country risk (EMBI)", v: `${dsh(by.embi_venezuela?.last_value, 0)} pb`, href: `/${lang}/indicadores/deuda`, ...arrow(day("embi_venezuela"), true, "embi_venezuela") },
     { k: "fed", n: es ? "Fed: tasa objetivo" : "Fed funds target", v: ftar != null ? `${num(ftar - 0.25, lang, 2)}–${num(ftar, lang, 2)}%` : "—", href: `/${lang}/internacional#fed`,
       sub: next && fedTop ? `${new Intl.DateTimeFormat(es ? "es-VE" : "en-US", { day: "numeric", month: "short", timeZone: "UTC" }).format(new Date(`${next.date}T12:00:00Z`)).replace(".", "")}: ${fedTop.l} ${num(fedTop.v, lang, 0)}%` : undefined },
   ];
@@ -146,7 +153,7 @@ export default async function Home({ params }: { params: { lang: Lang } }) {
                   <Link prefetch={false} key={c} href={`/${lang}/internacional`}>
                     <div className="n">{es ? by[c].name_es.replace(" (futuro, diario)", "").replace(" (volatilidad del S&P 500)", "") : by[c].name_en.replace(" (futures, daily)", "").replace(" (S&P 500 volatility)", "")}</div>
                     <div className="v">{isRate ? `${num(by[c].last_value, lang, 2)}%` : num(by[c].last_value, lang, c === "bitcoin" ? 0 : 2)}</div>
-                    {v != null && <div className={v >= 0 ? "up" : "down"} style={{ fontSize: 13 }}>{v >= 0 ? "▲" : "▼"} {pct(Math.abs(v), lang, 2, false)}</div>}
+                    {v != null && <div className={(c === "vix" ? v <= 0 : v >= 0) ? "up" : "down"} style={{ fontSize: 13 }}>{v >= 0 ? "▲" : "▼"} {pct(Math.abs(v), lang, 2, false)}</div>}
                   </Link>
                 );
               })}
