@@ -13,6 +13,7 @@ import { dl } from "@/lib/dl";
 import { ChartToggle } from "./Fold";
 import type { Period } from "@/lib/stats";
 import type { Range } from "./Range";
+import { EXPLAIN, isInverted } from "@/lib/semantics";
 
 export function chartLabels(lang: Lang) {
   const d = t(lang);
@@ -55,12 +56,12 @@ export function SeriesCard({ s, points, lang, allowLog = false, bars = false, ar
   return (
     <div className="card" id={s.code}>
       <CardScope initial={initial ?? initialRange(s.frequency)}>
-      <div className="card-top"><h3>{lang === "es" ? s.name_es : s.name_en}</h3>
+      <div className="card-top"><h3>{lang === "es" ? s.name_es : s.name_en}{EXPLAIN[s.code] && <Info text={EXPLAIN[s.code][lang]} />}</h3>
         <span className="date">{s.last_date ? fmtDateFor(s.last_date, s.frequency, lang) : ""}</span></div>
       {reading && (() => { const txt = insight(points, s.frequency, s.unit_es === "%", lang); return txt ? <p className="insight">{txt}</p> : null; })()}
       <CardControls lang={lang} money={isBsUnit(s.unit_es)} ranges={ranges} rangeLabels={d.range} />
       <SeriesBody name={lang === "es" ? s.name_es : s.name_en} points={points} unitEs={s.unit_es} unit={unit ?? ""} decimals={s.decimals}
-        lang={lang} height={height} allowLog={allowLog} bars={bars} area={area} logDefault={logDefault} hiLo={hiLo} clip={clip}
+        lang={lang} height={height} allowLog={allowLog} bars={bars} area={area} logDefault={logDefault} hiLo={hiLo} clip={clip} invert={isInverted(s.code)}
         stats={stats && points.length > 2 ? { periods: defaultPeriods(s.frequency), pctUnit: s.unit_es === "%" } : undefined}
         labels={{ ...chartLabels(lang), noData: s.method !== "auto" ? `${d.noData} · ${d.method[s.method]}` : d.noData }} />
       {points.length > 1 && <ChartToggle lang={lang} />}
@@ -77,6 +78,11 @@ export function SeriesCard({ s, points, lang, allowLog = false, bars = false, ar
       </div>
     </div>
   );
+}
+
+/** Botón ⓘ con la explicación del indicador en una línea (se abre al tocarlo, también en el teléfono). */
+export function Info({ text }: { text: string }) {
+  return <details className="info"><summary aria-label="?">ⓘ</summary><p>{text}</p></details>;
 }
 
 export function BarList({ items, lang, alt = false, decimals = 0, suffix = "" }: {
