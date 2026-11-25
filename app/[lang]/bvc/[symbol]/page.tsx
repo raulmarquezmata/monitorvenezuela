@@ -54,8 +54,11 @@ export default async function SymbolPage({ params }: { params: { lang: Lang; sym
   };
   const usdOf = toUsd(fx.usd_bcv ?? []), usdPar = toUsd(fx.usd_paralelo ?? []);
   const rateOf = fx.usd_bcv?.at(-1)?.[1] ?? null, ratePar = fx.usd_paralelo?.at(-1)?.[1] ?? null;
-  const shares = (meta?.shares_outstanding as number | null | undefined) ?? null;
-  const capBs = shares && last?.close ? shares * last.close : null;
+  const shares = (meta?.shares_outstanding as number | null | undefined) ?? null; // lo que publica la BVC (acciones que cotizan)
+  // capital total de la empresa cuando solo cotiza una clase (p. ej. CANTV: clase D); la capitalización usa este total
+  const sharesTotal = (meta?.shares_total as number | null | undefined) ?? null;
+  const sharesCap = sharesTotal ?? shares;
+  const capBs = sharesCap && last?.close ? sharesCap * last.close : null;
   const company = classes.length > 1 ? classes.reduce((a, c) => a + (c.market_cap_bs ?? 0), 0) : null;
   const lastSession = quotes.at(-1);
   // monto negociado acumulado: última sesión, semana, mes y año en curso (cada día a su tasa)
@@ -107,7 +110,7 @@ export default async function SymbolPage({ params }: { params: { lang: Lang; sym
       </div>
       {desc && <p className="stock-desc">{desc}</p>}
       <div style={{ marginTop: 12 }}>
-        <StockChart lang={lang} symbol={symbol} bs={bs} usdOf={usdOf} usdPar={usdPar} shares={shares} labels={chartLabels(lang)} rangeLabels={d.range} initial={bs.length > 250 ? "1A" : "MAX"} note={splitNote} />
+        <StockChart lang={lang} symbol={symbol} bs={bs} usdOf={usdOf} usdPar={usdPar} shares={sharesCap} labels={chartLabels(lang)} rangeLabels={d.range} initial={bs.length > 250 ? "1A" : "MAX"} note={splitNote} />
         {bs.length > 0 && bs[0][0] > "2025-06-30" && <p className="muted" style={{ fontSize: 13, marginTop: 8 }}>{es
           ? `La Bolsa de Caracas solo publica precios de ${symbol} desde el ${fmtD(bs[0][0])}: es la historia completa disponible en su sistema para este símbolo.`
           : `The Caracas Stock Exchange only publishes ${symbol} prices since ${fmtD(bs[0][0])}: that is the full history available in its system for this symbol.`}</p>}
@@ -120,9 +123,14 @@ export default async function SymbolPage({ params }: { params: { lang: Lang; sym
         <Kpi label={es ? "Precio en US$ alternativo" : "Price in US$ (alternative)"} val={num(usdPar.at(-1)?.[1], lang, 4)} meta={ratePar ? `Bs ${num(ratePar, lang, 2)} / US$` : undefined} />
         <Kpi label={es ? "Monto negociado (última sesión)" : "Traded amount (last session)"} val={lastSession?.amount ? `Bs ${compact(lastSession.amount, lang)}` : "—"}
           meta={lastSession?.amount ? `US$ ${compact(usd(lastSession.amount, rateOf), lang)} ${es ? "of." : "off."} · US$ ${compact(usd(lastSession.amount, ratePar), lang)} par.${lastSession.trades ? ` · ${lastSession.trades} ${es ? "op." : "trades"}` : ""}` : (es ? "sin operaciones en la última sesión" : "no trades in the last session")} />
-        <Kpi label={es ? "Acciones en circulación" : "Shares outstanding"} val={shares ? compact(shares, lang) : "—"} meta={shares ? num(shares, lang, 0) : undefined} />
+        <Kpi label={es ? "Acciones en circulación" : "Shares outstanding"} val={shares ? compact(shares, lang) : "—"}
+          meta={sharesTotal && shares && sharesTotal !== shares
+            ? (es ? `Cotizan en la BVC: ${num(shares, lang, 0)} (${num((shares / sharesTotal) * 100, lang, 2)}%) · capital total ${num(sharesTotal, lang, 0)}`
+                  : `Listed on the BVC: ${num(shares, lang, 0)} (${num((shares / sharesTotal) * 100, lang, 2)}%) · total capital ${num(sharesTotal, lang, 0)}`)
+            : shares ? num(shares, lang, 0) : undefined} />
         <Kpi label={es ? "Capitalización (Bs)" : "Market cap (Bs)"} val={capBs ? compact(capBs, lang) : "—"}
-          meta={company ? `${es ? "Empresa, todas las clases" : "Company, all classes"}: Bs ${compact(company, lang)}` : undefined} />
+          meta={company ? `${es ? "Empresa, todas las clases" : "Company, all classes"}: Bs ${compact(company, lang)}`
+            : sharesTotal && sharesTotal !== shares ? (es ? "Con el capital total (todas las clases, cotizadas o no)" : "On total share capital (all classes, listed or not)") : undefined} />
         <Kpi label={es ? "Capitalización US$ oficial" : "Market cap US$ (official)"} val={capBs && rateOf ? compact(capBs / rateOf, lang) : "—"}
           meta={company && rateOf ? `${es ? "Empresa" : "Company"}: US$ ${compact(company / rateOf, lang)}` : undefined} />
         <Kpi label={es ? "Capitalización US$ alternativo" : "Market cap US$ (alternative)"} val={capBs && ratePar ? compact(capBs / ratePar, lang) : "—"}
