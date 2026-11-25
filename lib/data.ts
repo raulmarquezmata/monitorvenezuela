@@ -49,13 +49,15 @@ async function all<T>(build: (from: number, to: number) => PromiseLike<{ data: T
   return out;
 }
 
-async function latest_(category?: string): Promise<Latest[]> {
+// columnas que usan las tarjetas; «howto_es» (plan de actualización, texto largo) solo lo pide la página de Fuentes
+const LATEST_COLS = "code,category,name_es,name_en,unit_es,unit_en,frequency,source,source_url,decimals,sort,is_manual,method,stale_days,last_date,last_value,prev_date,prev_value,updated_at";
+async function latest_(category?: string, withPlan = false): Promise<Latest[]> {
   if (!sb) return [];
-  let q = sb.from("latest_observations").select("*").order("sort");
+  let q = sb.from("latest_observations").select(withPlan ? "*" : LATEST_COLS).order("sort");
   if (category) q = q.eq("category", category);
   const { data, error } = await q;
   if (error) console.error(error);
-  return (data as Latest[]) ?? [];
+  return ((data as unknown) as Latest[]) ?? [];
 }
 
 async function historyRange_(codes: string[], since: string, until?: string): Promise<Record<string, Point[]>> {
@@ -406,6 +408,7 @@ async function bankSample_(): Promise<BankRow[]> {
 // «datos»: se renueva cada vez que corren los robots. «lento»: datos mensuales o que cambian poco; vencen solos
 // (así cada corrida no obliga a reescribir tablas grandes en la caché de Vercel, que cobra por escritura)
 export const latest = cached(latest_, "latest", 300);
+export const latestWithPlan = cached(() => latest_(undefined, true), "latestWithPlan", 1800, "lento");
 export const history = history_; // caché por tramos (histLong/histTail): ninguna entrada pasa de 2 MB
 const bvcLatestC = cached(bvcLatest_, "bvcLatest", 120);
 export const bvcLatest = async (market: "RV" | "RF" = "RV"): Promise<Quote[]> => {
@@ -418,7 +421,9 @@ export const agro = cached(agro_, "agro", 3600, "lento");
 export const lastRun = cached(lastRun_, "lastRun", 60);
 export const lastRunFresh = lastRun_;
 export const events = cached(events_, "events", 600);
-export const bonds = cached(bonds_, "bonds", 600);
+// los precios de los bonos cambian una vez al día (Frankfurt/Bloomberg) y la tabla completa pesa ~850 KB:
+// no se rehace en cada corrida de los robots (etiqueta «lento»), sino cada 3 horas
+export const bonds = cached(bonds_, "bonds", 10800, "lento");
 export const bankRanking = cached(bankRanking_, "bankRanking", 1800, "lento");
 export const bankSystem = cached(bankSystem_, "bankSystem", 1800, "lento");
 export const bankSample = cached(bankSample_, "bankSample", 1800, "lento");
