@@ -226,6 +226,8 @@
       "id": "noticia",
       "tipo": "noticia",
       "max_dia": 5,
+      "excluir": "Sistema Patria|bonos? (de la patria|de guerra|econ[oó]mico|navide|especial|del hogar)|Kenmore|Boston|Red Sox",
+      "otro_pais": "Noboa|Ecuador|Argentina|Milei|Colombia|Petro\\b|Per[uú]\\b|Chile|M[eé]xico|Bolivia|Brasil|Lula|Panam[aá]",
       "patron": "OFAC|licencia general|sanci[oó]n|devalu|unificaci[oó]n cambiaria|FMI|\\bIMF\\b|reestructuraci[oó]n|bonos|eurobonos|Chevron|PDVSA (firma|acuerdo)|BCV (anuncia|aumenta|reduce|eleva|baja)|encaje|inflaci[oó]n de|salario m[ií]nimo|Citgo|default|Asamblea Nacional aprueba|ley de hidrocarburos",
       "texto": "📰 **{titulo}**\n{fuente}"
     },
