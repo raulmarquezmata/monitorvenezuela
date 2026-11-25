@@ -19,19 +19,27 @@ OVERRIDABLE = ("Yadio (histórico)", "BCV (vía DolarApi)")
 
 def run():
     with Run("manual") as r:
+        jobs = []  # (código, carpeta, puntos, fuente)
         for path in sorted(DIR.glob("*.csv")) + sorted(HIST.glob("*.csv")):
-            code = path.stem
-            if code not in CODES:
-                r.note(f"{path.name}: la serie '{code}' no existe en ingest/catalog.py")
-                continue
-            pts, src = [], "Carga manual"
             with path.open(encoding="utf-8-sig") as f:
-                for row in csv.DictReader(f):
+                rows = list(csv.DictReader(f))
+            # archivo con varias series (columna 'code', p. ej. data/historico/renace_2026.csv): una tanda por serie
+            groups: dict[str, list[dict]] = {}
+            for row in rows:
+                groups.setdefault((row.get("code") or path.stem).strip(), []).append(row)
+            for code, grp in groups.items():
+                if code not in CODES:
+                    r.note(f"{path.name}: la serie '{code}' no existe en ingest/catalog.py")
+                    continue
+                pts, src = [], "Carga manual"
+                for row in grp:
                     d, v = (row.get("date") or "").strip(), ve_number(row.get("value"))
                     if d and v is not None:
                         pts.append((d, v))
                         src = (row.get("source") or src).strip() or src
-            if path.parent == HIST:
+                jobs.append((code, path.parent, pts, src))
+        for code, parent, pts, src in jobs:
+            if parent == HIST:
                 # la historia sembrada rellena lo que el robot del BCV no tiene: antes de su primer dato y después
                 # del último (p. ej. el último trimestre si el Excel que publica el BCV está atrasado), sin
                 # intercalar fechas en medio para no mezclar semanas con fechas distintas
