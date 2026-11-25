@@ -10,6 +10,7 @@ EIA = "https://www.eia.gov/opendata/"
 WB = "https://www.worldbank.org/en/research/commodity-markets"
 OPEP = "https://www.opec.org/opec_web/en/publications/338.htm"
 OWN = "Cálculo propio"
+REN = "Plan Venezuela Renace (nov-2026)"
 
 # code, category, name_es, name_en, unit_es, unit_en, freq, source, source_url, decimals, sort
 _S = [
@@ -43,6 +44,14 @@ _S = [
     ("importaciones_bienes", "externo", "Importaciones de bienes", "Goods imports", "millones US$", "US$ million", "Q", "BCV", BCV, 0, 16),
     ("transferencias_corrientes", "externo", "Transferencias corrientes (incluye remesas)", "Current transfers (incl. remittances)", "millones US$", "US$ million", "Q", "BCV", BCV, 0, 17),
     ("inversion_directa_pais", "externo", "Inversión extranjera directa en el país", "FDI into Venezuela", "millones US$", "US$ million", "Q", "BCV", BCV, 0, 18),
+    # Plan Venezuela Renace (nov-2026): balanza de pagos anual (lo que el BCV no desglosa en la serie trimestral)
+    ("bp_saldo_servicios", "externo", "Saldo en servicios (anual)", "Services balance (annual)", "millones US$", "US$ million", "A", REN, None, 0, 21),
+    ("bp_saldo_renta", "externo", "Saldo en renta (anual)", "Primary income balance (annual)", "millones US$", "US$ million", "A", REN, None, 0, 22),
+    ("bp_cuenta_financiera", "externo", "Cuenta financiera (anual)", "Financial account (annual)", "millones US$", "US$ million", "A", REN, None, 0, 23),
+    ("bp_inversion_cartera", "externo", "Inversión de cartera (anual)", "Portfolio investment (annual)", "millones US$", "US$ million", "A", REN, None, 0, 24),
+    ("bp_otra_inversion", "externo", "Otra inversión (anual)", "Other investment (annual)", "millones US$", "US$ million", "A", REN, None, 0, 25),
+    ("bp_cc_sin_hidroc_usd", "externo", "Cuenta corriente sin hidrocarburos (anual)", "Non-hydrocarbon current account (annual)", "miles de millones US$", "US$ billion", "A", REN, None, 1, 26),
+    ("bp_cuenta_corriente_pib", "externo", "Cuenta corriente (% del PIB)", "Current account (% of GDP)", "% del PIB", "% of GDP", "A", REN, None, 1, 27),
     ("exportaciones_espejo", "externo", "Exportaciones (datos espejo)", "Exports (mirror data)", "millones US$", "US$ million", "A", "UN Comtrade", "https://comtradeplus.un.org", 0, 20),
     ("importaciones_espejo", "externo", "Importaciones (datos espejo)", "Imports (mirror data)", "millones US$", "US$ million", "A", "UN Comtrade", "https://comtradeplus.un.org", 0, 30),
     ("exportaciones_espejo_mensual", "externo", "Exportaciones espejo mensuales (lo que declaran los socios)", "Monthly mirror exports (partner-reported)", "millones US$", "US$ million", "M", "UN Comtrade (espejo)", "https://comtradeplus.un.org", 1, 201),
@@ -102,6 +111,12 @@ _S = [
     ("brent", "petroleo", "Brent", "Brent", "US$/b", "US$/bbl", "D", "EIA", EIA, 2, 50),
     ("wti", "petroleo", "WTI", "WTI", "US$/b", "US$/bbl", "D", "EIA", EIA, 2, 60),
     ("henry_hub", "petroleo", "Gas natural Henry Hub (referencia EE.UU.)", "Henry Hub natural gas (US benchmark)", "US$/MMBtu", "US$/MMBtu", "D", "EIA y NYMEX", EIA, 2, 70),
+    # Plan Venezuela Renace (nov-2026)
+    ("gas_produccion", "petroleo", "Producción de gas natural (bruta)", "Natural gas output (gross)", "miles de millones de pies³/d", "bcf/d", "A", REN, None, 2, 80),
+    ("gas_asociado", "petroleo", "Gas asociado (producción)", "Associated gas output", "miles de millones de pies³/d", "bcf/d", "A", REN, None, 2, 81),
+    ("gas_no_asociado", "petroleo", "Gas no asociado (producción)", "Non-associated gas output", "miles de millones de pies³/d", "bcf/d", "A", REN, None, 2, 82),
+    ("gas_comercializable", "petroleo", "Gas comercializable", "Marketable gas", "millones de pies³/d", "MMcf/d", "A", REN, None, 0, 83),
+    ("capex_pdvsa", "petroleo", "Gasto de capital de PDVSA", "PDVSA capital expenditure", "miles de millones US$", "US$ billion", "A", REN, None, 1, 84),
 
     # ---------------- Mercados
     ("ibc", "mercados", "Índice Bursátil Caracas (IBC)", "Caracas Stock Index (IBC)", "puntos", "points", "D", "BVC", "https://www.bolsadecaracas.com", 2, 10),
@@ -144,6 +159,33 @@ _S = [
     ("pib_real_var", "actividad", "PIB real trimestral (var. interanual)", "Quarterly real GDP (y/y)", "%", "%", "Q", "BCV", BCV, 2, 10),
     ("pib_petrolero_var", "actividad", "PIB petrolero trimestral (var. interanual)", "Quarterly oil GDP (y/y)", "%", "%", "Q", "BCV", BCV, 2, 12),
     ("pib_no_petrolero_var", "actividad", "PIB no petrolero trimestral (var. interanual)", "Quarterly non-oil GDP (y/y)", "%", "%", "Q", "BCV", BCV, 2, 14),
+    # Plan Venezuela Renace (nov-2026): cuentas nacionales en US$, población y cuentas fiscales (sector público no financiero)
+    ("pib_nominal_usd", "actividad", "PIB nominal en US$", "Nominal GDP (US$)", "miles de millones US$", "US$ billion", "A", REN, None, 1, 30),
+    ("pib_nominal_hidroc_usd", "actividad", "PIB nominal de hidrocarburos", "Hydrocarbon nominal GDP", "miles de millones US$", "US$ billion", "A", REN, None, 1, 31),
+    ("pib_nominal_no_hidroc_usd", "actividad", "PIB nominal sin hidrocarburos", "Non-hydrocarbon nominal GDP", "miles de millones US$", "US$ billion", "A", REN, None, 1, 32),
+    ("pib_real_indice", "actividad", "PIB real (índice 2012 = 100)", "Real GDP (index 2012 = 100)", "índice", "index", "A", REN, None, 1, 33),
+    ("pib_real_no_hidroc_indice", "actividad", "PIB real sin hidrocarburos (índice 2012 = 100)", "Non-hydrocarbon real GDP (index 2012 = 100)", "índice", "index", "A", REN, None, 1, 34),
+    ("pib_per_capita_usd", "actividad", "PIB per cápita", "GDP per capita", "US$", "US$", "A", REN, None, 0, 35),
+    ("poblacion", "actividad", "Población (ONU)", "Population (UN)", "millones", "million", "A", REN, None, 2, 36),
+    ("desempleo", "actividad", "Tasa de desempleo (OIT)", "Unemployment rate (ILO)", "% de la población activa", "% of labor force", "A", REN, None, 1, 37),
+    ("fiscal_ingresos_gc_pib", "actividad", "Ingresos del gobierno central", "Central government revenue", "% del PIB", "% of GDP", "A", REN, None, 1, 40),
+    ("fiscal_ingresos_hidroc_pib", "actividad", "Ingresos de hidrocarburos", "Hydrocarbon revenue", "% del PIB", "% of GDP", "A", REN, None, 1, 41),
+    ("fiscal_ingresos_no_hidroc_pib", "actividad", "Ingresos sin hidrocarburos", "Non-hydrocarbon revenue", "% del PIB", "% of GDP", "A", REN, None, 1, 42),
+    ("fiscal_gastos_gc_pib", "actividad", "Gasto primario del gobierno central", "Central government primary spending", "% del PIB", "% of GDP", "A", REN, None, 1, 43),
+    ("fiscal_inversion_publica_pib", "actividad", "Inversión pública", "Public investment", "% del PIB", "% of GDP", "A", REN, None, 1, 44),
+    ("fiscal_saldo_primario_gc_pib", "actividad", "Saldo primario del gobierno central", "Central government primary balance", "% del PIB", "% of GDP", "A", REN, None, 1, 45),
+    ("fiscal_resultado_pdvsa_pib", "actividad", "Resultado neto de PDVSA", "PDVSA net result", "% del PIB", "% of GDP", "A", REN, None, 1, 46),
+    ("fiscal_subsidios_hidroc_pib", "actividad", "Subsidios implícitos a los hidrocarburos", "Implicit hydrocarbon subsidies", "% del PIB", "% of GDP", "A", REN, None, 1, 47),
+    ("fiscal_saldo_primario_spnf_pib", "actividad", "Saldo primario del sector público no financiero", "Non-financial public sector primary balance", "% del PIB", "% of GDP", "A", REN, None, 1, 48),
+    ("fiscal_ingresos_gc_usd", "actividad", "Ingresos del gobierno central en US$", "Central government revenue (US$)", "miles de millones US$", "US$ billion", "A", REN, None, 1, 50),
+    ("fiscal_ingresos_hidroc_usd", "actividad", "Ingresos de hidrocarburos en US$", "Hydrocarbon revenue (US$)", "miles de millones US$", "US$ billion", "A", REN, None, 1, 51),
+    ("fiscal_regalias_usd", "actividad", "Regalías de hidrocarburos", "Hydrocarbon royalties", "miles de millones US$", "US$ billion", "A", REN, None, 1, 52),
+    ("fiscal_iva_usd", "actividad", "Recaudación de IVA", "VAT revenue", "miles de millones US$", "US$ billion", "A", REN, None, 1, 53),
+    ("fiscal_islr_usd", "actividad", "Recaudación de ISLR", "Income tax revenue", "miles de millones US$", "US$ billion", "A", REN, None, 1, 54),
+    ("fiscal_aranceles_usd", "actividad", "Aranceles de importación", "Import tariffs", "miles de millones US$", "US$ billion", "A", REN, None, 1, 55),
+    ("fiscal_gastos_gc_usd", "actividad", "Gasto primario del gobierno central en US$", "Central government primary spending (US$)", "miles de millones US$", "US$ billion", "A", REN, None, 1, 56),
+    ("fiscal_salarios_usd", "actividad", "Sueldos y salarios públicos", "Public wages and salaries", "miles de millones US$", "US$ billion", "A", REN, None, 1, 57),
+    ("fiscal_saldo_primario_spnf_usd", "actividad", "Saldo primario del sector público no financiero en US$", "Non-financial public sector primary balance (US$)", "miles de millones US$", "US$ billion", "A", REN, None, 1, 58),
     ("pib_anual_var", "actividad", "PIB real anual (var. %)", "Annual real GDP (%)", "%", "%", "A", "BCV", BCV, 2, 16),
     ("pib_petrolero_anual_var", "actividad", "PIB petrolero anual (var. %)", "Annual oil GDP (%)", "%", "%", "A", "BCV", BCV, 2, 17),
     ("pib_no_petrolero_anual_var", "actividad", "PIB no petrolero anual (var. %)", "Annual non-oil GDP (%)", "%", "%", "A", "BCV", BCV, 2, 18),
@@ -236,6 +278,8 @@ for code in ("eeuu_ipc_interanual", "eeuu_ipc_mensual", "eeuu_ipc_subyacente", "
 PLAN["fed_tasa_objetivo"] = (A, 5, "Robot eeuu (API de la Fed de Nueva York, techo del rango objetivo).")
 for code in ("fed_prob_subida", "fed_prob_baja", "fed_tasa_esperada"):
     PLAN[code] = (A, 5, "Robot eeuu: futuros de fondos federales a 30 días (CME vía Yahoo) con el método de CME FedWatch.")
+for code in ('bp_saldo_servicios', 'bp_saldo_renta', 'bp_cuenta_financiera', 'bp_inversion_cartera', 'bp_otra_inversion', 'bp_cc_sin_hidroc_usd', 'bp_cuenta_corriente_pib', 'gas_produccion', 'gas_asociado', 'gas_no_asociado', 'gas_comercializable', 'capex_pdvsa', 'pib_nominal_usd', 'pib_nominal_hidroc_usd', 'pib_nominal_no_hidroc_usd', 'pib_real_indice', 'pib_real_no_hidroc_indice', 'pib_per_capita_usd', 'poblacion', 'desempleo', 'fiscal_ingresos_gc_pib', 'fiscal_ingresos_hidroc_pib', 'fiscal_ingresos_no_hidroc_pib', 'fiscal_gastos_gc_pib', 'fiscal_inversion_publica_pib', 'fiscal_saldo_primario_gc_pib', 'fiscal_resultado_pdvsa_pib', 'fiscal_subsidios_hidroc_pib', 'fiscal_saldo_primario_spnf_pib', 'fiscal_ingresos_gc_usd', 'fiscal_ingresos_hidroc_usd', 'fiscal_regalias_usd', 'fiscal_iva_usd', 'fiscal_islr_usd', 'fiscal_aranceles_usd', 'fiscal_gastos_gc_usd', 'fiscal_salarios_usd', 'fiscal_saldo_primario_spnf_usd'):
+    PLAN[code] = (M, 800, "Cifras anuales del documento Plan Venezuela Renace (Vicepresidencia, nov-2026), en data/historico/renace_2026.csv. Solo historia (hasta 2025); se reemplazan cuando haya fuente oficial más reciente.")
 PLAN["henry_hub"] = (A, 4, "Spot diario de la EIA desde 1997 + futuro del primer mes para los días más recientes.")
 
 _KEYS = ["code", "category", "name_es", "name_en", "unit_es", "unit_en", "frequency", "source", "source_url", "decimals", "sort"]
