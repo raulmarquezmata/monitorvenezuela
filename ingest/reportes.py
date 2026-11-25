@@ -313,12 +313,20 @@ def build_html(info: dict, lang: str) -> str:
             tot_of += c["shares"] * c["close"] / rate_of / 1e6 if rate_of else 0
             rows += (f"<tr><td>{c['symbol']} ({class_label(c['symbol'], t, multi)})</td><td>{num(c['shares'], 0, lang)}</td><td>{num(c['close'], 2, lang)}</td>"
                      f"<td>{num(c['close'] / rate_par, 3, lang)}</td><td>{num(v, 1, lang)}</td></tr>")
+        listed = "".join(
+            (f"<div class='foot'>Capital total de la empresa (todas las clases): {num(c['shares'], 0, lang)} acciones. "
+             f"Cotizan en la BVC {num(c['listed'], 0, lang)} ({num(c['listed'] / c['shares'] * 100, 2, lang)}%); el resto no se negocia en bolsa. "
+             f"La valoración usa el capital total.</div>") if lang == "es" else
+            (f"<div class='foot'>Company's total share capital (all classes): {num(c['shares'], 0, lang)} shares. "
+             f"Listed on the BVC: {num(c['listed'], 0, lang)} ({num(c['listed'] / c['shares'] * 100, 2, lang)}%); the rest does not trade. "
+             f"Valuation uses total share capital.</div>")
+            for c in classes if c.get("listed") and c["listed"] != c["shares"])
         if len(classes) > 1:
             rows += f"<tr class='tot'><td>{t['total']}</td><td>{num(tot_sh, 0, lang)}</td><td></td><td></td><td>{num(tot_v, 1, lang)}</td></tr>"
         val = f"""<div class="val"><div><div class="k">{t['val']}</div><div class="big">US$ {num(tot_v, 1, lang)} MM</div>
 <div class="s">{t['par_note'].format(r=num(rate_par, 0 if rate_par > 100 else 2, lang), d=dshort(info['fx_date'], lang))}</div></div>
 <div><table><tr><th></th><th>{t['shares']}</th><th>{t['close']}</th><th>{t['usd_sh']}</th><th>{t['val_mm']}</th></tr>{rows}</table>
-{f"<div class='foot'>{t['at_off'].format(r=num(rate_of, 2, lang), v=num(tot_of, 1, lang))}</div>" if rate_of else ""}</div></div>"""
+{f"<div class='foot'>{t['at_off'].format(r=num(rate_of, 2, lang), v=num(tot_of, 1, lang))}</div>" if rate_of else ""}{listed}</div></div>"""
     kp = "".join(f"<div class='kpi'><div class='k'>{k}</div><div class='v'>{v}</div><div class='m'>{m}</div></div>" for k, v, m in kpis)
     c1 = chart_price(dates, bs, of, par, lang, t, may_i, sym)
     c2 = chart_fx(dates, info["of_raw"], info["par_raw"], lang)
@@ -434,7 +442,7 @@ def run(only: list[str] | None = None):
     with Run("reportes") as r:
         ensure_bucket(BUCKET)
         since = (dt.date.today() - dt.timedelta(days=120)).isoformat()
-        syms = select("bvc_symbols", {"select": "symbol,name,company,shares_outstanding", "market": "eq.RV"})
+        syms = select("bvc_symbols", {"select": "symbol,name,company,shares_outstanding,shares_total", "market": "eq.RV"})
         recent = {x["symbol"] for x in select("bvc_quotes", {"select": "symbol", "market": "eq.RV", "date": f"gte.{since}"})}
         fx = {c: [(x["date"], x["value"]) for x in select("observations", {"select": "date,value", "series_code": f"eq.{c}", "date": "gte.2024-12-01", "order": "date"})]
               for c in ("usd_bcv", "usd_paralelo", "ibc")}
@@ -458,7 +466,10 @@ def run(only: list[str] | None = None):
                 classes = []
                 for c in sorted(sib, key=lambda x: x["symbol"]):
                     last = select("bvc_quotes", {"select": "close", "symbol": f"eq.{c['symbol']}", "close": "gt.0", "order": "date.desc", "limit": 1})
-                    classes.append({"symbol": c["symbol"], "shares": c.get("shares_outstanding"), "close": last[0]["close"] if last else None})
+                    # capitalización con el capital total cuando solo cotiza una clase (CANTV); se informa también lo que cotiza
+                    classes.append({"symbol": c["symbol"], "shares": c.get("shares_total") or c.get("shares_outstanding"),
+                                    "listed": c.get("shares_outstanding") if c.get("shares_total") else None,
+                                    "close": last[0]["close"] if last else None})
                 name = (emp.get(sym) or {}).get("nombre") or pretty_name(s.get("company") or s.get("name") or sym)
                 info = prepare(sym, quotes, fx["usd_bcv"], fx["usd_paralelo"], s, classes, name)
                 if not info:
@@ -508,7 +519,7 @@ def mktcap_data(fx: dict) -> dict | None:
     if not fx.get("usd_paralelo") or not fx.get("usd_bcv"):
         return None
     par, of = fx["usd_paralelo"][-1], fx["usd_bcv"][-1]
-    syms = select("bvc_symbols", {"select": "symbol,name,company,shares_outstanding", "market": "eq.RV"})
+    syms = select("bvc_symbols", {"select": "symbol,name,company,shares_outstanding,shares_total", "market": "eq.RV"})
     latest = {x["symbol"]: x for x in select("bvc_latest", {"select": "date,symbol,close,shares_outstanding,market_cap_bs", "market": "eq.RV"})}
     emp = company_names()
     groups: dict[str, dict] = {}
@@ -519,7 +530,7 @@ def mktcap_data(fx: dict) -> dict | None:
         if not close:  # sin cotización en la última sesión: último cierre disponible
             q = select("bvc_quotes", {"select": "date,close", "symbol": f"eq.{sym}", "close": "gt.0", "order": "date.desc", "limit": 1})
             close, date = (q[0]["close"], q[0]["date"]) if q else (None, None)
-        sh = lt.get("shares_outstanding") or s_.get("shares_outstanding")
+        sh = s_.get("shares_total") or lt.get("shares_outstanding") or s_.get("shares_outstanding")  # capital total si solo cotiza una clase
         cap = close * sh if close and sh else None
         key = (s_.get("company") or sym).strip().upper()
         g = groups.setdefault(key, {"classes": [], "cap": 0.0, "shares": 0.0, "date": None, "nombre": None})
